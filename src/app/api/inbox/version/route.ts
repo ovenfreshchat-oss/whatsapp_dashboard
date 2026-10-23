@@ -1,4 +1,4 @@
-import { createStaffAdminClient, getStaffAdminAccess } from "@/server/auth/staff-users/admin";
+import { createStaffAdminClient, getStaffReadAccess } from "@/server/auth/staff-users/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 /** A tiny change token: it moves whenever any message or conversation is added or updated. */
 export async function GET(): Promise<Response> {
   const headers = { "Cache-Control": "no-store" };
-  if (await getStaffAdminAccess() !== "allowed") return new Response("Not allowed", { status: 403, headers });
+  if (await getStaffReadAccess() !== "allowed") return new Response("Not allowed", { status: 403, headers });
   const admin = createStaffAdminClient();
   if (!admin) return new Response("Unavailable", { status: 503, headers });
   const [messages, conversations] = await Promise.all([

@@ -1,4 +1,5 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { cache } from "react";
 import { createClient as createSessionClient } from "@/lib/supabase/server";
 
 export type StaffAdminAccess = "allowed" | "signed-out" | "forbidden";
@@ -27,6 +28,21 @@ export async function getStaffAdminAccess(): Promise<StaffAdminAccess> {
 
   return "allowed";
 }
+
+/**
+ * Read-only access check for page renders and polling. It verifies the signed session JWT
+ * locally (no Supabase Auth round trip, the proxy already refreshed the cookie), so it is
+ * much faster than getStaffAdminAccess(). Anything that sends, writes or changes data must
+ * keep using getStaffAdminAccess(), which asks Supabase Auth and honours revoked sessions.
+ */
+export const getStaffReadAccess = cache(async (): Promise<StaffAdminAccess> => {
+  const supabase = await createSessionClient();
+  const { data, error } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (error || !claims) return "signed-out";
+  const email = typeof claims.email === "string" ? claims.email : undefined;
+  return isStaffAdminEmail(email) ? "allowed" : "forbidden";
+});
 
 export function createStaffAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

@@ -82,42 +82,48 @@ export async function getThread(conversationId: string): Promise<InboxThread | n
   const admin = createStaffAdminClient();
   if (!identifiers || !admin) return null;
 
-  const { data: conversation, error } = await admin
-    .from("inbox_conversations")
-    .select(CONVERSATION_COLUMNS)
-    .eq("id", conversationId)
-    .eq("waba_id", identifiers.wabaId)
-    .eq("phone_number_id", identifiers.phoneNumberId)
-    .maybeSingle();
-  if (error || !conversation) return null;
-
-  const [messages, optOut, hold] = await Promise.all([
+  // Round 1: everything that only needs the conversation id. Round 2: what needs round 1.
+  const [convResult, messages, hold] = await Promise.all([
+    admin.from("inbox_conversations")
+      .select(CONVERSATION_COLUMNS)
+      .eq("id", conversationId)
+      .eq("waba_id", identifiers.wabaId)
+      .eq("phone_number_id", identifiers.phoneNumberId)
+      .maybeSingle(),
     admin.from("inbox_messages")
       .select("id,direction,message_type,body,status,error_summary,event_at,source_item_key,provider_message_id,media_id,media_name")
       .eq("conversation_id", conversationId)
       .order("event_at", { ascending: false })
       .order("id", { ascending: false })
       .limit(THREAD_LIMIT + 1),
-    admin.from("meta_opt_outs").select("identity_value")
-      .eq("waba_id", identifiers.wabaId).eq("phone_number_id", identifiers.phoneNumberId)
-      .eq("identity_value", (conversation as InboxConversation).wa_id).limit(1),
     admin.from("meta_sender_holds").select("phone_number_id")
       .eq("waba_id", identifiers.wabaId).eq("phone_number_id", identifiers.phoneNumberId)
       .is("released_at", null).limit(1),
   ]);
-  if (messages.error) return null;
+  const conversation = convResult.data;
+  if (convResult.error || !conversation || messages.error) return null;
+
+  const rows0 = (messages.data ?? []) as InboxMessage[];
+  const mediaKeys0 = rows0
+    .slice(0, THREAD_LIMIT)
+    .filter((m) => m.source_item_key && (m.message_type === "reaction" || (MEDIA_KINDS as readonly string[]).includes(m.message_type)))
+    .map((m) => m.source_item_key as string);
+  const [optOut, itemsResult] = await Promise.all([
+    admin.from("meta_opt_outs").select("identity_value")
+      .eq("waba_id", identifiers.wabaId).eq("phone_number_id", identifiers.phoneNumberId)
+      .eq("identity_value", (conversation as InboxConversation).wa_id).limit(1),
+    mediaKeys0.length > 0
+      ? admin.from("meta_webhook_items").select("dedupe_key,payload").in("dedupe_key", mediaKeys0)
+      : Promise.resolve({ data: [] as { dedupe_key: unknown; payload: unknown }[] }),
+  ]);
 
   const rows = (messages.data ?? []) as InboxMessage[];
   const truncated = rows.length > THREAD_LIMIT;
   const visible = rows.slice(0, THREAD_LIMIT);
 
   // Media details live in the stored webhook payload; the inbox row keeps only the text.
-  const mediaKeys = visible
-    .filter((m) => m.source_item_key && (m.message_type === "reaction" || (MEDIA_KINDS as readonly string[]).includes(m.message_type)))
-    .map((m) => m.source_item_key as string);
-  if (mediaKeys.length > 0) {
-    const { data: items } = await admin.from("meta_webhook_items")
-      .select("dedupe_key,payload").in("dedupe_key", mediaKeys);
+  if (mediaKeys0.length > 0) {
+    const items = itemsResult.data;
     const byKey = new Map((items ?? []).map((i) => [i.dedupe_key as string, i.payload as Record<string, unknown>]));
     for (const m of visible) {
       const payload = m.source_item_key ? byKey.get(m.source_item_key) : undefined;

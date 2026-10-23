@@ -69,7 +69,25 @@
 .threadTitle { min-width: 0; flex: 1 1 auto; }
 .threadTitle strong, .threadTitle span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Loading skeleton: shown in place of the thread while a conversation link is navigating. */
+.skeleton { display: none; flex: 1 1 auto; flex-direction: column; }
+.layout:has([data-pending]) .thread > :not(.skeleton) { display: none; }
+.layout:has([data-pending]) .skeleton { display: flex; }
+.skHeader { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #e9edf6; }
+.skHeader span { display: grid; gap: 7px; }
+.skBody { display: flex; flex: 1 1 auto; flex-direction: column; gap: 10px; padding: 16px 18px; min-height: 220px; }
+.skReply { padding: 12px 18px; border-top: 1px solid #e9edf6; }
+.skAvatar, .skLine, .skBubble { display: block; background: linear-gradient(90deg, #eceff7 25%, #f6f8fc 50%, #eceff7 75%); background-size: 200% 100%; animation: skShimmer 1.2s ease-in-out infinite; }
+.skAvatar { width: 34px; height: 34px; border-radius: 50%; }
+.skLine { height: 11px; border-radius: 6px; }
+.skBubble { height: 44px; border-radius: 14px; }
+.skOut { align-self: flex-end; }
+@keyframes skShimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skAvatar, .skLine, .skBubble { animation: none; } }
+
 @media (max-width: 860px) {
+  .layout:has([data-pending]) .list { display: none !important; }
+  .layout:has([data-pending]) .thread { display: flex !important; }
   .content { padding: 12px 2px 24px; }
   .intro { align-items: flex-start; flex-direction: column; }
   .introHideOnPhone { display: none; }

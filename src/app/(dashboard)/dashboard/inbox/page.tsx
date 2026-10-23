@@ -13,6 +13,7 @@ import {
 } from "@/server/inbox/format";
 import { getThread, listConversations, type InboxMessage } from "@/server/inbox/store";
 import { AutoRefresh, MarkRead, MessageList } from "./live";
+import { LinkPending } from "./link-pending";
 import { ReplyForm } from "./reply-form";
 import styles from "./inbox.module.css";
 
@@ -65,7 +66,7 @@ function Bubble({ message, timeZone }: { message: InboxMessage; timeZone: string
 export default async function InboxPage({ searchParams }: { searchParams: Promise<{ c?: string | string[] }> }) {
   const rawSelected = (await searchParams).c;
   const selectedId = typeof rawSelected === "string" && isUuid(rawSelected) ? rawSelected : null;
-  const timeZone = safeTimeZone(process.env.WHATSAPP_SEND_TIME_ZONE?.trim());
+  const timeZone = safeTimeZone(process.env.INBOX_TIME_ZONE?.trim() || process.env.WHATSAPP_SEND_TIME_ZONE?.trim());
 
   const [list, thread] = await Promise.all([
     listConversations(),
@@ -118,6 +119,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
                     </span>
                     <span className={styles.listPreview}>{item.last_message_preview ?? "—"}</span>
                   </span>
+                  <LinkPending />
                   {item.unread_count > 0 && <span className={styles.unread} aria-label={`${item.unread_count} unread`}>{item.unread_count > 99 ? "99+" : item.unread_count}</span>}
                 </Link>
               </li>;
@@ -130,7 +132,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
           {!selectedId && <p className={styles.placeholder}>Select a conversation to read and reply.</p>}
           {selectedId && !thread && <p className={styles.placeholder}>This conversation could not be loaded. It may not exist, or storage is unavailable.</p>}
           {thread && replyWin && <>
-            <MarkRead conversationId={thread.conversation.id} seenThrough={thread.conversation.last_message_at} />
+            {thread.conversation.unread_count > 0 && <MarkRead conversationId={thread.conversation.id} seenThrough={thread.conversation.last_message_at} />}
             <header className={styles.threadHeader}>
               <Link href="/dashboard/inbox" className={styles.backToList} aria-label="Back to conversations">←</Link>
               <div className={styles.threadTitle}>
@@ -147,6 +149,14 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
             </MessageList>
             <ReplyForm conversationId={thread.conversation.id} initialToken={randomUUID()} disabledReason={lockReason} />
           </>}
+          <div className={styles.skeleton} aria-hidden="true">
+            <div className={styles.skHeader}><i className={styles.skAvatar} /><span><i className={styles.skLine} style={{ width: 140 }} /><i className={styles.skLine} style={{ width: 90 }} /></span></div>
+            <div className={styles.skBody}>
+              {[["in", 55], ["in", 35], ["out", 45], ["in", 60], ["out", 30]].map(([side, w], index) =>
+                <i key={index} className={[styles.skBubble, side === "out" ? styles.skOut : ""].join(" ")} style={{ width: `${w}%` }} />)}
+            </div>
+            <div className={styles.skReply}><i className={styles.skLine} style={{ width: "100%", height: 38 }} /></div>
+          </div>
         </section>
       </section>}
     </div>

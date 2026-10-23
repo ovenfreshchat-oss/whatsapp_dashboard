@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { markConversationRead } from "./actions";
 
 /**
- * Near-live updates: checks a tiny change token every 2 seconds while the tab is visible and
+ * Near-live updates: checks a tiny change token every 4 seconds while the tab is visible and
  * reloads the inbox only when something changed (new message, delivery tick, unread count).
  */
-export function AutoRefresh({ intervalMs = 2_000 }: { intervalMs?: number }) {
+export function AutoRefresh({ intervalMs = 4_000 }: { intervalMs?: number }) {
   const router = useRouter();
   useEffect(() => {
     let last: string | null = null;
