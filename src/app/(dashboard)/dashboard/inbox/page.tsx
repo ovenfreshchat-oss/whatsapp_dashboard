@@ -1,0 +1,154 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { randomUUID } from "node:crypto";
+import { DashboardShell } from "@/components/layout/dashboard-shell";
+import {
+  conversationTitle,
+  formatPhone,
+  formatTime,
+  isUuid,
+  replyWindow,
+  safeTimeZone,
+  statusLabel,
+} from "@/server/inbox/format";
+import { getThread, listConversations, type InboxMessage } from "@/server/inbox/store";
+import { AutoRefresh, MarkRead, MessageList } from "./live";
+import { ReplyForm } from "./reply-form";
+import styles from "./inbox.module.css";
+
+export const metadata: Metadata = {
+  title: "WhatsApp inbox | The Oven Fresh",
+  description: "Read customer WhatsApp messages and reply within the 24-hour window.",
+};
+
+function MediaView({ id, media }: { id: string; media: NonNullable<InboxMessage["media"]> }) {
+  const src = `/api/inbox/media/${id}`;
+  if (media.kind === "image" || media.kind === "sticker") {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <a href={src} target="_blank" rel="noreferrer"><img className={styles.mediaImage} src={src} alt={media.kind} loading="lazy" /></a>;
+  }
+  if (media.kind === "video") return <video className={styles.mediaImage} src={src} controls preload="metadata" />;
+  if (media.kind === "audio") return <audio src={src} controls preload="none" />;
+  return <a className={styles.mediaFile} href={src} target="_blank" rel="noreferrer">Download {media.filename ?? "file"}</a>;
+}
+
+function Bubble({ message, timeZone }: { message: InboxMessage; timeZone: string }) {
+  const outbound = message.direction === "outbound";
+  const placeholder = message.body?.startsWith("[") && message.body.endsWith("]") && message.message_type !== "text";
+  return (
+    <li className={[styles.bubbleRow, outbound ? styles.rowOut : styles.rowIn].join(" ")}>
+      <div className={[styles.bubble, outbound ? styles.bubbleOut : styles.bubbleIn].join(" ")}>
+        {message.media && <MediaView id={message.id} media={message.media} />}
+        {message.message_type === "reaction" && (
+          <p className={styles.bubbleText}>
+            {message.reacted?.emoji ? <><span className={styles.reactionBig}>{message.reacted.emoji}</span> Reacted to a message</> : "Removed a reaction"}
+          </p>
+        )}
+        {message.message_type !== "reaction" && !(message.media && placeholder) && (
+          <p className={[styles.bubbleText, placeholder ? styles.bubblePlaceholder : ""].filter(Boolean).join(" ")}>
+            {message.body ?? "[empty message]"}
+          </p>
+        )}
+        {message.reaction && <span className={styles.reactionBadge}>{message.reaction}</span>}
+        <span className={styles.bubbleMeta}>
+          {formatTime(message.event_at, timeZone)}
+          {outbound && <b className={[styles.status, styles[`status_${message.status}`] ?? ""].join(" ")}> · {statusLabel(message.status)}</b>}
+        </span>
+        {outbound && (message.status === "failed" || message.status === "uncertain") && message.error_summary && (
+          <span className={styles.bubbleError}>{message.error_summary}</span>
+        )}
+      </div>
+    </li>
+  );
+}
+
+export default async function InboxPage({ searchParams }: { searchParams: Promise<{ c?: string | string[] }> }) {
+  const rawSelected = (await searchParams).c;
+  const selectedId = typeof rawSelected === "string" && isUuid(rawSelected) ? rawSelected : null;
+  const timeZone = safeTimeZone(process.env.WHATSAPP_SEND_TIME_ZONE?.trim());
+
+  const [list, thread] = await Promise.all([
+    listConversations(),
+    selectedId ? getThread(selectedId) : Promise.resolve(null),
+  ]);
+
+  const replyWin = thread ? replyWindow(thread.conversation.last_inbound_at) : null;
+  let lockReason: string | null = null;
+  if (thread && replyWin) {
+    if (thread.safety.optedOut) lockReason = "This customer has opted out. Replies are disabled.";
+    else if (thread.safety.senderHold) lockReason = "Sending is on hold after an opt-out. Review it on the Sender holds page.";
+    else if (thread.safety.unavailable) lockReason = "Safety checks are unavailable right now. Refresh to try again.";
+    else if (!replyWin.open) lockReason = "The 24-hour reply window has closed. WhatsApp only allows an approved template until the customer writes again.";
+  }
+
+  return <DashboardShell label="WhatsApp inbox" showMetaSetup>
+    <AutoRefresh />
+    <div className={styles.content}>
+      <div className={[styles.intro, selectedId ? styles.introHideOnPhone : ""].filter(Boolean).join(" ")}>
+        <div>
+          <span className={styles.eyebrow}>CUSTOMERS / INBOX</span>
+          <h1>WhatsApp inbox<span>.</span></h1>
+          <p>Customer messages arrive here from the signed webhook. Free-text replies are allowed for 24 hours after a customer&apos;s last message.</p>
+        </div>
+        <Link href={selectedId ? `/dashboard/inbox?c=${selectedId}` : "/dashboard/inbox"} className={styles.refreshLink}>Refresh ↻</Link>
+      </div>
+
+      {!list.ready && <section className={styles.notice}>
+        <strong>{list.reason === "not-configured" ? "Meta sender configuration is incomplete." : "Inbox storage is unavailable."}</strong>
+        <p>{list.reason === "not-configured"
+          ? "Complete the Meta and Supabase server settings to read customer messages."
+          : <>Apply <code>drizzle/0006_inbox.sql</code> to the configured Supabase database.</>}</p>
+      </section>}
+
+      {list.ready && <section className={[styles.layout, selectedId ? styles.layoutThreadOpen : ""].filter(Boolean).join(" ")} aria-label="Inbox">
+        <nav className={styles.list} aria-label="Conversations">
+          <div className={styles.listHeading}><strong>Conversations</strong><span>{list.total}</span></div>
+          {list.conversations.length === 0 && <p className={styles.empty}>No customer messages yet. They appear here after a customer writes to your WhatsApp number.</p>}
+          <ul>
+            {list.conversations.map((item) => {
+              const active = item.id === selectedId;
+              return <li key={item.id}>
+                <Link href={`/dashboard/inbox?c=${item.id}`} aria-current={active ? "true" : undefined}
+                  className={[styles.listItem, active ? styles.listItemActive : ""].filter(Boolean).join(" ")}>
+                  <span className={styles.avatar} aria-hidden="true">{conversationTitle(item.profile_name, item.wa_id).replace(/^\+/, "").charAt(0).toUpperCase()}</span>
+                  <span className={styles.listBody}>
+                    <span className={styles.listTop}>
+                      <strong>{conversationTitle(item.profile_name, item.wa_id)}</strong>
+                      <time dateTime={item.last_message_at}>{formatTime(item.last_message_at, timeZone, { withDate: false })}</time>
+                    </span>
+                    <span className={styles.listPreview}>{item.last_message_preview ?? "—"}</span>
+                  </span>
+                  {item.unread_count > 0 && <span className={styles.unread} aria-label={`${item.unread_count} unread`}>{item.unread_count > 99 ? "99+" : item.unread_count}</span>}
+                </Link>
+              </li>;
+            })}
+          </ul>
+          {list.total > list.conversations.length && <p className={styles.more}>Showing the {list.conversations.length} most recent conversations.</p>}
+        </nav>
+
+        <section className={styles.thread} aria-label="Conversation thread">
+          {!selectedId && <p className={styles.placeholder}>Select a conversation to read and reply.</p>}
+          {selectedId && !thread && <p className={styles.placeholder}>This conversation could not be loaded. It may not exist, or storage is unavailable.</p>}
+          {thread && replyWin && <>
+            <MarkRead conversationId={thread.conversation.id} seenThrough={thread.conversation.last_message_at} />
+            <header className={styles.threadHeader}>
+              <Link href="/dashboard/inbox" className={styles.backToList} aria-label="Back to conversations">←</Link>
+              <div className={styles.threadTitle}>
+                <strong>{conversationTitle(thread.conversation.profile_name, thread.conversation.wa_id)}</strong>
+                <span>{formatPhone(thread.conversation.wa_id)}</span>
+              </div>
+              <span className={[styles.windowPill, replyWin.open ? styles.windowOpen : styles.windowClosed].join(" ")}>
+                {thread.safety.optedOut ? "Opted out" : replyWin.open ? `Reply window open · ${replyWin.remainingLabel} left` : "Reply window closed"}
+              </span>
+            </header>
+            {thread.truncated && <p className={styles.more}>Showing the latest 200 messages.</p>}
+            <MessageList conversationId={thread.conversation.id} className={styles.messages}>
+              {thread.messages.map((message) => <Bubble key={message.id} message={message} timeZone={timeZone} />)}
+            </MessageList>
+            <ReplyForm conversationId={thread.conversation.id} initialToken={randomUUID()} disabledReason={lockReason} />
+          </>}
+        </section>
+      </section>}
+    </div>
+  </DashboardShell>;
+}

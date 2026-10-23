@@ -1,0 +1,73 @@
+.content { display: grid; gap: 18px; padding: 16px 12px 32px; color: #3d4960; }
+.backLink { width: fit-content; color: #5959b7; font-size: 11px; font-weight: 750; text-decoration: none; }
+.backLink:hover { text-decoration: underline; }
+.backLink:focus-visible, .button:focus-visible, .secondaryButton:focus-visible { outline: 3px solid rgba(89,89,183,.35); outline-offset: 3px; }
+.intro { display: flex; align-items: end; justify-content: space-between; gap: 18px; }
+.eyebrow { color: #7371b9; font-size: 9px; font-weight: 850; letter-spacing: .15em; }
+.intro h1 { margin: 7px 0 5px; color: #34384f; font-size: clamp(26px,3vw,36px); line-height: 1.1; letter-spacing: -.05em; }
+.intro h1 span { color: #645ad2; }
+.intro p, .muted, .empty, .notice p { margin: 0; color: #8693a8; font-size: 11px; line-height: 1.55; }
+.countPill { padding: 8px 11px; border-radius: 99px; color: #5552c0; background: #ececff; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.panel, .notice { min-width: 0; border: 1px solid rgba(255,255,255,.85); border-radius: 18px; padding: 17px; background: linear-gradient(146deg,rgba(255,255,255,.9),rgba(245,249,255,.69)); box-shadow: 0 11px 30px rgba(77,103,150,.08),inset 0 1px rgba(255,255,255,.8); }
+.notice { background: linear-gradient(130deg,#f3f0ff,#eef8ff); }
+.notice strong { display: block; margin-bottom: 4px; font-size: 13px; }
+.panelHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.panelHeading h2 { margin: 5px 0 0; color: #353c52; font-size: 16px; letter-spacing: -.03em; }
+.panelHeading > span { color: #8d9aaf; font-size: 10px; }
+.stack { display: grid; gap: 14px; }
+.fileRow { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; }
+.fieldGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 11px; }
+.field { display: grid; min-width: 0; gap: 5px; color: #58647a; font-size: 10px; font-weight: 750; }
+.field input, .field select, .field textarea { min-width: 0; width: 100%; border: 1px solid #dce3f3; border-radius: 9px; padding: 8px 9px; color: #3d4960; background: #fff; font: inherit; font-weight: 500; }
+.field input[type=file] { max-width: 360px; }
+.field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible { outline: 2px solid rgba(89,89,183,.35); outline-offset: 1px; }
+.button, .secondaryButton { width: fit-content; min-height: 34px; border: 1px solid #4d48b8; border-radius: 9px; padding: 8px 12px; color: #fff; background: linear-gradient(120deg,#5955d1,#3933aa); font: inherit; font-size: 10px; font-weight: 800; cursor: pointer; }
+.secondaryButton { border-color: #d4d9e9; color: #555e78; background: #fff; }
+.button:disabled, .secondaryButton:disabled { opacity: .5; cursor: not-allowed; }
+.button:not(:disabled):hover, .secondaryButton:not(:disabled):hover { filter: brightness(1.07); }
+.tableWrap { max-width: 100%; overflow: auto; border: 1px solid #e6ebf6; border-radius: 10px; }
+.tableWrap table { width: 100%; border-collapse: collapse; font-size: 10px; }
+.tableWrap th, .tableWrap td { padding: 9px 10px; border-bottom: 1px solid #ecf0f7; text-align: left; vertical-align: top; white-space: nowrap; }
+.tableWrap th { color: #7d89a0; background: #f5f7fc; font-weight: 800; }
+.tableWrap td { color: #526079; }
+.statGrid { display: flex; flex-wrap: wrap; gap: 8px; }
+.statGrid span { display: inline-flex; align-items: baseline; gap: 4px; border-radius: 9px; padding: 8px 10px; color: #5b6680; background: #f1f4fb; font-size: 10px; }
+.statGrid strong { color: #544dc4; font-size: 16px; }
+.check { display: flex; align-items: center; gap: 7px; color: #56627b; font-size: 11px; }
+.check input { accent-color: #5955d1; }
+.error, .success { margin: 0; border-radius: 9px; padding: 9px 11px; font-size: 11px; line-height: 1.45; }
+.error { color: #9d3650; background: #fff0f3; }
+.success { color: #0a816f; background: #e4f8f2; }
+.twoColumn { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(0,1fr); gap: 12px; align-items: start; }
+.claimList, .batchList { display: grid; gap: 10px; margin-top: 14px; }
+.claimCard { display: grid; gap: 10px; border: 1px solid #e6ebf5; border-radius: 12px; padding: 12px; background: rgba(255,255,255,.6); }
+.claimTop { display: flex; justify-content: space-between; gap: 8px; }
+.claimTop strong { font-size: 12px; }
+.claimTop small { color: #8b98ac; font-size: 10px; }
+.claimFacts { display: grid; gap: 4px; margin: 0; }
+.claimFacts div { display: flex; gap: 8px; font-size: 10px; }
+.claimFacts dt { min-width: 75px; color: #8b98ac; }
+.claimFacts dd { margin: 0; overflow-wrap: anywhere; }
+.reviewForm { display: grid; gap: 8px; }
+.reviewActions { display: flex; flex-wrap: wrap; gap: 7px; }
+.batchRow { display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid #e9edf7; padding-top: 9px; font-size: 10px; }
+.batchRow strong, .batchRow small { display: block; }
+.batchRow small, .batchRow > span { color: #8b98ac; }
+.batchRow > span { text-align: right; }
+.batchRow > div:last-child { display: grid; justify-items: end; gap: 4px; text-align: right; }
+.empty { padding: 15px 0 4px; }
+.searchForm { display: flex; align-items: end; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.searchForm .field { min-width: min(280px,100%); }
+.contactLink { color: #5959b7; font-weight: 750; text-decoration: none; }
+.contactLink:hover { text-decoration: underline; }
+.recordForm { display: grid; gap: 12px; }
+.eventList { display: grid; gap: 8px; }
+.eventRow { display: flex; justify-content: space-between; gap: 15px; border-top: 1px solid #e9edf7; padding-top: 10px; }
+.eventRow strong, .eventRow small { display: block; }
+.eventRow strong { font-size: 11px; }
+.eventRow small, .eventRow p { color: #8b98ac; font-size: 10px; line-height: 1.5; }
+.eventRow p { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 650px) { .eventRow { flex-direction: column; } }
+@media (max-width: 1050px) { .twoColumn { grid-template-columns: 1fr; } }
+@media (max-width: 740px) { .intro { align-items: start; flex-direction: column; } .fieldGrid { grid-template-columns: repeat(2,minmax(0,1fr)); } .claimTop { flex-direction: column; } }
+@media (max-width: 520px) { .fieldGrid { grid-template-columns: 1fr; } }

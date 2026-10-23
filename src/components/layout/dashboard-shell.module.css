@@ -1,0 +1,246 @@
+.page {
+  min-height: 100svh;
+  padding: 8px;
+  background:
+    radial-gradient(circle at 0 20%, rgba(182, 215, 238, .72), transparent 38%),
+    radial-gradient(circle at 96% 13%, rgba(185, 222, 249, .72), transparent 30%),
+    radial-gradient(circle at 74% 92%, rgba(212, 202, 255, .42), transparent 38%),
+    #f4f8fc;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: clamp(148px, 16vw, 214px) minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  min-height: calc(100svh - 16px);
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  position: sticky;
+  top: 8px;
+  min-height: calc(100svh - 16px);
+  padding: 12px 10px;
+  border: 1px solid rgba(255, 255, 255, .88);
+  border-radius: 18px;
+  background: linear-gradient(150deg, rgba(217, 233, 244, .76), rgba(255, 255, 255, .72) 45%, rgba(255, 255, 255, .6));
+  box-shadow: 0 14px 34px rgba(71, 97, 143, .09), inset 0 1px rgba(255, 255, 255, .64);
+  backdrop-filter: blur(20px) saturate(1.2);
+}
+
+.brandWrap {
+  display: flex;
+  align-items: center;
+  min-height: 54px;
+  padding: 2px 2px 13px;
+  border-bottom: 1px solid rgba(158, 185, 210, .3);
+}
+
+.brandWrap .sidebarBrand {
+  gap: 7px;
+}
+
+.brandWrap .sidebarBrand > span:first-child {
+  width: 34px;
+  height: 34px;
+}
+
+.brandWrap .sidebarBrand strong {
+  font-size: 13px;
+}
+
+.navigation {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding-top: 23px;
+}
+
+.navCaption {
+  padding: 0 10px 8px;
+  color: #8998aa;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+
+.navItem,
+.navItemMuted {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  color: #47566d;
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.navItem:hover {
+  background: rgba(255, 255, 255, .56);
+}
+
+.navItem:focus-visible {
+  outline: 3px solid rgba(69, 79, 199, .3);
+  outline-offset: 2px;
+}
+
+.navItemActive {
+  border-color: rgba(255, 255, 255, .86);
+  color: #383ca3;
+  background: rgba(255, 255, 255, .8);
+  box-shadow: 0 7px 16px rgba(77, 102, 142, .12);
+}
+
+.navItemMuted {
+  color: #79879a;
+  cursor: default;
+}
+
+.navIcon {
+  display: inline-grid;
+  flex: 0 0 16px;
+  place-items: center;
+  color: currentColor;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.sidebarFooter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding: 14px 7px 3px;
+  border-top: 1px solid rgba(158, 185, 210, .3);
+  color: #8794a6;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.footerSparkle {
+  color: #6665d7;
+  font-size: 15px;
+}
+
+.workspace {
+  min-width: 0;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 50px;
+  padding: 6px 8px 8px;
+}
+
+.topbarTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: #65758d;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.topbarDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6264da;
+  box-shadow: 0 0 0 4px rgba(98, 100, 218, .12);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.headerActions form {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .topbarTitle {
+    display: none;
+  }
+
+  .topbar {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 700px) {
+  .page {
+    padding: 8px;
+  }
+
+  .shell {
+    display: block;
+  }
+
+  .sidebar {
+    position: static;
+    min-height: 0;
+    padding: 8px 10px;
+  }
+
+  .brandWrap {
+    min-height: 42px;
+    padding: 0;
+    border: 0;
+  }
+
+  /* A swipeable row of tabs instead of a tall stack of links. */
+  .navigation {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    padding-top: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .navItem {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .navCaption,
+  .navItemMuted,
+  .sidebarFooter {
+    display: none;
+  }
+
+  .navItem {
+    width: fit-content;
+    min-height: 40px;
+    padding: 0 10px;
+  }
+
+  .topbar {
+    justify-content: flex-start;
+    padding: 10px 2px;
+  }
+
+  .headerActions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}

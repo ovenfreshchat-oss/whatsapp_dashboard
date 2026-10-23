@@ -1,0 +1,512 @@
+.addUserLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 35px;
+  padding: 0 13px;
+  border: 1px solid rgba(63, 58, 184, .3);
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(120deg, #5955d1, #3933aa);
+  box-shadow: 0 7px 17px rgba(63, 59, 161, .2);
+  font-size: 11px;
+  font-weight: 750;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.addUserLink:hover {
+  filter: brightness(1.07);
+}
+
+.addUserLink:focus-visible {
+  outline: 3px solid rgba(67, 66, 201, .35);
+  outline-offset: 3px;
+}
+
+.content {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  padding: 15px 12px 28px;
+}
+
+.headingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 63px;
+}
+
+.eyebrow {
+  color: #5e61b5;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+
+.headingRow h1 {
+  margin: 5px 0 3px;
+  color: #292d40;
+  font-size: clamp(20px, 1.8vw, 27px);
+  font-weight: 750;
+  letter-spacing: -.045em;
+  line-height: 1.1;
+}
+
+.headingRow p {
+  margin: 0;
+  color: #8791a4;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.activeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, .8);
+  border-radius: 999px;
+  color: #46616c;
+  background: rgba(255, 255, 255, .63);
+  box-shadow: 0 5px 17px rgba(110, 136, 165, .08);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.activeBadge i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2ac4b3;
+  box-shadow: 0 0 0 3px rgba(42, 196, 179, .15);
+}
+
+.metrics,
+.systems,
+.lowerGrid {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+}
+
+.metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.metricCard,
+.systemCard,
+.setupPanel,
+.accessPanel {
+  border: 1px solid rgba(255, 255, 255, .82);
+  background: rgba(255, 255, 255, .67);
+  box-shadow: 0 7px 22px rgba(78, 109, 157, .09), inset 0 1px 0 rgba(255, 255, 255, .7);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.metricCard {
+  display: grid;
+  align-content: space-between;
+  min-width: 0;
+  min-height: 96px;
+  padding: 12px 13px;
+  border-radius: 15px;
+}
+
+.metricTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+  color: #6b7487;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.metricIcon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  margin-top: -2px;
+  border-radius: 9px;
+  color: #5148b6;
+  background: #d9d2fb;
+}
+
+.metricCard:nth-child(2) .metricIcon {
+  color: #3378cc;
+  background: #d6e9ff;
+}
+
+.metricCard:nth-child(3) .metricIcon {
+  color: #159eaa;
+  background: #cdf7f4;
+}
+
+.metricCard:nth-child(4) .metricIcon {
+  color: #32995f;
+  background: #d9f4df;
+}
+
+.metricIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.metricCard strong {
+  overflow: hidden;
+  color: #333748;
+  font-size: clamp(23px, 2.15vw, 31px);
+  font-weight: 650;
+  letter-spacing: -.055em;
+  line-height: 1;
+  text-overflow: ellipsis;
+}
+
+.metricCard small {
+  overflow: hidden;
+  color: #929eb0;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.systems {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.systemCard {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 71px;
+  gap: 10px;
+  padding: 12px 13px;
+  border-radius: 15px;
+}
+
+.systemMark {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 31px;
+  height: 31px;
+  border-radius: 10px;
+  color: #c38c2e;
+  background: #ffecd0;
+  font-size: 17px;
+}
+
+.systemCard:nth-child(2) .systemMark {
+  color: #6753b9;
+  background: #e9e0fc;
+}
+
+.systemCard:nth-child(3) .systemMark {
+  color: #3186b8;
+  background: #dff1ff;
+}
+
+.systemCard > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.systemCard strong {
+  overflow: hidden;
+  color: #3b4052;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.systemCard small {
+  overflow: hidden;
+  color: #96a0b0;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.systemCard a,
+.stepCopy a {
+  color: #5553bd;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.systemCard a:focus-visible,
+.stepCopy a:focus-visible {
+  outline: 2px solid #5553bd;
+  outline-offset: 2px;
+}
+
+.ready,
+.pending {
+  margin-left: auto;
+  color: #13a799;
+  font-size: 9px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.pending {
+  color: #9793ab;
+}
+
+.lowerGrid {
+  grid-template-columns: minmax(0, 2fr) minmax(210px, 1fr);
+  align-items: stretch;
+}
+
+.setupPanel,
+.accessPanel {
+  min-width: 0;
+  min-height: 274px;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.setupPanel {
+  padding: 15px;
+  background:
+    radial-gradient(circle at 52% 73%, rgba(116, 188, 226, .19), transparent 43%),
+    rgba(255, 255, 255, .72);
+}
+
+.accessPanel {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 15px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(122, 205, 239, .24), transparent 52%),
+    rgba(255, 255, 255, .74);
+}
+
+.panelHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+}
+
+.panelHeading h2 {
+  margin: 0 0 5px;
+  color: #373c50;
+  font-size: 14px;
+  font-weight: 750;
+  letter-spacing: -.025em;
+}
+
+.panelHeading p {
+  margin: 0;
+  color: #9ca5b5;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.panelHeading > span {
+  padding: 6px 8px;
+  border-radius: 7px;
+  color: #4540a6;
+  background: #eeeeff;
+  font-size: 9px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.setupSteps {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.setupSteps li {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 56px;
+  gap: 12px;
+  padding: 8px 11px;
+  border: 1px solid rgba(220, 230, 246, .74);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .63);
+}
+
+.stepNumber {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  border-radius: 9px;
+  color: #5e57b9;
+  background: #ebe9fc;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.completeStep .stepNumber {
+  color: #fff;
+  background: linear-gradient(145deg, #6b65e4, #4340bc);
+}
+
+.stepCopy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.stepCopy strong {
+  color: #3e4359;
+  font-size: 10px;
+}
+
+.stepCopy small {
+  overflow: hidden;
+  color: #99a3b3;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stepState {
+  margin-left: auto;
+  color: #9b9aad;
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.completeStep .stepState {
+  color: #15ab9c;
+}
+
+.progressRing {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 138px;
+  height: 138px;
+  margin: 12px auto 11px;
+  border-radius: 50%;
+  background: conic-gradient(#5d51d2 0 33%, #57c6e8 33% 36%, rgba(206, 223, 238, .6) 36% 100%);
+  box-shadow: 0 8px 25px rgba(80, 114, 187, .13);
+}
+
+.progressRing > div {
+  display: grid;
+  place-content: center;
+  place-items: center;
+  width: 102px;
+  height: 102px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .93);
+}
+
+.progressRing strong {
+  color: #3a369f;
+  font-size: 21px;
+  letter-spacing: -.04em;
+}
+
+.progressRing span {
+  color: #929cae;
+  font-size: 10px;
+}
+
+.accountInfo {
+  display: grid;
+  justify-items: center;
+  width: 100%;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(211, 225, 238, .7);
+  text-align: center;
+}
+
+.accountInfo span,
+.accountInfo small {
+  color: #93a0b1;
+  font-size: 9px;
+}
+
+.accountInfo strong {
+  max-width: 100%;
+  overflow: hidden;
+  color: #444a61;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1000px) {
+  .systemCard {
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .systemCard > div {
+    flex: 1 1 auto;
+  }
+
+  .ready,
+  .pending {
+    width: 100%;
+    margin-left: 41px;
+  }
+}
+
+@media (max-width: 760px) {
+  .content {
+    padding: 12px;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .systems {
+    grid-template-columns: 1fr;
+  }
+
+  .systemCard {
+    flex-wrap: nowrap;
+    min-height: 59px;
+  }
+
+  .ready,
+  .pending {
+    width: auto;
+    margin-left: auto;
+  }
+
+  .lowerGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 430px) {
+  .activeBadge {
+    display: none;
+  }
+
+  .metricCard {
+    min-height: 90px;
+  }
+
+  .stepCopy small {
+    white-space: normal;
+  }
+}

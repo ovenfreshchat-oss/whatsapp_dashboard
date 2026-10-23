@@ -1,0 +1,306 @@
+.content {
+  display: grid;
+  gap: 16px;
+  padding: 15px 12px 28px;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  color: #657494;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: #4445b7;
+}
+
+.backLink:focus-visible {
+  border-radius: 3px;
+  outline: 3px solid rgba(67, 66, 201, .3);
+  outline-offset: 4px;
+}
+
+.backLink span {
+  font-size: 17px;
+  line-height: 0;
+}
+
+.intro {
+  margin: 2px 0 1px;
+}
+
+.eyebrow,
+.cardEyebrow,
+.infoLabel {
+  color: #5357bb;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .15em;
+}
+
+.intro h1 {
+  margin: 10px 0 7px;
+  color: #30334c;
+  font-size: clamp(32px, 3.4vw, 46px);
+  letter-spacing: -.06em;
+  line-height: 1.08;
+}
+
+.intro h1 span {
+  color: #5153c7;
+}
+
+.intro p {
+  margin: 0;
+  color: #697994;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(290px, .8fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.formCard,
+.infoCard {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 21px;
+  box-shadow: 0 10px 34px rgba(96, 112, 158, .08);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.formCard {
+  padding: 25px 28px 29px;
+  background: rgba(255, 255, 255, .7);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e6ebf4;
+}
+
+.cardIcon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 39px;
+  height: 39px;
+  border-radius: 12px;
+  color: #5151c6;
+  background: #ececff;
+  font-size: 22px;
+}
+
+.cardHeader h2 {
+  margin: 4px 0 0;
+  color: #34364e;
+  font-size: 18px;
+  letter-spacing: -.035em;
+}
+
+.form {
+  display: grid;
+  gap: 18px;
+  padding-top: 22px;
+}
+
+.setupMessage {
+  margin: 22px 0 0;
+  padding: 14px 16px;
+  border: 1px solid #e2d9b8;
+  border-radius: 10px;
+  color: #6b5e35;
+  background: #fffaf0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.passwordFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.fieldHint {
+  margin: -9px 0 -5px;
+  color: #8794a9;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.errorMessage,
+.successMessage {
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.errorMessage {
+  border: 1px solid #f0cbd5;
+  color: #a92e50;
+  background: #fff1f5;
+}
+
+.successMessage {
+  border: 1px solid #bde2d8;
+  color: #196f60;
+  background: #ecfaf5;
+}
+
+.infoCard {
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+  padding: 29px 28px 25px;
+  background: linear-gradient(141deg, rgba(214, 231, 249, .84), rgba(234, 246, 251, .68) 55%, rgba(217, 217, 249, .77));
+}
+
+.infoGlow {
+  position: absolute;
+  top: -130px;
+  right: -95px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .63);
+  filter: blur(35px);
+  pointer-events: none;
+}
+
+.infoCard > :not(.infoGlow) {
+  position: relative;
+}
+
+.infoCard h2 {
+  margin: 14px 0 14px;
+  color: #34364f;
+  font-size: clamp(30px, 3vw, 40px);
+  letter-spacing: -.065em;
+  line-height: 1.09;
+}
+
+.infoCard h2 em {
+  color: #5354c3;
+  font-style: normal;
+}
+
+.infoCard > p {
+  max-width: 310px;
+  margin: 0;
+  color: #62718e;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.infoDivider {
+  height: 1px;
+  margin: 23px 0 19px;
+  background: rgba(255, 255, 255, .82);
+}
+
+.infoList {
+  display: grid;
+  gap: 17px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.infoList li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.infoList li > span {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 8px;
+  color: #5151bd;
+  background: rgba(255, 255, 255, .63);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.infoList li div {
+  display: grid;
+  gap: 3px;
+  padding-top: 1px;
+}
+
+.infoList strong {
+  color: #4c5572;
+  font-size: 12px;
+}
+
+.infoList small {
+  color: #798ba7;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.infoFooter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 25px;
+  color: #7083a2;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.infoFooter span {
+  color: #5354c3;
+  font-size: 17px;
+}
+
+@media (max-width: 860px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+
+  .infoCard {
+    min-height: auto;
+  }
+
+  .infoFooter {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 580px) {
+  .content {
+    padding: 12px;
+  }
+
+  .formCard {
+    padding: 22px;
+  }
+
+  .passwordFields {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}
