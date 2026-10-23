@@ -21,3 +21,5 @@ Ambiguous inbound opt-out language creates a sender-wide hold and one `meta_ambi
 - `0008_send_to_any_saved_number.sql`: any saved number can receive campaigns (no consent-event or sender-hold check; STOP replies and active suppressions are still skipped). Adds `contact_batch_members` so "Selected import" audiences work. Apply after 0007. Check: `tests/unit/send-any-number-check.sql`.
 
 - `0010_opt_out_numbers.sql`: adds `opt_out_numbers` (do-not-contact list, managed at `/dashboard/opt-outs`) with `add_opt_out_numbers` / `release_opt_out_number`, and updates `can_send_whatsapp_marketing` so listed numbers are left out of every campaign draft and are rechecked by the worker's send gate right before each message (marked `suppressed`). Numbers need not be saved contacts. Apply after 0008/0009. Check: `tests/unit/opt-out-check.sql`.
+
+- `0011_campaign_worker_lease.sql`: single-sender lease (`acquire_campaign_worker_lease` / `release_campaign_worker_lease`) and `campaign_worker_status`, used by the Vercel Workflow sender in `src/workflows/campaign-send.ts`. Apply after 0010 on any project that sends from Vercel. Check: `tests/unit/worker-lease-check.sql`.

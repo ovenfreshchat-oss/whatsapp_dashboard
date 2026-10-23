@@ -13,6 +13,7 @@ import {
   scheduleCampaign,
 } from "@/server/campaigns/admin";
 import { CampaignStoreError } from "@/server/campaigns/store";
+import { startCampaignSendWorkflow } from "@/server/campaigns/start-send";
 import { MetaApiError } from "@/server/meta/client";
 
 export type CampaignActionState = { error: string; success: string };
@@ -120,12 +121,22 @@ export async function transitionCampaignAction(
   } catch (error) {
     return { error: safeError(error), success: "" };
   }
+  // On Vercel this starts the sender run (a no-op locally, where `npm run worker` sends). A failure
+  // here must not undo the transition: the campaign stays scheduled and the next start picks it up.
+  let senderNote = "";
+  if (intent === "schedule" || intent === "send_now" || intent === "resume") {
+    try {
+      await startCampaignSendWorkflow();
+    } catch {
+      senderNote = " The sender could not be started automatically; try Resume again in a minute.";
+    }
+  }
   revalidatePath("/dashboard/campaigns");
   revalidatePath(`/dashboard/campaigns/${campaignId}`);
   return {
     error: "",
-    success: intent === "send_now"
-      ? "Campaign queued. The worker starts sending within a minute if it is running and inside its sending window."
-      : "Campaign updated.",
+    success: (intent === "send_now"
+      ? "Campaign queued. Sending starts within a minute inside the sending window."
+      : "Campaign updated.") + senderNote,
   };
 }
