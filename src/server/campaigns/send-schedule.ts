@@ -14,6 +14,21 @@ export function hasPendingWork(status: WorkerStatus): boolean {
   return status.running_pending || status.in_flight || status.next_scheduled_at !== null;
 }
 
+/**
+ * While the send throttle is cooling down, never wake the workflow before the cooldown ends.
+ * `throttledUntil` is the ISO time the tick reported (undefined when not throttled).
+ */
+export function applyThrottleWait(
+  waitMs: number | null,
+  throttledUntil: string | undefined,
+  now: Date = new Date(),
+): number | null {
+  if (waitMs === null || !throttledUntil) return waitMs;
+  const until = Date.parse(throttledUntil);
+  if (!Number.isFinite(until) || until <= now.getTime()) return waitMs;
+  return Math.max(waitMs, clamp(until - now.getTime()));
+}
+
 function clamp(ms: number): number {
   return Math.min(MAX_WAIT_MS, Math.max(MIN_WAIT_MS, Math.ceil(ms)));
 }

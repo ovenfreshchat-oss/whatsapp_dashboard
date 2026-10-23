@@ -24,7 +24,7 @@ const environmentNames = [
   "WHATSAPP_SENDS_ENABLED", "WHATSAPP_SEND_TIME_ZONE", "WHATSAPP_SEND_WINDOW_START",
   "WHATSAPP_SEND_WINDOW_END", "WHATSAPP_SEND_DAYS", "WHATSAPP_WORKER_BATCH_SIZE",
   "WHATSAPP_MIN_INTERVAL_MS", "META_APP_ID", "META_APP_SECRET",
-  "META_WEBHOOK_VERIFY_TOKEN",
+  "META_WEBHOOK_VERIFY_TOKEN", "WHATSAPP_THROTTLE_BATCH", "WHATSAPP_THROTTLE_COOLDOWN_MINUTES",
 ];
 
 function withEnvironment(values, run) {
@@ -63,9 +63,11 @@ class MetaApiError extends Error {
 
 class CampaignStoreError extends Error {}
 
-function workerFixture({ gateSequence = ["allowed", "allowed"], subscribed = true, send } = {}) {
+function workerFixture({ gateSequence = ["allowed", "allowed"], subscribed = true, send, throttle } = {}) {
   const records = [];
   const calls = [];
+  const claimArgs = [];
+  const throttleCalls = [];
   const recipient = {
     id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
     campaign_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
@@ -88,7 +90,14 @@ function workerFixture({ gateSequence = ["allowed", "allowed"], subscribed = tru
   const store = {
     rpc: async (name, args) => {
       calls.push(name);
-      if (name === "claim_whatsapp_campaign_recipients") return { data: [recipient], error: null };
+      if (name === "campaign_send_throttle") {
+        throttleCalls.push(args);
+        return { data: throttle ?? { allowed: 99, wait_until: null }, error: null };
+      }
+      if (name === "claim_whatsapp_campaign_recipients") {
+        claimArgs.push(args);
+        return { data: [recipient], error: null };
+      }
       if (name === "whatsapp_campaign_send_gate") {
         const gate = gateSequence[Math.min(gateIndex, gateSequence.length - 1)];
         gateIndex += 1;
@@ -136,7 +145,7 @@ function workerFixture({ gateSequence = ["allowed", "allowed"], subscribed = tru
       }),
     },
   });
-  return { worker, records, calls };
+  return { worker, records, calls, claimArgs, throttleCalls };
 }
 
 test("worker refuses to claim without an explicit send policy", async () => {
@@ -243,3 +252,75 @@ test("worker forwards headerMediaUrl to sendApprovedMarketingTemplate", async ()
   });
 });
 
+test("no throttle by default: the throttle is not consulted and the claim uses the batch size", async () => {
+  await withEnvironment({ ...enabledEnvironment, WHATSAPP_WORKER_BATCH_SIZE: "5" }, async () => {
+    const fixture = workerFixture();
+    const tick = await fixture.worker.runCampaignWorkerTick();
+    assert.equal(fixture.throttleCalls.length, 0);
+    assert.equal(fixture.claimArgs[0].p_limit, 5);
+    assert.equal(tick.throttledUntil, undefined);
+  });
+});
+
+test("throttle caps the claim to the remaining allowance in the current batch", async () => {
+  const env = { ...enabledEnvironment, WHATSAPP_WORKER_BATCH_SIZE: "5",
+    WHATSAPP_THROTTLE_BATCH: "15", WHATSAPP_THROTTLE_COOLDOWN_MINUTES: "30" };
+  await withEnvironment(env, async () => {
+    const fixture = workerFixture({ throttle: { allowed: 2, wait_until: null } });
+    await fixture.worker.runCampaignWorkerTick();
+    assert.deepEqual(fixture.throttleCalls[0], { p_batch: 15, p_cooldown_minutes: 30 });
+    assert.equal(fixture.claimArgs[0].p_limit, 2);
+  });
+});
+
+test("throttle never raises the claim above the normal batch size", async () => {
+  const env = { ...enabledEnvironment, WHATSAPP_WORKER_BATCH_SIZE: "5",
+    WHATSAPP_THROTTLE_BATCH: "15", WHATSAPP_THROTTLE_COOLDOWN_MINUTES: "30" };
+  await withEnvironment(env, async () => {
+    const fixture = workerFixture({ throttle: { allowed: 15, wait_until: null } });
+    await fixture.worker.runCampaignWorkerTick();
+    assert.equal(fixture.claimArgs[0].p_limit, 5);
+  });
+});
+
+test("during the cooldown nothing is claimed or sent and the end time is reported", async () => {
+  const env = { ...enabledEnvironment, WHATSAPP_THROTTLE_BATCH: "15", WHATSAPP_THROTTLE_COOLDOWN_MINUTES: "30" };
+  await withEnvironment(env, async () => {
+    const until = "2026-10-23T15:30:00+00:00";
+    const fixture = workerFixture({ throttle: { allowed: 0, wait_until: until } });
+    const tick = await fixture.worker.runCampaignWorkerTick();
+    assert.equal(tick.enabled, true);
+    assert.equal(tick.claimed, 0);
+    assert.equal(tick.throttledUntil, until);
+    assert.equal(fixture.claimArgs.length, 0);
+    assert.equal(fixture.records.length, 0);
+    assert.equal(fixture.calls.includes("whatsapp_campaign_send_gate"), false);
+  });
+});
+
+test("an invalid or half-set throttle disables sending instead of sending unthrottled", async () => {
+  for (const partial of [
+    { WHATSAPP_THROTTLE_BATCH: "15" },
+    { WHATSAPP_THROTTLE_COOLDOWN_MINUTES: "30" },
+    { WHATSAPP_THROTTLE_BATCH: "0", WHATSAPP_THROTTLE_COOLDOWN_MINUTES: "30" },
+    { WHATSAPP_THROTTLE_BATCH: "15", WHATSAPP_THROTTLE_COOLDOWN_MINUTES: "abc" },
+    { WHATSAPP_THROTTLE_BATCH: "15", WHATSAPP_THROTTLE_COOLDOWN_MINUTES: "5000" },
+  ]) {
+    await withEnvironment({ ...enabledEnvironment, ...partial }, async () => {
+      const fixture = workerFixture();
+      const tick = await fixture.worker.runCampaignWorkerTick();
+      assert.equal(tick.enabled, false, JSON.stringify(partial));
+      assert.match(tick.reason, /throttle/i);
+      assert.equal(fixture.claimArgs.length, 0);
+    });
+  }
+});
+
+test("a malformed throttle response fails the tick without claiming", async () => {
+  const env = { ...enabledEnvironment, WHATSAPP_THROTTLE_BATCH: "15", WHATSAPP_THROTTLE_COOLDOWN_MINUTES: "30" };
+  await withEnvironment(env, async () => {
+    const fixture = workerFixture({ throttle: { allowed: "lots" } });
+    await assert.rejects(() => fixture.worker.runCampaignWorkerTick(), /throttle/i);
+    assert.equal(fixture.claimArgs.length, 0);
+  });
+});

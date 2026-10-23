@@ -19,7 +19,7 @@ import { MetaApiError } from "@/server/meta/client";
 export type CampaignActionState = { error: string; success: string };
 
 /** Long enough for the template recheck before the database requires a future time. */
-const SEND_NOW_DELAY_MS = 45_000;
+const SEND_NOW_DELAY_MS = 20_000;
 
 function safeError(error: unknown): string {
   if (error instanceof CampaignAccessError) return "Only a workspace admin can manage campaigns.";

@@ -1,3 +1,4 @@
+
 -- Integration check for drizzle/0011_campaign_worker_lease.sql, run against a DISPOSABLE empty
 -- Postgres database from the repository root:
 --   psql -X -d scratch_db -f tests/unit/worker-lease-check.sql

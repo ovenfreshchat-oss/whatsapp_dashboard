@@ -5,7 +5,7 @@ import {
   runCampaignWorkerTick,
 } from "@/server/campaigns/worker";
 import { getCampaignStore } from "@/server/campaigns/store";
-import { nextWaitMs, type WorkerStatus } from "@/server/campaigns/send-schedule";
+import { applyThrottleWait, nextWaitMs, type WorkerStatus } from "@/server/campaigns/send-schedule";
 import { startCampaignSendWorkflow } from "@/server/campaigns/start-send";
 
 /** About 5 events per iteration; Workflow allows 25,000 per run, so hand off well before that. */
@@ -45,7 +45,11 @@ async function tickStep(holder: string): Promise<TickResult> {
     const isOpen = policy.enabled
       ? (instant: Date) => isWithinCampaignSendWindow(policy, instant)
       : () => false;
-    return { kind: "ok", claimed: tick.claimed, waitMs: nextWaitMs(status.data as WorkerStatus, isOpen) };
+    const waitMs = applyThrottleWait(
+      nextWaitMs(status.data as WorkerStatus, isOpen),
+      tick.throttledUntil,
+    );
+    return { kind: "ok", claimed: tick.claimed, waitMs };
   } catch {
     // No contact, token, or provider detail is logged or returned.
     return { kind: "error" };

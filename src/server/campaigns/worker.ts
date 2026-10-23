@@ -26,6 +26,8 @@ export type WorkerReadiness =
       days: ReadonlySet<number>;
       batchSize: number;
       intervalMs: number;
+      /** Temporary cap: at most `batch` sends, then `cooldownMinutes` of silence. Null = off. */
+      throttle: { batch: number; cooldownMinutes: number } | null;
     };
 
 function parseClock(value: string | undefined): number | null {
@@ -64,6 +66,23 @@ export function getCampaignWorkerReadiness(): WorkerReadiness {
       !Number.isSafeInteger(intervalMs) || intervalMs < 200 || intervalMs > 60000) {
     return { enabled: false, reason: "Worker batch or rate configuration is invalid." };
   }
+  // Optional temporary throttle. Both values must be set together; unset both to turn it off.
+  const throttleBatchRaw = process.env.WHATSAPP_THROTTLE_BATCH?.trim();
+  const throttleCooldownRaw = process.env.WHATSAPP_THROTTLE_COOLDOWN_MINUTES?.trim();
+  let throttle: { batch: number; cooldownMinutes: number } | null = null;
+  if (throttleBatchRaw || throttleCooldownRaw) {
+    const batch = Number(throttleBatchRaw);
+    const cooldownMinutes = Number(throttleCooldownRaw);
+    if (!throttleBatchRaw || !throttleCooldownRaw ||
+        !Number.isSafeInteger(batch) || batch < 1 || batch > 500 ||
+        !Number.isSafeInteger(cooldownMinutes) || cooldownMinutes < 1 || cooldownMinutes > 1440) {
+      return {
+        enabled: false,
+        reason: "The send throttle needs both WHATSAPP_THROTTLE_BATCH (1-500) and WHATSAPP_THROTTLE_COOLDOWN_MINUTES (1-1440).",
+      };
+    }
+    throttle = { batch, cooldownMinutes };
+  }
   return {
     enabled: true,
     timeZone,
@@ -72,6 +91,7 @@ export function getCampaignWorkerReadiness(): WorkerReadiness {
     days: new Set(daysValue.split(",").map((value) => Number(value.trim()))),
     batchSize,
     intervalMs,
+    throttle,
   };
 }
 
@@ -234,6 +254,8 @@ async function processRecipient(
 export type CampaignWorkerTick = {
   enabled: boolean;
   reason?: string;
+  /** Set while the temporary send throttle is cooling down: nothing is sent before this time. */
+  throttledUntil?: string;
   claimed: number;
   outcomes: Record<SendResult, number>;
 };
@@ -254,8 +276,24 @@ export async function runCampaignWorkerTick(): Promise<CampaignWorkerTick> {
   }
 
   await rpc("mark_stale_whatsapp_campaign_claims", {});
+  let claimLimit = policy.batchSize;
+  if (policy.throttle) {
+    const allowance = await rpc<{ allowed?: unknown; wait_until?: unknown }>("campaign_send_throttle", {
+      p_batch: policy.throttle.batch,
+      p_cooldown_minutes: policy.throttle.cooldownMinutes,
+    });
+    const allowed = allowance?.allowed;
+    if (typeof allowed !== "number" || !Number.isSafeInteger(allowed) || allowed < 0) {
+      throw new CampaignStoreError("Send throttle returned invalid data.");
+    }
+    if (allowed === 0) {
+      const until = typeof allowance.wait_until === "string" ? allowance.wait_until : undefined;
+      return { enabled: true, claimed: 0, throttledUntil: until, outcomes };
+    }
+    claimLimit = Math.min(claimLimit, allowed);
+  }
   const claimedData = await rpc<unknown[]>("claim_whatsapp_campaign_recipients", {
-    p_limit: policy.batchSize,
+    p_limit: claimLimit,
   });
   if (!Array.isArray(claimedData)) {
     throw new CampaignStoreError("Campaign claim returned invalid data.");

@@ -12,7 +12,7 @@ const output = ts.transpileModule(fs.readFileSync(file, "utf8"), {
 const loaded = new Module(file, module);
 loaded.filename = file;
 loaded._compile(output, file);
-const { nextWaitMs, hasPendingWork, MIN_WAIT_MS, MAX_WAIT_MS } = loaded.exports;
+const { nextWaitMs, hasPendingWork, applyThrottleWait, MIN_WAIT_MS, MAX_WAIT_MS } = loaded.exports;
 
 const idle = { running_pending: false, in_flight: false, next_scheduled_at: null };
 const now = new Date("2026-10-23T12:00:00Z");
@@ -60,4 +60,24 @@ test("only in-flight rows left: poll again in about a minute", () => {
 test("a window that never opens falls back to an hourly check, never a tight loop", () => {
   const wait = nextWaitMs({ ...idle, running_pending: true }, neverOpen, now);
   assert.equal(wait, 3600_000);
+});
+
+test("throttle cooldown extends the wait to the cooldown end", () => {
+  const until = new Date(now.getTime() + 30 * 60_000).toISOString();
+  const wait = applyThrottleWait(MIN_WAIT_MS, until, now);
+  assert.ok(wait >= 29.9 * 60_000 && wait <= 30.1 * 60_000);
+});
+
+test("throttle never shortens a longer wait and ignores past or missing times", () => {
+  const soon = new Date(now.getTime() + 60_000).toISOString();
+  assert.equal(applyThrottleWait(10 * 60_000, soon, now), 10 * 60_000);
+  assert.equal(applyThrottleWait(5_000, undefined, now), 5_000);
+  assert.equal(applyThrottleWait(5_000, new Date(now.getTime() - 1000).toISOString(), now), 5_000);
+  assert.equal(applyThrottleWait(5_000, "not a date", now), 5_000);
+  assert.equal(applyThrottleWait(null, soon, now), null);
+});
+
+test("throttle wait is capped at the 12 hour maximum", () => {
+  const far = new Date(now.getTime() + 3 * 24 * 3600_000).toISOString();
+  assert.equal(applyThrottleWait(MIN_WAIT_MS, far, now), MAX_WAIT_MS);
 });

@@ -9,3 +9,7 @@ Operate one process per sender. Recipient claims have a five-minute stale timeou
 ## Sending from Vercel (Workflow)
 
 On Vercel the sender is `src/workflows/campaign-send.ts`, started when a campaign is scheduled, sent now, or resumed. It runs the same `runCampaignWorkerTick()` under a single-sender lease (`drizzle/0011`), sleeps until the send window or the scheduled time, and ends when no campaign has work left. The tick step has retries disabled so a possible Meta send is never repeated. Run `0011` on the Supabase project first. Locally nothing changes: `npm run worker` is the sender and `next.config.ts` skips the Workflow transform unless `VERCEL_DEPLOYMENT_ID` is set. Do not run `npm run worker` and the Vercel sender against the same project at once.
+
+## Temporary send throttle
+
+While a number's quality rating recovers, set both `WHATSAPP_THROTTLE_BATCH` (for example `15`) and `WHATSAPP_THROTTLE_COOLDOWN_MINUTES` (for example `30`). The sender then sends at most that many messages, pauses for the cooldown measured from the last send, and continues with the next batch. It works the same for `npm run worker` and the Vercel sender, and survives restarts because it is computed from the send-attempt log (`drizzle/0012`). Opted-out or skipped recipients do not use up a batch. Setting only one of the two variables, or an invalid value, stops sending (with a reason) instead of sending unthrottled. Remove both variables to go back to normal speed.
