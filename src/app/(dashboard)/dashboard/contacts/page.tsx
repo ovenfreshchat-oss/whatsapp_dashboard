@@ -86,7 +86,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
         <Link href="/dashboard" className={styles.backLink}>← Back to dashboard</Link>
         <div className={styles.intro}>
           <div><span className={styles.eyebrow}>AUDIENCE / CONTACTS</span><h1>Contacts<span>.</span></h1><p>Import people from a table, then review proof of WhatsApp marketing consent.</p></div>
-          <span className={styles.countPill}>{storageReady ? `${contactCountResult?.count ?? 0} contacts` : "Database setup needed"}</span>
+          <div><span className={styles.countPill}>{storageReady ? `${contactCountResult?.count ?? 0} contacts` : "Database setup needed"}</span> <Link href="/dashboard/opt-outs" className={styles.secondaryButton}>Opt-out list</Link></div>
         </div>
         {!storageReady && <section className={styles.notice}><strong>Apply the contacts migration</strong><p>File inspection works now. Saving contacts and reviewing consent require <code>drizzle/0002_contacts.sql</code> in Supabase.</p></section>}
 
