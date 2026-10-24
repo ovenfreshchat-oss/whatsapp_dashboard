@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { ContactImportForm } from "./import-form";
@@ -42,8 +43,14 @@ function consentDateLabel(dateOnly: string | null, exactTime: string | null) {
   return dateOnly ? `${dateOnly} (date only)` : dateLabel(exactTime);
 }
 
-export default async function ContactsPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
-  const rawQuery = (await searchParams).q;
+export default async function ContactsPage({ searchParams }: { searchParams: Promise<{ q?: string | string[]; page?: string | string[]; cp?: string | string[]; bp?: string | string[] }> }) {
+  const params = await searchParams;
+  const rawQuery = params.q;
+  const page = pageFrom(params.page);
+  const claimPage = pageFrom(params.cp);
+  const batchPage = pageFrom(params.bp);
+  const CONTACTS_SIZE = 25, CLAIMS_SIZE = 10, BATCHES_SIZE = 5;
+  const range = (p: number, size: number) => [(p - 1) * size, p * size - 1] as const;
   const search = typeof rawQuery === "string" ? rawQuery.trim() : "";
   const phoneSearch = search.replace(/[^+\d]/g, "").slice(0, 20);
   const reviewableDateCutoff = new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -51,16 +58,16 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
   const [contactCountResult, recentResult, claimResult, batchResult] = admin
     ? await Promise.all([
         admin.from("contacts").select("id", { count: "exact", head: true }),
-        admin.from("contacts").select("id,phone_e164,display_name,created_at")
+        admin.from("contacts").select("id,phone_e164,display_name,created_at", { count: "exact" })
           .ilike("phone_e164", phoneSearch ? `%${phoneSearch}%` : "%")
-          .order("created_at", { ascending: false }).limit(30),
+          .order("created_at", { ascending: false }).order("id").range(...range(page, CONTACTS_SIZE)),
         admin.from("contact_consent_events")
           .select("id,contact_id,import_batch_id,import_row_number,evidence_reference,occurred_at,occurred_on,recorded_at", { count: "exact" })
           .eq("decision", "grant").eq("verification_status", "pending")
-          .order("recorded_at", { ascending: false }).limit(30),
+          .order("recorded_at", { ascending: false }).order("id").range(...range(claimPage, CLAIMS_SIZE)),
         admin.from("contact_import_batches")
-          .select("id,file_name,created_at,total_rows,accepted_rows,rejected_rows,pending_claims")
-          .order("created_at", { ascending: false }).limit(10),
+          .select("id,file_name,created_at,total_rows,accepted_rows,rejected_rows,pending_claims", { count: "exact" })
+          .order("created_at", { ascending: false }).order("id").range(...range(batchPage, BATCHES_SIZE)),
       ])
     : [null, null, null, null];
   const storageReady = Boolean(contactCountResult && !contactCountResult.error &&
@@ -111,19 +118,21 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
                 </article>;
               })}
             </div> : claimContactsReady && <p className={styles.empty}>{storageReady ? "No pending consent claims." : "Apply the contacts migration to view consent claims."}</p>}
-            {(claimResult?.count ?? 0) > claims.length && <p className={styles.muted}>Showing the 30 most recent claims. Review these to see the next page.</p>}
+            {storageReady && <Pagination page={claimPage} total={claimResult?.count ?? 0} pageSize={CLAIMS_SIZE} param="cp" path="/dashboard/contacts" query={{ q: search || undefined, page: page > 1 ? String(page) : undefined, bp: batchPage > 1 ? String(batchPage) : undefined }} label="Consent claim pages" />}
           </section>
 
           <section className={styles.panel} aria-labelledby="batches-heading">
             <div className={styles.panelHeading}><div><span className={styles.eyebrow}>IMPORT HISTORY</span><h2 id="batches-heading">Recent uploads</h2></div></div>
             {batches.length ? <div className={styles.batchList}>{batches.map((batch) => <div className={styles.batchRow} key={batch.id}><div><strong>{batch.file_name}</strong><small>{dateLabel(batch.created_at)}</small></div><div><span>{batch.accepted_rows} imported · {batch.rejected_rows} skipped · {batch.pending_claims} claims</span><Link className={styles.contactLink} href={`/dashboard/contacts/imports/${batch.id}`}>Review batch →</Link></div></div>)}</div> : <p className={styles.empty}>{storageReady ? "No files imported yet." : "Import history will appear after setup."}</p>}
+            {storageReady && <Pagination page={batchPage} total={batchResult?.count ?? 0} pageSize={BATCHES_SIZE} param="bp" path="/dashboard/contacts" query={{ q: search || undefined, page: page > 1 ? String(page) : undefined, cp: claimPage > 1 ? String(claimPage) : undefined }} label="Upload pages" />}
           </section>
         </div>
 
         <section className={styles.panel} aria-labelledby="recent-heading">
-          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>DIRECTORY</span><h2 id="recent-heading">Find a contact</h2></div><span>{phoneSearch ? "Search results" : "Latest 30"}</span></div>
+          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>DIRECTORY</span><h2 id="recent-heading">Find a contact</h2></div><span>{phoneSearch ? `${recentResult?.count ?? 0} found` : `${contactCountResult?.count ?? 0} total`}</span></div>
           <form action="/dashboard/contacts" className={styles.searchForm}><label className={styles.field}><span>Search by phone number</span><input name="q" defaultValue={search} placeholder="+91…" maxLength={30} /></label><button className={styles.secondaryButton} type="submit">Search</button></form>
           {recent.length ? <div className={styles.tableWrap}><table><thead><tr><th>Title or name</th><th>WhatsApp number</th><th>Added</th><th></th></tr></thead><tbody>{recent.map((contact) => <tr key={contact.id}><td>{contact.display_name ?? "—"}</td><td>{contact.phone_e164}</td><td>{dateLabel(contact.created_at)}</td><td><Link className={styles.contactLink} href={`/dashboard/contacts/${contact.id}`}>Consent record →</Link></td></tr>)}</tbody></table></div> : <p className={styles.empty}>{storageReady ? "No matching contacts. Upload a table above or try another number." : "Contact list will appear after setup."}</p>}
+          {storageReady && <Pagination page={page} total={recentResult?.count ?? 0} pageSize={CONTACTS_SIZE} path="/dashboard/contacts" query={{ q: search || undefined, cp: claimPage > 1 ? String(claimPage) : undefined, bp: batchPage > 1 ? String(batchPage) : undefined }} label="Contact pages" />}
         </section>
       </div>
     </DashboardShell>

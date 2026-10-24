@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
-import { listCampaigns, listCampaignImportBatches } from "@/server/campaigns/admin";
+import { CAMPAIGNS_PAGE_SIZE, listCampaigns, listCampaignImportBatches } from "@/server/campaigns/admin";
 import { getMetaConfigurationStatus } from "@/server/meta/client";
 import { assertApprovedMarketingTemplate, parseTemplateBodyParameters, syncMetaTemplates, type MetaTemplate } from "@/server/meta/templates";
+import { Pagination } from "@/components/ui/pagination";
 import { AutoRefresh } from "./auto-refresh";
 import { CreateCampaignForm, type CampaignTemplateOption } from "./create-form";
 import styles from "./campaigns.module.css";
@@ -38,14 +39,19 @@ function dateLabel(value: string | null) {
   return Number.isNaN(date.valueOf()) ? "—" : `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
 }
 
-export default async function CampaignsPage() {
+export default async function CampaignsPage({ searchParams }: { searchParams: Promise<{ page?: string | string[] }> }) {
+  const rawPage = (await searchParams).page;
+  const requestedPage = Number.parseInt(Array.isArray(rawPage) ? rawPage[0] : rawPage ?? "1", 10);
+  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const configuration = getMetaConfigurationStatus();
   const [campaignResult, batchResult, templateResult] = await Promise.allSettled([
-    listCampaigns(),
+    listCampaigns(page),
     listCampaignImportBatches(),
     configuration.configured ? syncMetaTemplates() : Promise.resolve(null),
   ]);
-  const campaigns = campaignResult.status === "fulfilled" ? campaignResult.value : null;
+  const campaignPage = campaignResult.status === "fulfilled" ? campaignResult.value : null;
+  const campaigns = campaignPage?.items ?? null;
+  const totalCampaigns = campaignPage?.total ?? 0;
   const batches = batchResult.status === "fulfilled" ? batchResult.value : null;
   const templates = templateResult.status === "fulfilled" ? templateResult.value?.templates ?? null : null;
   const options = (templates ?? []).map(templateOption)
@@ -78,13 +84,14 @@ export default async function CampaignsPage() {
           {canCreate ? <CreateCampaignForm options={options} batches={batches ?? []} /> : <p className={styles.empty}>Draft creation becomes available after import history, campaign storage, and a supported approved marketing template are ready.</p>}
         </section>
         <section className={styles.panel} aria-labelledby="campaigns-heading">
-          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>CAMPAIGNS</span><h2 id="campaigns-heading">Recent campaigns</h2></div><span>{campaigns ? `${campaigns.length} shown` : "Unavailable"}</span></div>
+          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>CAMPAIGNS</span><h2 id="campaigns-heading">Recent campaigns</h2></div><span>{campaigns ? `${totalCampaigns} total` : "Unavailable"}</span></div>
           {campaigns?.length ? <div className={styles.campaignList}>
             {campaigns.map((campaign) => <Link className={styles.campaignRow} key={campaign.id} href={`/dashboard/campaigns/${campaign.id}${campaign.state === "draft" ? "" : "/analytics"}`}>
               <div><strong>{campaign.name}</strong><small>{campaign.audienceSourceLabel} · {campaign.templateName} · {campaign.templateLanguage} · {campaign.audienceCount} recipients</small></div>
               <div><span className={styles.statePill}>{campaign.state}</span><small>{campaign.scheduledFor ? dateLabel(campaign.scheduledFor) : "Not scheduled"}</small></div>
             </Link>)}
           </div> : <p className={styles.empty}>{campaigns ? "No campaigns yet. Create a draft to review its frozen audience." : "Apply the campaign migration to view campaigns."}</p>}
+          {campaigns && <Pagination page={page} total={totalCampaigns} pageSize={CAMPAIGNS_PAGE_SIZE} path="/dashboard/campaigns" label="Campaign pages" />}
         </section>
       </div>
     </div>

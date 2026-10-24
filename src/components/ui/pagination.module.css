@@ -1,0 +1,7 @@
+.pagination { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; color: #7b889c; font-size: 11px; }
+.pagination a, .pagination span[aria-disabled] { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 1px solid #e2e4f8; border-radius: 9px; background: #fff; color: #5959b7; font-weight: 800; text-decoration: none; white-space: nowrap; }
+.pagination a:hover { background: #f5f5ff; }
+.pagination a:focus-visible { outline: 3px solid rgba(89,89,183,.35); outline-offset: 2px; }
+.pagination span[aria-disabled] { color: #b3bbc9; background: #f6f7fb; }
+.summary { text-align: center; }
+@media (max-width: 700px) { .pagination a, .pagination span[aria-disabled] { min-height: 44px; } }

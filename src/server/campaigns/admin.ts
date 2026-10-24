@@ -240,14 +240,18 @@ export async function cancelCampaign(id: string) {
   return transition(id, "cancel");
 }
 
-export async function listCampaigns(): Promise<CampaignSummary[]> {
+export const CAMPAIGNS_PAGE_SIZE = 10;
+
+export async function listCampaigns(page = 1): Promise<{ items: CampaignSummary[]; total: number }> {
   await requireAdminActor();
   const store = getCampaignStore();
-  const { data, error } = await store.from("whatsapp_campaigns")
-    .select("id,name,state,audience_source,import_batch_id,audience_source_label,template_name,template_language,scheduled_for,audience_count,created_at")
-    .order("created_at", { ascending: false }).limit(50);
+  const from = (Math.max(1, page) - 1) * CAMPAIGNS_PAGE_SIZE;
+  const { data, error, count } = await store.from("whatsapp_campaigns")
+    .select("id,name,state,audience_source,import_batch_id,audience_source_label,template_name,template_language,scheduled_for,audience_count,created_at", { count: "exact" })
+    .order("created_at", { ascending: false }).order("id")
+    .range(from, from + CAMPAIGNS_PAGE_SIZE - 1);
   if (error) throw new CampaignStoreError("Campaigns could not be loaded.");
-  return (data ?? []).map(mapCampaign);
+  return { items: (data ?? []).map(mapCampaign), total: count ?? 0 };
 }
 
 export type CampaignImportBatchOption = {
@@ -274,20 +278,30 @@ export async function listCampaignImportBatches(): Promise<CampaignImportBatchOp
   }));
 }
 
-export async function getCampaignDetail(id: string): Promise<CampaignDetail> {
+export const RECIPIENTS_PAGE_SIZE = 15;
+export const AUDIT_PAGE_SIZE = 10;
+
+export async function getCampaignDetail(
+  id: string,
+  pages: { recipientPage?: number; auditPage?: number } = {},
+): Promise<CampaignDetail & { recipientTotal: number; auditTotal: number }> {
   await requireAdminActor();
   assertCampaignId(id);
   const store = getCampaignStore();
+  const recipientFrom = (Math.max(1, pages.recipientPage ?? 1) - 1) * RECIPIENTS_PAGE_SIZE;
+  const auditFrom = (Math.max(1, pages.auditPage ?? 1) - 1) * AUDIT_PAGE_SIZE;
   const [campaignResult, countsResult, auditResult, recipientResult] = await Promise.all([
     store.from("whatsapp_campaigns")
       .select("id,name,state,audience_source,import_batch_id,audience_source_label,template_name,template_language,template_snapshot,body_parameters,header_media_url,review_sha256,scheduled_for,audience_count,created_at")
       .eq("id", id).single(),
     store.rpc("whatsapp_campaign_counts", { p_campaign_id: id }),
-    store.from("whatsapp_campaign_audit").select("action,created_at,detail")
-      .eq("campaign_id", id).order("created_at", { ascending: false }).limit(50),
+    store.from("whatsapp_campaign_audit").select("action,created_at,detail", { count: "exact" })
+      .eq("campaign_id", id).order("created_at", { ascending: false })
+      .range(auditFrom, auditFrom + AUDIT_PAGE_SIZE - 1),
     store.from("whatsapp_campaign_recipients")
-      .select("contact_id,recipient_e164,state")
-      .eq("campaign_id", id).order("created_at", { ascending: true }).limit(50),
+      .select("contact_id,recipient_e164,state", { count: "exact" })
+      .eq("campaign_id", id).order("created_at", { ascending: true }).order("id")
+      .range(recipientFrom, recipientFrom + RECIPIENTS_PAGE_SIZE - 1),
   ]);
   if (campaignResult.error || !campaignResult.data || countsResult.error ||
       auditResult.error || recipientResult.error) {
@@ -307,6 +321,8 @@ export async function getCampaignDetail(id: string): Promise<CampaignDetail> {
     }
   }
   return {
+    recipientTotal: recipientResult.count ?? 0,
+    auditTotal: auditResult.count ?? 0,
     ...mapCampaign(campaignResult.data),
     ...mapCampaignTemplateReview(campaignResult.data),
     counts: mapCounts(countsResult.data),

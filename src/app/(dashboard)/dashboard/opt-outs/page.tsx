@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { AddOptOutForm, ReleaseOptOutButton } from "./opt-out-forms";
@@ -12,17 +13,21 @@ export const metadata: Metadata = {
 
 type OptOut = { id: string; phone_e164: string; source: string; created_at: string };
 
-export default async function OptOutsPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
-  const rawQuery = (await searchParams).q;
+export default async function OptOutsPage({ searchParams }: { searchParams: Promise<{ q?: string | string[]; page?: string | string[] }> }) {
+  const params = await searchParams;
+  const rawQuery = params.q;
+  const page = pageFrom(params.page);
+  const PAGE_SIZE = 25;
   const search = typeof rawQuery === "string" ? rawQuery.trim() : "";
   const phoneSearch = search.replace(/[^+\d]/g, "").slice(0, 20);
   const admin = createStaffAdminClient();
   const [countResult, listResult] = admin
     ? await Promise.all([
         admin.from("opt_out_numbers").select("id", { count: "exact", head: true }).is("released_at", null),
-        admin.from("opt_out_numbers").select("id,phone_e164,source,created_at").is("released_at", null)
+        admin.from("opt_out_numbers").select("id,phone_e164,source,created_at", { count: "exact" }).is("released_at", null)
           .ilike("phone_e164", phoneSearch ? `%${phoneSearch}%` : "%")
-          .order("created_at", { ascending: false }).limit(100),
+          .order("created_at", { ascending: false }).order("id")
+          .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
       ])
     : [null, null];
   const ready = Boolean(countResult && !countResult.error && listResult && !listResult.error);
@@ -45,11 +50,12 @@ export default async function OptOutsPage({ searchParams }: { searchParams: Prom
         </section>
 
         <section className={styles.panel} aria-labelledby="list-heading">
-          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>LIST</span><h2 id="list-heading">Opted-out numbers</h2></div><span>{phoneSearch ? "Search results" : "Latest 100"}</span></div>
+          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>LIST</span><h2 id="list-heading">Opted-out numbers</h2></div><span>{phoneSearch ? `${listResult?.count ?? 0} found` : `${countResult?.count ?? 0} total`}</span></div>
           <form action="/dashboard/opt-outs" className={styles.searchForm}><label className={styles.field}><span>Search by phone number</span><input name="q" defaultValue={search} placeholder="+91…" maxLength={30} /></label><button className={styles.secondaryButton} type="submit">Search</button></form>
           {rows.length ? <div className={styles.tableWrap}><table><thead><tr><th>Number</th><th>Source</th><th>Added</th><th></th></tr></thead><tbody>
             {rows.map((row) => <tr key={row.id}><td>{row.phone_e164}</td><td>{row.source}</td><td>{row.created_at.slice(0, 16).replace("T", " ")} UTC</td><td><ReleaseOptOutButton id={row.id} /></td></tr>)}
           </tbody></table></div> : <p className={styles.empty}>{ready ? "No opted-out numbers." : "Apply the migration to view the list."}</p>}
+          {ready && <Pagination page={page} total={listResult?.count ?? 0} pageSize={PAGE_SIZE} path="/dashboard/opt-outs" query={{ q: search || undefined }} label="Opt-out pages" />}
         </section>
       </div>
     </DashboardShell>
