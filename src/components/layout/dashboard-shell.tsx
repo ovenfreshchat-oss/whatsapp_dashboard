@@ -21,7 +21,6 @@ export function DashboardShell({ label, headerAction, showMetaSetup = false, chi
   const contactsIsCurrent = label.startsWith("Contacts");
   const campaignsIsCurrent = /campaign/i.test(label);
   const inboxIsCurrent = label === "WhatsApp inbox";
-  const templatesIsCurrent = label === "WhatsApp templates";
 
   return (
     <main className={styles.page}>
@@ -66,16 +65,6 @@ export function DashboardShell({ label, headerAction, showMetaSetup = false, chi
               >
                 <span className={styles.navIcon} aria-hidden="true">✉</span>
                 <span>Inbox</span>
-              </Link>
-            )}
-            {showMetaSetup && (
-              <Link
-                href="/dashboard/templates"
-                className={[styles.navItem, templatesIsCurrent ? styles.navItemActive : ""].filter(Boolean).join(" ")}
-                aria-current={templatesIsCurrent ? "page" : undefined}
-              >
-                <span className={styles.navIcon} aria-hidden="true">✎</span>
-                <span>Templates</span>
               </Link>
             )}
             {upcomingSections.map((section) => (
