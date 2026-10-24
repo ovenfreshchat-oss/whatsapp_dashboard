@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { listCampaigns, listCampaignImportBatches } from "@/server/campaigns/admin";
-import { getCampaignWorkerReadiness } from "@/server/campaigns/worker";
 import { getMetaConfigurationStatus } from "@/server/meta/client";
 import { assertApprovedMarketingTemplate, parseTemplateBodyParameters, syncMetaTemplates, type MetaTemplate } from "@/server/meta/templates";
+import { AutoRefresh } from "./auto-refresh";
 import { CreateCampaignForm, type CampaignTemplateOption } from "./create-form";
 import styles from "./campaigns.module.css";
 
@@ -40,7 +40,6 @@ function dateLabel(value: string | null) {
 
 export default async function CampaignsPage() {
   const configuration = getMetaConfigurationStatus();
-  const readiness = getCampaignWorkerReadiness();
   const [campaignResult, batchResult, templateResult] = await Promise.allSettled([
     listCampaigns(),
     listCampaignImportBatches(),
@@ -62,33 +61,11 @@ export default async function CampaignsPage() {
           <h1>WhatsApp campaigns<span>.</span></h1>
           <p>Pick a message and audience, then send or schedule it on the next screen.</p>
         </div>
-        <Link href="/dashboard/campaigns" className={styles.refreshLink}>Refresh ↻</Link>
+        <div className={styles.buttonRow}>
+          {campaigns?.some((c) => c.state === "scheduled" || c.state === "running") && <AutoRefresh intervalMs={8000} />}
+          <Link href="/dashboard/campaigns" className={styles.refreshLink}>Refresh ↻</Link>
+        </div>
       </div>
-
-      <section className={`${styles.statusGrid} ${styles.compactStatus}`} aria-label="Campaign readiness">
-        <article className={styles.statusCard}>
-          <span className={styles.eyebrow}>01 / ACCOUNT</span>
-          <h2>Meta templates</h2>
-          <strong>{options.length}</strong>
-          <p>{options.length ? "Approved marketing templates supported for sending." : configuration.configured ? "No supported approved marketing template is available, or Meta could not be reached." : "Complete the Meta server configuration to load templates."}</p>
-          <Link href="/dashboard/meta">Review Meta setup ↗</Link>
-        </article>
-        <article className={styles.statusCard}>
-          <span className={styles.eyebrow}>02 / AUDIENCE</span>
-          <h2>Saved numbers</h2>
-          <strong>Open</strong>
-          <p>Every saved number can be in a draft. Numbers that replied STOP are skipped.</p>
-          <Link href="/dashboard/contacts">Review contacts ↗</Link>
-        </article>
-        <article className={styles.statusCard}>
-          <span className={styles.eyebrow}>03 / WORKER</span>
-          <h2>Sending policy</h2>
-          <strong className={readiness.enabled ? styles.readyText : styles.waitingText}>{readiness.enabled ? "Configured" : "Off"}</strong>
-          <p>{readiness.enabled
-            ? `${readiness.timeZone} · ${String(Math.floor(readiness.startMinute / 60)).padStart(2, "0")}:${String(readiness.startMinute % 60).padStart(2, "0")}–${String(Math.floor(readiness.endMinute / 60)).padStart(2, "0")}:${String(readiness.endMinute % 60).padStart(2, "0")}. A separate worker process must be running.`
-            : readiness.reason}</p>
-        </article>
-      </section>
 
       {!campaigns && <section className={styles.notice}>
         <strong>Campaign storage needs setup</strong>

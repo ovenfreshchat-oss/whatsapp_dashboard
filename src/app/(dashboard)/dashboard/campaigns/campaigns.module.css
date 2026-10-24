@@ -133,7 +133,7 @@
   .compactStatus .statusCard strong { font-size: 18px; }
 }
 @media (max-width: 700px) {
-  .stickyBar { position: sticky; bottom: 0; z-index: 5; margin: 0 -14px -14px; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid #e2e4f8; border-radius: 0 0 18px 18px; background: rgba(255,255,255,.96); backdrop-filter: blur(6px); }
+  .stickyBar { position: sticky; bottom: calc(66px + env(safe-area-inset-bottom)); z-index: 5; margin: 0 -14px -14px; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid #e2e4f8; border-radius: 0 0 18px 18px; background: rgba(255,255,255,.96); backdrop-filter: blur(6px); }
   .chip { min-height: 40px; }
   .segment button { min-height: 44px; }
 }
@@ -163,3 +163,10 @@
 .excludedList { display: grid; gap: 6px; color: #59667d; font-size: 11px; }
 .excludedList ul { max-height: 140px; margin: 0; padding-left: 16px; overflow: auto; }
 .excludedList .chip { width: fit-content; }
+
+/* Live badge */
+.liveBadge { display: inline-flex; align-items: center; gap: 6px; width: fit-content; padding: 6px 10px; border-radius: 99px; background: #e6f7f1; color: #168975; font-size: 10px; font-weight: 800; }
+.liveDot, .liveDotBusy { width: 7px; height: 7px; border-radius: 50%; background: #1fb89c; }
+.liveDotBusy { animation: livePulse .8s ease-in-out infinite; }
+@keyframes livePulse { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .liveDotBusy { animation: none; } }

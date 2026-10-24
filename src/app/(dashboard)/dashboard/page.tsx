@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -62,29 +63,47 @@ export default async function DashboardPage() {
     process.env.META_WEBHOOK_VERIFY_TOKEN,
   ].every(Boolean);
   const admin = canAddStaff ? createStaffAdminClient() : null;
-  const [contactsResult, campaignsResult] = admin
+  const [contactsResult, campaignsResult, activeResult, sentResult, optOutResult] = admin
     ? await Promise.all([
         admin.from("contacts").select("id", { count: "exact", head: true }),
+        admin.from("whatsapp_campaigns").select("id", { count: "exact", head: true }),
         admin.from("whatsapp_campaigns").select("id", { count: "exact", head: true })
-          .in("state", ["scheduled", "running"]),
+          .in("state", ["scheduled", "running", "paused"]),
+        admin.from("whatsapp_campaign_recipients").select("id", { count: "exact", head: true })
+          .eq("state", "accepted"),
+        admin.from("opt_out_numbers").select("phone_e164", { count: "exact", head: true }),
       ])
-    : [null, null];
+    : [null, null, null, null, null];
+  const count = (result: { count: number | null; error: unknown } | null) =>
+    result && !result.error ? (result.count ?? 0) : null;
+  const contactCount = count(contactsResult);
   const metrics: { label: string; value: string; detail: string; icon: IconName }[] = [
     {
       label: "Contacts",
-      value: contactsResult && !contactsResult.error ? String(contactsResult.count ?? 0) : "—",
-      detail: contactsResult && !contactsResult.error ? "Imported contacts" : "Database setup needed",
+      value: contactCount === null ? "—" : String(contactCount),
+      detail: contactCount === null ? "Database setup needed" : "Saved numbers",
       icon: "contacts",
     },
-    { label: "Templates", value: "↗", detail: "See WhatsApp setup", icon: "templates" },
+    {
+      label: "Messages sent",
+      value: count(sentResult) === null ? "—" : String(count(sentResult)),
+      detail: "Accepted by WhatsApp",
+      icon: "templates",
+    },
     {
       label: "Campaigns",
-      value: campaignsResult && !campaignsResult.error ? String(campaignsResult.count ?? 0) : "—",
-      detail: campaignsResult && !campaignsResult.error ? "Scheduled or running" : "Database setup needed",
+      value: count(campaignsResult) === null ? "—" : String(count(campaignsResult)),
+      detail: count(campaignsResult) === null ? "Database setup needed" : `${count(activeResult) ?? 0} active now`,
       icon: "campaigns",
     },
-    { label: "Staff access", value: "Active", detail: "Sign-in connected", icon: "team" },
+    {
+      label: "Opted out",
+      value: count(optOutResult) === null ? "—" : String(count(optOutResult)),
+      detail: "Never messaged",
+      icon: "team",
+    },
   ];
+  const readySteps = 1 + (contactCount ? 1 : 0) + (metaSettingsPresent ? 1 : 0);
 
   return (
     <DashboardShell
@@ -140,7 +159,7 @@ export default async function DashboardPage() {
                 <h2>Workspace setup</h2>
                 <p>Build the foundation for your first campaign.</p>
               </div>
-              <span>1 of 3 ready</span>
+              <span>{readySteps} of 3 ready</span>
             </div>
             <ol className={styles.setupSteps}>
               <li className={styles.completeStep}>
@@ -148,15 +167,15 @@ export default async function DashboardPage() {
                 <span className={styles.stepCopy}><strong>Staff sign-in</strong><small>Secure access through Supabase Auth is connected.</small></span>
                 <span className={styles.stepState}>Connected</span>
               </li>
-              <li>
+              <li className={contactCount ? styles.completeStep : undefined}>
                 <span className={styles.stepNumber}>02</span>
-                <span className={styles.stepCopy}><strong>Opted-in contacts</strong><small>Import and consent review are coming next.</small></span>
-                <span className={styles.stepState}>Next</span>
+                <span className={styles.stepCopy}><strong>Contacts</strong><small>{canAddStaff ? <Link href="/dashboard/contacts">{contactCount ? `${contactCount} numbers saved. Upload more.` : "Upload a CSV of phone numbers."}</Link> : "A workspace admin can import contacts."}</small></span>
+                <span className={styles.stepState}>{contactCount ? "Ready" : "Next"}</span>
               </li>
-              <li>
+              <li className={metaSettingsPresent ? styles.completeStep : undefined}>
                 <span className={styles.stepNumber}>03</span>
                 <span className={styles.stepCopy}><strong>WhatsApp connection</strong><small>{canAddStaff ? <Link href="/dashboard/meta">Review account, templates, and webhook status.</Link> : "A workspace admin can review the Meta connection."}</small></span>
-                <span className={styles.stepState}>{metaSettingsPresent ? "Verify" : "Set up"}</span>
+                <span className={styles.stepState}>{metaSettingsPresent ? "Connected" : "Set up"}</span>
               </li>
             </ol>
           </article>
@@ -168,8 +187,8 @@ export default async function DashboardPage() {
                 <p>Your account and workspace status</p>
               </div>
             </div>
-            <div className={styles.progressRing} aria-label="One of three setup steps is ready">
-              <div><strong>1 / 3</strong><span>ready</span></div>
+            <div className={styles.progressRing} style={{ "--pct": `${Math.round((readySteps / 3) * 100)}%` } as CSSProperties} aria-label={`${readySteps} of three setup steps are ready`}>
+              <div><strong>{readySteps} / 3</strong><span>ready</span></div>
             </div>
             <div className={styles.accountInfo}>
               <span>Signed in as</span>

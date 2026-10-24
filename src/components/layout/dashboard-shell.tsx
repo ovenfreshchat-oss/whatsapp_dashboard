@@ -13,15 +13,13 @@ type DashboardShellProps = {
   children: ReactNode;
 };
 
-const upcomingSections = [
-  { icon: "◫", label: "Analytics" },
-];
+const upcomingSections: { icon: string; label: string }[] = [];
 
 export function DashboardShell({ label, headerAction, showMetaSetup = false, children }: DashboardShellProps) {
   const dashboardIsCurrent = label === "The Oven Fresh dashboard";
   const metaIsCurrent = label === "WhatsApp integration";
   const contactsIsCurrent = label.startsWith("Contacts");
-  const campaignsIsCurrent = label.startsWith("Campaigns");
+  const campaignsIsCurrent = /campaign/i.test(label);
   const inboxIsCurrent = label === "WhatsApp inbox";
   const templatesIsCurrent = label === "WhatsApp templates";
 
@@ -93,7 +91,7 @@ export function DashboardShell({ label, headerAction, showMetaSetup = false, chi
                 aria-current={metaIsCurrent ? "page" : undefined}
               >
                 <span className={styles.navIcon} aria-hidden="true">⚙</span>
-                <span>WhatsApp setup</span>
+                <span className={styles.labelFull}>WhatsApp setup</span><span className={styles.labelShort}>Setup</span>
               </Link>
             )}
           </nav>

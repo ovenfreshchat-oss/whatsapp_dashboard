@@ -135,6 +135,10 @@
   min-width: 0;
 }
 
+.labelShort {
+  display: none;
+}
+
 .topbar {
   display: flex;
   align-items: center;
@@ -186,8 +190,9 @@
 }
 
 @media (max-width: 700px) {
+  /* Room for the bottom tab bar. */
   .page {
-    padding: 8px;
+    padding: 8px 8px calc(78px + env(safe-area-inset-bottom));
   }
 
   .shell {
@@ -206,20 +211,44 @@
     border: 0;
   }
 
-  /* A swipeable row of tabs instead of a tall stack of links. */
+  /* backdrop-filter would make the sidebar the containing block of the fixed tab bar. */
+  .sidebar {
+    backdrop-filter: none;
+  }
+
+  /* Bottom tab bar: thumb-reachable, always visible. */
   .navigation {
-    display: flex;
-    flex-direction: row;
-    gap: 6px;
-    padding-top: 8px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 2px;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(158, 185, 210, .4);
+    background: rgba(255, 255, 255, .96);
+    box-shadow: 0 -6px 20px rgba(71, 97, 143, .1);
+    backdrop-filter: blur(14px);
   }
 
   .navItem {
-    flex: 0 0 auto;
-    white-space: nowrap;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    width: auto;
+    min-height: 52px;
+    padding: 0 2px;
+    font-size: 10px;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  .navIcon {
+    flex: none;
+    font-size: 19px;
   }
 
   .navCaption,
@@ -228,10 +257,8 @@
     display: none;
   }
 
-  .navItem {
-    width: fit-content;
-    min-height: 40px;
-    padding: 0 10px;
+  .labelFull {
+    display: none;
   }
 
   .topbar {
@@ -242,5 +269,11 @@
   .headerActions {
     flex-wrap: wrap;
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 700px) {
+  .labelShort {
+    display: inline;
   }
 }
