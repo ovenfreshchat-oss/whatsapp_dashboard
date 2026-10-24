@@ -1,8 +1,25 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useTransition, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { markConversationRead } from "./actions";
+import styles from "./inbox.module.css";
+
+/** A reply the staff member just sent, shown instantly before the server has stored it. */
+export type OptimisticEvent =
+  | { type: "add"; id: string; conversationId: string; text: string; media: boolean }
+  | { type: "sent"; id: string }
+  | { type: "remove"; id: string };
+const OPTIMISTIC_EVENT = "inbox:optimistic";
+let sendsInFlight = 0;
+
+export function emitOptimistic(detail: OptimisticEvent): void {
+  if (detail.type === "add") sendsInFlight += 1;
+  else if (detail.type === "sent" || detail.type === "remove") sendsInFlight = Math.max(0, sendsInFlight - 1);
+  window.dispatchEvent(new CustomEvent<OptimisticEvent>(OPTIMISTIC_EVENT, { detail }));
+}
+
+type PendingBubble = { id: string; text: string; media: boolean; sent: boolean };
 
 /**
  * Near-live updates: checks a tiny change token every 4 seconds while the tab is visible and
@@ -14,7 +31,8 @@ export function AutoRefresh({ intervalMs = 4_000 }: { intervalMs?: number }) {
     let last: string | null = null;
     let busy = false;
     async function check() {
-      if (busy || document.visibilityState !== "visible") return;
+      // Hold the poll while a reply is on its way so it cannot draw the message twice.
+      if (busy || sendsInFlight > 0 || document.visibilityState !== "visible") return;
       busy = true;
       try {
         const response = await fetch("/api/inbox/version", { cache: "no-store" });
@@ -54,6 +72,30 @@ export function MessageList({ conversationId, className, children }: { conversat
   const ref = useRef<HTMLOListElement>(null);
   const stick = useRef(true);
   const lastConversation = useRef<string | null>(null);
+  const [pending, setPending] = useState<PendingBubble[]>([]);
+
+  useEffect(() => {
+    setPending([]);
+    function onEvent(event: Event) {
+      const detail = (event as CustomEvent<OptimisticEvent>).detail;
+      setPending((current) => {
+        if (detail.type === "add") {
+          return detail.conversationId === conversationId
+            ? [...current, { id: detail.id, text: detail.text, media: detail.media, sent: false }]
+            : current;
+        }
+        if (detail.type === "remove") return current.filter((item) => item.id !== detail.id);
+        return current.map((item) => (item.id === detail.id ? { ...item, sent: true } : item));
+      });
+    }
+    window.addEventListener(OPTIMISTIC_EVENT, onEvent);
+    return () => window.removeEventListener(OPTIMISTIC_EVENT, onEvent);
+  }, [conversationId]);
+
+  // New server data arrived, so the real message replaces the temporary one.
+  useEffect(() => {
+    setPending((current) => (current.some((item) => item.sent) ? current.filter((item) => !item.sent) : current));
+  }, [children]);
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -77,6 +119,15 @@ export function MessageList({ conversationId, className, children }: { conversat
       onLoadCapture={() => { const el = ref.current; if (el && stick.current) el.scrollTop = el.scrollHeight; }}
     >
       {children}
+      {pending.map((item) => (
+        <li key={item.id} className={[styles.bubbleRow, styles.rowOut].join(" ")}>
+          <div className={[styles.bubble, styles.bubbleOut].join(" ")}>
+            {item.media && <p className={styles.bubbleText}>📎 Attachment</p>}
+            {item.text && <p className={styles.bubbleText}>{item.text}</p>}
+            <span className={styles.bubbleMeta}>{item.sent ? "Sent" : "Sending…"}</span>
+          </div>
+        </li>
+      ))}
     </ol>
   );
 }

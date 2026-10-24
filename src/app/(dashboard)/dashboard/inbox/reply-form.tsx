@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { emitOptimistic } from "./live";
 import styles from "./inbox.module.css";
 
 const EMOJIS = [
@@ -69,6 +70,14 @@ export function ReplyForm({
 
   async function send() {
     if (!canSend) return;
+    const draftText = body;
+    const draftFile = file;
+    const bubbleId = crypto.randomUUID();
+    emitOptimistic({ type: "add", id: bubbleId, conversationId, text: draftText.trim(), media: Boolean(draftFile) });
+    setBody("");
+    setFile(null);
+    if (fileRef.current) fileRef.current.value = "";
+    let delivered = false;
     setBusy(true);
     setError("");
     setSuccess("");
@@ -76,16 +85,15 @@ export function ReplyForm({
       const form = new FormData();
       form.set("conversationId", conversationId);
       form.set("clientToken", token);
-      form.set("body", body);
-      if (file) form.set("file", file);
+      form.set("body", draftText);
+      if (draftFile) form.set("file", draftFile);
       const response = await fetch("/api/inbox/send", { method: "POST", body: form });
       const value = await response.json().catch(() => null) as { error?: string; success?: string; nextToken?: string } | null;
       if (!value) throw new Error("The server did not answer. Check the thread before resending.");
       if (value.nextToken) setToken(value.nextToken);
-      if (value.success) {
-        setBody("");
-        setFile(null);
-        if (fileRef.current) fileRef.current.value = "";
+      if (value.success && !value.error) {
+        delivered = true;
+        emitOptimistic({ type: "sent", id: bubbleId });
         setSuccess(value.success);
       }
       if (value.error) setError(value.error);
@@ -93,6 +101,12 @@ export function ReplyForm({
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The message could not be sent.");
     } finally {
+      if (!delivered) {
+        // Not sent: drop the temporary bubble and give the draft back so nothing is lost.
+        emitOptimistic({ type: "remove", id: bubbleId });
+        setBody((current) => current || draftText);
+        setFile((current) => current ?? draftFile);
+      }
       setBusy(false);
     }
   }

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createStaffAdminClient, getStaffAdminAccess } from "@/server/auth/staff-users/admin";
+import { createStaffAdminClient, isStaffAdminEmail } from "@/server/auth/staff-users/admin";
 import { isUuid, replyErrorMessage } from "@/server/inbox/format";
 import { getMetaConfigurationStatus, MetaApiError } from "@/server/meta/client";
 import {
@@ -45,7 +45,13 @@ export async function POST(request: Request): Promise<Response> {
   const rotated = (error: string, success = ""): Response =>
     reply({ error, success, nextToken: randomUUID() });
 
-  if (await getStaffAdminAccess() !== "allowed") return keep("Only a workspace admin can reply.", 403);
+  // One Supabase Auth round trip: it both checks admin access and gives the user id.
+  const session = await createClient();
+  const { data: userData, error: authError } = await session.auth.getUser();
+  const staff = userData?.user ?? null;
+  if (authError || !staff || !staff.email_confirmed_at || !isStaffAdminEmail(staff.email)) {
+    return keep("Only a workspace admin can reply.", 403);
+  }
   if (!getMetaConfigurationStatus().configured) return keep("Complete the Meta server configuration before replying.", 503);
   if (!isUuid(conversationId) || !isUuid(clientToken)) return rotated("The reply form was invalid. Refresh and try again.");
 
@@ -63,10 +69,8 @@ export async function POST(request: Request): Promise<Response> {
     return keep(replyErrorMessage("invalid_reply"));
   }
 
-  const session = await createClient();
-  const { data: userData, error: authError } = await session.auth.getUser();
   const admin = createStaffAdminClient();
-  if (authError || !userData.user || !admin) return keep("Your admin session or server database connection is unavailable.", 503);
+  if (!admin) return keep("Your admin session or server database connection is unavailable.", 503);
 
   // Upload first (nothing reaches the customer yet), then reserve under the database checks.
   let mediaId: string | null = null;
@@ -82,7 +86,7 @@ export async function POST(request: Request): Promise<Response> {
     p_conversation_id: conversationId,
     p_body: text,
     p_client_token: clientToken,
-    p_actor_user_id: userData.user.id,
+    p_actor_user_id: staff.id,
     p_message_type: kind ?? "text",
     p_media_id: mediaId,
     p_media_mime: hasFile ? file.type : null,
