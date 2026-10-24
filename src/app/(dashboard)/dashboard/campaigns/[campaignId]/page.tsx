@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { AUDIT_PAGE_SIZE, getCampaignDetail, listExcludedRecipients, RECIPIENTS_PAGE_SIZE } from "@/server/campaigns/admin";
+import { estimateCost, getRateCard, listCampaignPhones } from "@/server/campaigns/pricing";
 import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { getCampaignWorkerReadiness } from "@/server/campaigns/worker";
 import { parseTemplateBodyParameters } from "@/server/meta/templates";
@@ -70,6 +71,10 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
   const tab: Tab = visibleTabs.some(([key]) => key === requestedTab)
     ? (requestedTab as Tab) : (isDraft ? "message" : "overview");
   const tabHref = (key: Tab) => `/dashboard/campaigns/${campaignId}?tab=${key}`;
+  const rateCard = campaign?.state === "draft" ? getRateCard() : null;
+  const draftEstimate = campaign && rateCard
+    ? estimateCost(await listCampaignPhones(campaign.id, { states: ["pending"] }).catch(() => []), rateCard)
+    : null;
   const excluded = campaign?.state === "draft" ? await listExcludedRecipients(campaignId).catch(() => []) : [];
   const review = campaign ? bodyReview(campaign.templateBody, campaign.bodyParameters) : null;
   const header = campaign?.templateComponents.find((part) => part.type === "HEADER");
@@ -94,6 +99,7 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
             <div><strong>{campaign.audienceCount}</strong><small>recipients</small></div>
             <div><strong>{campaign.templateName}</strong><small>{campaign.templateLanguage}</small></div>
           </div>
+          {draftEstimate && <p className={styles.helper}>Estimated cost if all are delivered: <strong>{draftEstimate.currency} {draftEstimate.total.toFixed(draftEstimate.total < 1 ? 4 : 2)}</strong>{draftEstimate.unpriced > 0 ? ` (${draftEstimate.unpriced} numbers have no rate set)` : ""}. You are only charged for delivered messages.</p>}
           <div className={styles.renderedPreview}><strong>Message preview</strong><p>{review?.rendered}</p></div>
           <ExcludeNumbers campaignId={campaign.id} excluded={excluded} />
           <CampaignControls id={campaign.id} state={campaign.state} audienceCount={campaign.audienceCount} audienceSourceLabel={campaign.audienceSourceLabel} reviewSha256={campaign.reviewSha256} />
