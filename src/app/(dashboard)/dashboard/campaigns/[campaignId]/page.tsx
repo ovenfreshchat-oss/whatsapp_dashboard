@@ -9,6 +9,7 @@ import { parseTemplateBodyParameters } from "@/server/meta/templates";
 import { CampaignControls } from "../campaign-controls";
 import { ExcludeNumbers } from "../exclude-numbers";
 import { AutoRefresh } from "../auto-refresh";
+import { RefreshButton } from "@/components/ui/refresh-button";
 import styles from "../campaigns.module.css";
 
 export const metadata: Metadata = { title: "Campaign review | The Oven Fresh" };
@@ -90,7 +91,7 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
           <div className={styles.buttonRow}>
             {(campaign.state === "scheduled" || campaign.state === "running") && <AutoRefresh intervalMs={5000} />}
             {campaign.state !== "draft" && <Link href={`/dashboard/campaigns/${campaign.id}/analytics`} className={styles.refreshLink}>Analytics →</Link>}
-            <Link href={`/dashboard/campaigns/${campaign.id}`} className={styles.refreshLink}>Refresh ↻</Link>
+            <RefreshButton className={styles.refreshLink} />
           </div>
         </div>
         {campaign.state === "draft" && <section className={`${styles.panel} ${styles.readyPanel}`} aria-labelledby="ready-heading">

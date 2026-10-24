@@ -4,6 +4,7 @@ import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { getCampaignAnalytics, getMetaTemplateStats, type CampaignAnalytics } from "@/server/campaigns/analytics";
 import { AutoRefresh } from "../../auto-refresh";
 import { estimateCost, getMetaBilledCost, getRateCard, listCampaignPhones } from "@/server/campaigns/pricing";
+import { RefreshButton } from "@/components/ui/refresh-button";
 import styles from "../../campaigns.module.css";
 
 export const metadata: Metadata = { title: "Campaign analytics | The Oven Fresh" };
@@ -63,7 +64,7 @@ export default async function CampaignAnalyticsPage({ params }: { params: Promis
           </div>
           <div className={styles.buttonRow}>
             {a.campaign.state !== "draft" && <AutoRefresh intervalMs={a.campaign.state === "running" || a.campaign.state === "scheduled" ? 5000 : 20000} />}
-            <Link href={`/dashboard/campaigns/${campaignId}/analytics`} className={styles.refreshLink}>Refresh ↻</Link>
+            <RefreshButton className={styles.refreshLink} />
             <a href={`/api/campaigns/${campaignId}/export`} className={styles.refreshLink}>Download CSV ↓</a>
           </div>
         </div>

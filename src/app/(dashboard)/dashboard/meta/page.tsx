@@ -9,6 +9,7 @@ import {
 } from "@/server/meta/client";
 import { assertApprovedMarketingTemplate, parseTemplateBodyParameters, syncMetaTemplates, type MetaTemplate } from "@/server/meta/templates";
 import { TestSendForm, type TestTemplateOption } from "./test-send-form";
+import { RefreshButton } from "@/components/ui/refresh-button";
 import styles from "./meta.module.css";
 
 export const metadata: Metadata = {
@@ -116,7 +117,7 @@ export default async function MetaSetupPage() {
           </div>
           <div className={styles.introLinks}>
             <Link href="/dashboard/meta/review" className={styles.refreshLink}>Review inbound holds ↗</Link>
-            <Link href="/dashboard/meta" className={styles.refreshLink}>Refresh checks ↻</Link>
+            <RefreshButton label="Refresh checks" className={styles.refreshLink} />
           </div>
         </div>
 

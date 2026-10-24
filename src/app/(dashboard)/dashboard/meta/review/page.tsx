@@ -5,6 +5,7 @@ import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { createStaffAdminClient, getStaffAdminAccess } from "@/server/auth/staff-users/admin";
 import { getConfiguredMetaIdentifiers, getMetaConfigurationStatus } from "@/server/meta/client";
 import { ReconcileConfirmedHoldForm, ReleaseHoldForm } from "./release-form";
+import { RefreshButton } from "@/components/ui/refresh-button";
 import styles from "./review.module.css";
 
 export const metadata: Metadata = {
@@ -152,7 +153,7 @@ export default async function MetaInboundReviewPage() {
           <h1>Sender holds<span>.</span></h1>
           <p>Review inbound STOP requests and ambiguous messages before clearing a sender-wide pause.</p>
         </div>
-        <Link href="/dashboard/meta/review" className={styles.refreshLink}>Refresh evidence ↻</Link>
+        <RefreshButton label="Refresh evidence" className={styles.refreshLink} />
       </div>
 
       <section className={styles.notice}>

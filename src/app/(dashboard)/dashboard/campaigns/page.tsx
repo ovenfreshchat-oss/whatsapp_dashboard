@@ -7,6 +7,7 @@ import { assertApprovedMarketingTemplate, parseTemplateBodyParameters, syncMetaT
 import { Pagination } from "@/components/ui/pagination";
 import { AutoRefresh } from "./auto-refresh";
 import { CreateCampaignForm, type CampaignTemplateOption } from "./create-form";
+import { RefreshButton } from "@/components/ui/refresh-button";
 import styles from "./campaigns.module.css";
 
 export const metadata: Metadata = {
@@ -69,7 +70,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
         </div>
         <div className={styles.buttonRow}>
           {campaigns?.some((c) => c.state === "scheduled" || c.state === "running") && <AutoRefresh intervalMs={8000} />}
-          <Link href="/dashboard/campaigns" className={styles.refreshLink}>Refresh ↻</Link>
+          <RefreshButton className={styles.refreshLink} />
         </div>
       </div>
 
