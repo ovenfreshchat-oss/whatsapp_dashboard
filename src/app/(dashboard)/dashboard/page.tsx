@@ -111,7 +111,6 @@ export default async function DashboardPage() {
   return (
     <DashboardShell
       label="The Oven Fresh dashboard"
-      headerAction={canAddStaff && <Link className={styles.addUserLink} href="/dashboard/users/new">Add staff user <span aria-hidden="true">↗</span></Link>}
       showMetaSetup={canAddStaff}
     >
       <div className={styles.content}>
