@@ -64,7 +64,7 @@ export default async function DashboardPage() {
     process.env.META_WEBHOOK_VERIFY_TOKEN,
   ].every(Boolean);
   const admin = canAddStaff ? createStaffAdminClient() : null;
-  const [contactsResult, campaignsResult, activeResult, sentResult, optOutResult, repliesResult, categories] = admin
+  const [contactsResult, campaignsResult, activeResult, sentResult, optOutResult, repliesResult, deliveredResult, deliveredRepliesResult, categories] = admin
     ? await Promise.all([
         admin.from("contacts").select("id", { count: "exact", head: true }),
         admin.from("whatsapp_campaigns").select("id", { count: "exact", head: true }),
@@ -75,9 +75,13 @@ export default async function DashboardPage() {
         admin.from("opt_out_numbers").select("phone_e164", { count: "exact", head: true }),
         admin.from("inbox_messages").select("id", { count: "exact", head: true })
           .eq("direction", "outbound").in("status", ["sent", "delivered", "read"]),
+        admin.from("whatsapp_campaign_recipients").select("id", { count: "exact", head: true })
+          .in("delivery_status", ["delivered", "read"]),
+        admin.from("inbox_messages").select("id", { count: "exact", head: true })
+          .eq("direction", "outbound").in("status", ["delivered", "read"]),
         getCategoryVolumes(),
       ])
-    : [null, null, null, null, null, null, null];
+    : [null, null, null, null, null, null, null, null, null];
   const count = (result: { count: number | null; error: unknown } | null) =>
     result && !result.error ? (result.count ?? 0) : null;
   const contactCount = count(contactsResult);
@@ -85,11 +89,15 @@ export default async function DashboardPage() {
   const campaignSent = count(sentResult);
   const replySent = count(repliesResult);
   const totalSent = campaignSent === null ? null : campaignSent + (replySent ?? 0);
+  const campaignDelivered = count(deliveredResult);
+  const totalDelivered = campaignDelivered === null ? null : campaignDelivered + (count(deliveredRepliesResult) ?? 0);
+  const deliveredShare = totalSent && totalDelivered !== null ? `${Math.round((totalDelivered / totalSent) * 100)}% of sent` : "Campaigns and inbox replies";
   const metaNote = categories ? "Delivered, per Meta (12 months)" : "Not available from Meta yet";
   const metrics: { label: string; value: string; detail: string; icon: IconName }[] = [
     { label: "Campaigns", value: show(count(campaignsResult)),
       detail: count(campaignsResult) === null ? "Database setup needed" : `${count(activeResult) ?? 0} active now`, icon: "campaigns" },
     { label: "Messages sent", value: show(totalSent), detail: "Campaigns and inbox replies", icon: "templates" },
+    { label: "Delivered", value: show(totalDelivered), detail: deliveredShare, icon: "contacts" },
     { label: "Contacts", value: show(contactCount),
       detail: contactCount === null ? "Database setup needed" : "Saved numbers", icon: "contacts" },
     { label: "Opted out", value: show(count(optOutResult)), detail: "Never messaged", icon: "team" },

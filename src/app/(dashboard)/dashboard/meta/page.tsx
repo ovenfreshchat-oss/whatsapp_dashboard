@@ -35,6 +35,20 @@ function testOption(template: MetaTemplate): TestTemplateOption | null {
   }
 }
 
+const QUALITY: Record<string, { label: string; className: string }> = {
+  RED: { label: "Low", className: "qualityLow" },
+  YELLOW: { label: "Medium", className: "qualityMedium" },
+  GREEN: { label: "High", className: "qualityHigh" },
+};
+
+function QualityBadge({ rating }: { rating: string | null | undefined }) {
+  const quality = QUALITY[String(rating ?? "").toUpperCase()];
+  if (!quality) return <>{rating ? "Unknown" : "—"}</>;
+  return <span className={`${styles.quality} ${styles[quality.className]}`} title={`WhatsApp quality rating: ${rating}`}>
+    <i aria-hidden="true" />{quality.label}
+  </span>;
+}
+
 function dateLabel(value: string | null | undefined) {
   if (!value) return "—";
   const date = new Date(value);
@@ -114,7 +128,7 @@ export default async function MetaSetupPage() {
             <dl>
               <div><dt>WABA</dt><dd>{health?.wabaName ?? (configuration.configured ? "Not verified" : "Not configured")}</dd></div>
               <div><dt>Phone</dt><dd>{health?.phoneNumber?.displayPhoneNumber ?? "—"}</dd></div>
-              <div><dt>Quality</dt><dd>{health?.phoneNumber?.qualityRating ?? "—"}</dd></div>
+              <div><dt>Quality</dt><dd><QualityBadge rating={health?.phoneNumber?.qualityRating} /></dd></div>
             </dl>
           </article>
 

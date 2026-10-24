@@ -492,3 +492,10 @@
     min-height: 205px;
   }
 }
+
+/* Quality rating */
+.quality { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px; border-radius: 99px; font-weight: 800; }
+.quality i { width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 20%, transparent); }
+.qualityLow { color: #c0392b; background: #fdecea; }
+.qualityMedium { color: #a66b00; background: #fff4d6; }
+.qualityHigh { color: #15803d; background: #e3f6ea; }
