@@ -137,3 +137,29 @@
   .chip { min-height: 40px; }
   .segment button { min-height: 44px; }
 }
+
+/* Analytics */
+.kpiGrid { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 10px; }
+.kpi { display: grid; gap: 4px; padding: 14px; border: 1px solid rgba(255,255,255,.85); border-radius: 14px; background: linear-gradient(146deg,rgba(255,255,255,.9),rgba(245,249,255,.69)); box-shadow: 0 8px 22px rgba(77,103,150,.07); min-width: 0; }
+.kpi span { color: #7371b9; font-size: 10px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.kpi strong { color: #4e46b7; font-size: 24px; line-height: 1.1; }
+.kpi small { color: #8e9aae; font-size: 10px; line-height: 1.4; }
+.funnel { display: grid; gap: 10px; margin-bottom: 14px; }
+.funnelLabel { display: flex; justify-content: space-between; gap: 10px; color: #59667d; font-size: 11px; margin-bottom: 4px; }
+.funnelLabel strong { color: #4e46b7; } .funnelLabel small { color: #97a1b1; font-weight: 600; }
+.bar { height: 9px; border-radius: 99px; background: #eceffa; overflow: hidden; }
+.bar > div { height: 100%; border-radius: 99px; background: linear-gradient(90deg,#7a72e6,#4e46b7); }
+.subheading { margin: 16px 0 6px; color: #353c52; font-size: 12px; }
+.timeline { display: grid; gap: 8px; }
+.timelineRow { display: grid; grid-template-columns: 76px minmax(0,1fr) auto; align-items: center; gap: 10px; color: #7b889c; font-size: 10px; }
+.timelineRow time { color: #59667d; font-weight: 700; }
+@media (max-width: 850px) { .kpiGrid { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+@media (max-width: 540px) { .kpiGrid { grid-template-columns: repeat(2,minmax(0,1fr)); } .timelineRow { grid-template-columns: 70px minmax(0,1fr); } .timelineRow > span { grid-column: 1 / -1; } }
+
+/* Skip numbers */
+.excludeBox { margin: 0 0 12px; padding: 10px 12px; border: 1px solid #e2e4f8; border-radius: 10px; background: #fafbfe; }
+.excludeBox summary { color: #5552a3; font-size: 11px; font-weight: 800; cursor: pointer; }
+.excludeBox .form { margin-top: 10px; }
+.excludedList { display: grid; gap: 6px; color: #59667d; font-size: 11px; }
+.excludedList ul { max-height: 140px; margin: 0; padding-left: 16px; overflow: auto; }
+.excludedList .chip { width: fit-content; }

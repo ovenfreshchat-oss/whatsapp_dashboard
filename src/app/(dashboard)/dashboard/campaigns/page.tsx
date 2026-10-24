@@ -103,7 +103,7 @@ export default async function CampaignsPage() {
         <section className={styles.panel} aria-labelledby="campaigns-heading">
           <div className={styles.panelHeading}><div><span className={styles.eyebrow}>CAMPAIGNS</span><h2 id="campaigns-heading">Recent campaigns</h2></div><span>{campaigns ? `${campaigns.length} shown` : "Unavailable"}</span></div>
           {campaigns?.length ? <div className={styles.campaignList}>
-            {campaigns.map((campaign) => <Link className={styles.campaignRow} key={campaign.id} href={`/dashboard/campaigns/${campaign.id}`}>
+            {campaigns.map((campaign) => <Link className={styles.campaignRow} key={campaign.id} href={`/dashboard/campaigns/${campaign.id}${campaign.state === "draft" ? "" : "/analytics"}`}>
               <div><strong>{campaign.name}</strong><small>{campaign.audienceSourceLabel} · {campaign.templateName} · {campaign.templateLanguage} · {campaign.audienceCount} recipients</small></div>
               <div><span className={styles.statePill}>{campaign.state}</span><small>{campaign.scheduledFor ? dateLabel(campaign.scheduledFor) : "Not scheduled"}</small></div>
             </Link>)}

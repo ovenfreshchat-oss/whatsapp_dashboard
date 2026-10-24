@@ -10,7 +10,9 @@ import {
   createCampaignDraft,
   pauseCampaign,
   resumeCampaign,
+  parsePastedPhones,
   scheduleCampaign,
+  setCampaignExclusions,
 } from "@/server/campaigns/admin";
 import { CampaignStoreError } from "@/server/campaigns/store";
 import { startCampaignSendWorkflow } from "@/server/campaigns/start-send";
@@ -146,4 +148,37 @@ export async function transitionCampaignAction(
       ? "Campaign queued. Sending starts within a minute inside the sending window."
       : "Campaign updated.") + senderNote,
   };
+}
+
+export async function excludeRecipientsAction(
+  campaignId: string,
+  _previous: CampaignActionState,
+  formData: FormData,
+): Promise<CampaignActionState> {
+  if (await getStaffAdminAccess() !== "allowed") {
+    return { error: "Only a workspace admin can manage campaigns.", success: "" };
+  }
+  const intent = formData.get("intent");
+  try {
+    if (intent === "restore_all") {
+      const result = await setCampaignExclusions(campaignId, null, true);
+      revalidatePath(`/dashboard/campaigns/${campaignId}`);
+      return { error: "", success: `${result.changed} numbers put back. ${result.audienceCount} will be sent.` };
+    }
+    const raw = formData.get("numbers");
+    if (typeof raw !== "string" || !raw.trim()) return { error: "Paste at least one phone number.", success: "" };
+    const { phones, invalid } = parsePastedPhones(raw.slice(0, 20_000));
+    if (!phones.length) return { error: "No valid phone numbers found. Include the country code.", success: "" };
+    const result = await setCampaignExclusions(campaignId, phones, intent === "restore");
+    revalidatePath(`/dashboard/campaigns/${campaignId}`);
+    const missed = phones.length - result.changed;
+    return {
+      error: "",
+      success: `${result.changed} numbers ${intent === "restore" ? "put back" : "skipped"}. ${result.audienceCount} will be sent.` +
+        (missed > 0 ? ` ${missed} were not in this campaign's list.` : "") +
+        (invalid.length ? ` Could not read: ${invalid.slice(0, 3).join(", ")}${invalid.length > 3 ? "…" : ""}.` : ""),
+    };
+  } catch (error) {
+    return { error: safeError(error), success: "" };
+  }
 }

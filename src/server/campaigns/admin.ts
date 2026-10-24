@@ -34,7 +34,7 @@ export class CampaignInputError extends Error {
   }
 }
 
-async function requireAdminActor(): Promise<string> {
+export async function requireAdminActor(): Promise<string> {
   const session = await createSessionClient();
   const { data, error } = await session.auth.getUser();
   const user = data.user;
@@ -316,4 +316,54 @@ export async function getCampaignDetail(id: string): Promise<CampaignDetail> {
       displayName: names.get(recipient.contactId) ?? null,
     })),
   };
+}
+
+const EXCLUDED_MARKER = "Excluded before sending";
+
+/** Normalizes pasted numbers (any spacing, with or without +) to E.164; reports what it could not read. */
+export function parsePastedPhones(text: string): { phones: string[]; invalid: string[] } {
+  const phones = new Set<string>();
+  const invalid: string[] = [];
+  for (const piece of text.split(/[\n,;]+/)) {
+    const trimmed = piece.trim();
+    if (!trimmed) continue;
+    const digits = trimmed.replace(/^00/, "").replace(/[^0-9]/g, "");
+    if (/^[1-9][0-9]{7,14}$/.test(digits)) phones.add(`+${digits}`);
+    else invalid.push(trimmed.slice(0, 40));
+  }
+  return { phones: [...phones], invalid };
+}
+
+export async function setCampaignExclusions(
+  id: string, phones: string[] | null, restore: boolean,
+): Promise<{ changed: number; audienceCount: number }> {
+  await requireAdminActor();
+  assertCampaignId(id);
+  const { data, error } = await getCampaignStore().rpc("set_campaign_recipient_exclusions", {
+    p_campaign_id: id, p_phones: phones, p_restore: restore,
+  });
+  if (error) {
+    throw new CampaignStoreError(/before the campaign is scheduled/i.test(error.message)
+      ? "Numbers can only be skipped while the campaign is still a draft."
+      : "The numbers could not be updated. Apply drizzle/0017_exclude_campaign_recipients.sql.");
+  }
+  const result = (data ?? {}) as { changed?: number; audience_count?: number };
+  return { changed: Number(result.changed ?? 0), audienceCount: Number(result.audience_count ?? 0) };
+}
+
+export async function listExcludedRecipients(id: string): Promise<{ phone: string; name: string | null }[]> {
+  await requireAdminActor();
+  assertCampaignId(id);
+  const store = getCampaignStore();
+  const { data, error } = await store.from("whatsapp_campaign_recipients")
+    .select("contact_id,recipient_e164").eq("campaign_id", id)
+    .eq("state", "canceled").eq("error_summary", EXCLUDED_MARKER).order("recipient_e164").limit(500);
+  if (error) throw new CampaignStoreError("Skipped numbers could not be loaded.");
+  const ids = (data ?? []).map((row) => row.contact_id as string);
+  const names = new Map<string, string | null>();
+  if (ids.length) {
+    const contacts = await store.from("contacts").select("id,display_name").in("id", ids);
+    for (const c of contacts.data ?? []) names.set(c.id as string, (c.display_name as string | null) ?? null);
+  }
+  return (data ?? []).map((row) => ({ phone: row.recipient_e164 as string, name: names.get(row.contact_id as string) ?? null }));
 }

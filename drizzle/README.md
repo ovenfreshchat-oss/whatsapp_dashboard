@@ -29,3 +29,5 @@ Ambiguous inbound opt-out language creates a sender-wide hold and one `meta_ambi
 - `0014_direct_stop_handling.sql`: a clear STOP from a real phone number is blocked immediately and marked reviewed, with no sender-wide hold on the inbox. Ambiguous messages and STOPs without a usable phone identity still hold for manual review. Also releases holds that exist only because of already-stored clear STOPs. Apply after 0013. Safe to rerun.
 
 - `0015_campaign_media_bucket.sql` — creates the public `campaign-media` Storage bucket (JPG/PNG, 4 MB) used for campaign header image uploads.
+- `0016_campaign_analytics.sql`: read-only RPC `whatsapp_campaign_analytics(campaign_id)` (funnel, failure reasons, replies, opt-outs, hourly timeline, webhook coverage) used by the campaign analytics page. Apply after 0003. Safe to rerun.
+- `0017_exclude_campaign_recipients.sql`: RPC `set_campaign_recipient_exclusions` to skip (or restore) numbers in a draft campaign before sending; keeps `audience_count` equal to the numbers that will be sent. Apply after 0003. Safe to rerun.

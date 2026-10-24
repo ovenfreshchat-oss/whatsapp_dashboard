@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
-import { getCampaignDetail } from "@/server/campaigns/admin";
+import { getCampaignDetail, listExcludedRecipients } from "@/server/campaigns/admin";
 import { getCampaignWorkerReadiness } from "@/server/campaigns/worker";
 import { parseTemplateBodyParameters } from "@/server/meta/templates";
 import { CampaignControls } from "../campaign-controls";
+import { ExcludeNumbers } from "../exclude-numbers";
 import styles from "../campaigns.module.css";
 
 export const metadata: Metadata = { title: "Campaign review | The Oven Fresh" };
@@ -46,6 +47,7 @@ export default async function CampaignDetailPage({ params }: PageProps) {
   const detailResult = await Promise.allSettled([getCampaignDetail(campaignId)]);
   const campaign = detailResult[0].status === "fulfilled" ? detailResult[0].value : null;
   const readiness = getCampaignWorkerReadiness();
+  const excluded = campaign?.state === "draft" ? await listExcludedRecipients(campaignId).catch(() => []) : [];
   const review = campaign ? bodyReview(campaign.templateBody, campaign.bodyParameters) : null;
   const header = campaign?.templateComponents.find((part) => part.type === "HEADER");
   const footer = campaign?.templateComponents.find((part) => part.type === "FOOTER");
@@ -57,7 +59,10 @@ export default async function CampaignDetailPage({ params }: PageProps) {
       {campaign ? <>
         <div className={styles.intro}>
           <div><span className={styles.eyebrow}>CAMPAIGN / {campaign.state.toUpperCase()}</span><h1>{campaign.name}<span>.</span></h1><p>Review the frozen audience and message state before changing the schedule.</p></div>
-          <Link href={`/dashboard/campaigns/${campaign.id}`} className={styles.refreshLink}>Refresh ↻</Link>
+          <div className={styles.buttonRow}>
+            {campaign.state !== "draft" && <Link href={`/dashboard/campaigns/${campaign.id}/analytics`} className={styles.refreshLink}>Analytics →</Link>}
+            <Link href={`/dashboard/campaigns/${campaign.id}`} className={styles.refreshLink}>Refresh ↻</Link>
+          </div>
         </div>
         {campaign.state === "draft" && <section className={`${styles.panel} ${styles.readyPanel}`} aria-labelledby="ready-heading">
           <div className={styles.panelHeading}><div><span className={styles.eyebrow}>LAST STEP</span><h2 id="ready-heading">Send or schedule</h2></div><span className={styles.statePill}>draft</span></div>
@@ -66,6 +71,7 @@ export default async function CampaignDetailPage({ params }: PageProps) {
             <div><strong>{campaign.templateName}</strong><small>{campaign.templateLanguage}</small></div>
           </div>
           <div className={styles.renderedPreview}><strong>Message preview</strong><p>{review?.rendered}</p></div>
+          <ExcludeNumbers campaignId={campaign.id} excluded={excluded} />
           <CampaignControls id={campaign.id} state={campaign.state} audienceCount={campaign.audienceCount} audienceSourceLabel={campaign.audienceSourceLabel} reviewSha256={campaign.reviewSha256} />
           {!readiness.enabled && <div className={styles.formNote}><strong>Worker readiness</strong><p>{readiness.reason}</p></div>}
         </section>}
