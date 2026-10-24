@@ -9,12 +9,9 @@ const initial: OptOutState = { error: "", success: "" };
 export function AddOptOutForm() {
   const [state, action, pending] = useActionState(addOptOutNumbers, initial);
   return <form action={action} className={styles.stack}>
-    <label className={styles.field}><span>Phone numbers (one per line, or separated by commas)</span>
+    <label className={styles.field}><span>Phone numbers with country code (one per line, or separated by commas)</span>
       <textarea name="numbers" rows={6} required placeholder={"+919746298851\n+96891234567"} /></label>
-    <div className={styles.fieldGrid}>
-      <label className={styles.field}><span>Source or reason</span><input name="source" maxLength={200} required placeholder="e.g. customer asked on a call" /></label>
-      <label className={styles.field}><span>Default country for numbers without + (optional, e.g. IN)</span><input name="defaultCountry" maxLength={2} placeholder="IN" /></label>
-    </div>
+    <label className={styles.field}><span>Source or reason</span><input name="source" maxLength={200} required placeholder="e.g. customer asked on a call" /></label>
     <button className={styles.button} type="submit" disabled={pending}>{pending ? "Saving…" : "Add to opt-out list"}</button>
     {state.error && <p className={styles.error} role="alert">{state.error}</p>}
     {state.success && <p className={styles.success} role="status">{state.success}</p>}

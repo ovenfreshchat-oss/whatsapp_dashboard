@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { getConfiguredMetaIdentifiers, metaGraphGet } from "@/server/meta/client";
 import { getCampaignStore } from "./store";
 
@@ -111,3 +112,44 @@ export async function getMetaBilledCost(fromIso: string, toIso: string): Promise
     return null;
   }
 }
+
+export type CategoryVolumes = { marketing: number; utility: number; authentication: number };
+
+/**
+ * Delivered message volume per Meta pricing category over the last 12 months, from Meta's
+ * pricing analytics (account-wide, so it also covers messages sent outside this dashboard).
+ * Returns null when Meta cannot provide it.
+ */
+async function fetchCategoryVolumes(): Promise<CategoryVolumes | null> {
+  try {
+    const end = Math.floor(Date.now() / 1000);
+    const start = end - 360 * 86_400;
+    const { wabaId } = getConfiguredMetaIdentifiers();
+    const payload = await metaGraphGet(`${wabaId}/pricing_analytics`, new URLSearchParams({
+      start: String(start), end: String(end), granularity: "MONTHLY",
+      metric_types: JSON.stringify(["VOLUME"]),
+      dimensions: JSON.stringify(["PRICING_CATEGORY"]),
+    }));
+    const totals: CategoryVolumes = { marketing: 0, utility: 0, authentication: 0 };
+    let found = false;
+    const rows = (value: unknown): Record<string, unknown>[] =>
+      Array.isArray(value) ? value.filter((v): v is Record<string, unknown> => !!v && typeof v === "object") : [];
+    for (const node of rows(payload.data)) {
+      const points = Array.isArray(node.data_points) ? rows(node.data_points) : [node];
+      for (const point of points) {
+        const category = String(point.pricing_category ?? "").toUpperCase();
+        const volume = Number(point.volume);
+        if (!Number.isFinite(volume)) continue;
+        if (category.startsWith("MARKETING")) { totals.marketing += volume; found = true; }
+        else if (category === "UTILITY") { totals.utility += volume; found = true; }
+        else if (category.startsWith("AUTHENTICATION")) { totals.authentication += volume; found = true; }
+      }
+    }
+    return found ? totals : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Cached for five minutes so the dashboard does not call Meta on every load. */
+export const getCategoryVolumes = unstable_cache(fetchCategoryVolumes, ["meta-category-volumes"], { revalidate: 300 });
