@@ -121,18 +121,11 @@ export default async function CampaignAnalyticsPage({ params }: { params: Promis
         </div>
 
         <section className={styles.panel} aria-labelledby="cost-heading">
-          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>COST</span><h2 id="cost-heading">What this campaign costs</h2></div></div>
-          <p className={styles.helper}>WhatsApp charges per <strong>delivered</strong> marketing message, at a rate set by the recipient’s country. Messages that fail or are never delivered are not charged.</p>
-          <dl className={styles.countList}>
-            <div><dt>Delivered messages</dt><dd>{a.delivered}</dd></div>
-            {estimate ? <>
-              <div><dt>Estimated cost (your rate card)</dt><dd>{money(estimate.total, estimate.currency)}</dd></div>
-              {estimate.markets.map((m) => <div key={m.prefix}><dt>+{m.prefix} · {m.count} × {m.rate}</dt><dd>{money(m.subtotal, estimate.currency)}</dd></div>)}
-              {estimate.unpriced > 0 && <div><dt>No rate set for {estimate.unpriced} numbers</dt><dd>—</dd></div>}
-            </> : <div><dt>Estimated cost</dt><dd>Set WHATSAPP_RATE_CARD</dd></div>}
-            <div><dt>Billed by Meta in this time window</dt><dd>{billed ? `${billed.cost.toFixed(4)} (${billed.volume} msgs)` : "Unavailable"}</dd></div>
-          </dl>
-          <p className={styles.helper}>The Meta figure is for your whole account in the campaign’s time window, in your billing currency, so other marketing sends in the same window are included. It can lag by hours. The rate-card estimate is exact only if the rates in <code>WHATSAPP_RATE_CARD</code> match Meta’s published rates.</p>
+          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>COST</span><h2 id="cost-heading">Campaign cost</h2></div></div>
+          <p className={styles.price}>{estimate
+            ? money(estimate.total, estimate.currency)
+            : billed ? billed.cost.toFixed(4) : "—"}</p>
+          <p className={styles.helper}>{a.delivered} delivered {a.delivered === 1 ? "message" : "messages"}</p>
         </section>
 
         <section className={styles.panel} aria-labelledby="timeline-heading">

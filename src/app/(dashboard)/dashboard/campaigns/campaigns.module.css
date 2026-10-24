@@ -194,3 +194,4 @@
 .recipientListFlat { display: grid; margin-top: 8px; }
 @media (max-width: 850px) { .messageGrid { grid-template-columns: 1fr; } .summaryStrip { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; } .summaryStrip > div { padding: 10px; } .summaryStrip strong { font-size: 18px; } .summaryStrip .stripText { font-size: 11px; } }
 @media (max-width: 700px) { .tabs { top: 0; } .tabs a { min-height: 44px; } }
+.price { margin: 0 0 4px; color: #4e46b7; font-size: 34px; font-weight: 800; line-height: 1.1; letter-spacing: -.03em; }
