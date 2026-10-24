@@ -15,6 +15,7 @@ import {
 import { CampaignStoreError } from "@/server/campaigns/store";
 import { startCampaignSendWorkflow } from "@/server/campaigns/start-send";
 import { MetaApiError } from "@/server/meta/client";
+import { uploadCampaignHeaderImage } from "@/server/campaigns/media";
 
 export type CampaignActionState = { error: string; success: string };
 
@@ -50,9 +51,15 @@ export async function createCampaignDraftAction(
   const bodyParameters = rawParameters.trim()
     ? rawParameters.replace(/\r/g, "").split("\n").map((value) => value.trim()).filter((value) => value.length > 0)
     : [];
-  const rawHeaderMediaUrl = formData.get("headerMediaUrl");
-  const headerMediaUrl = typeof rawHeaderMediaUrl === "string" && rawHeaderMediaUrl.trim()
-    ? rawHeaderMediaUrl.trim() : undefined;
+  let headerMediaUrl: string | undefined;
+  const image = formData.get("headerImage");
+  if (image instanceof File && image.size > 0) {
+    try {
+      headerMediaUrl = await uploadCampaignHeaderImage(image);
+    } catch (error) {
+      return { error: safeError(error), success: "" };
+    }
+  }
   const batchMatch = /^batch:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
     .exec(selectedAudience);
   if (selectedAudience !== "all" && !batchMatch) {

@@ -59,6 +59,16 @@ export default async function CampaignDetailPage({ params }: PageProps) {
           <div><span className={styles.eyebrow}>CAMPAIGN / {campaign.state.toUpperCase()}</span><h1>{campaign.name}<span>.</span></h1><p>Review the frozen audience and message state before changing the schedule.</p></div>
           <Link href={`/dashboard/campaigns/${campaign.id}`} className={styles.refreshLink}>Refresh ↻</Link>
         </div>
+        {campaign.state === "draft" && <section className={`${styles.panel} ${styles.readyPanel}`} aria-labelledby="ready-heading">
+          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>LAST STEP</span><h2 id="ready-heading">Send or schedule</h2></div><span className={styles.statePill}>draft</span></div>
+          <div className={styles.readySummary}>
+            <div><strong>{campaign.audienceCount}</strong><small>recipients</small></div>
+            <div><strong>{campaign.templateName}</strong><small>{campaign.templateLanguage}</small></div>
+          </div>
+          <div className={styles.renderedPreview}><strong>Message preview</strong><p>{review?.rendered}</p></div>
+          <CampaignControls id={campaign.id} state={campaign.state} audienceCount={campaign.audienceCount} audienceSourceLabel={campaign.audienceSourceLabel} reviewSha256={campaign.reviewSha256} />
+          {!readiness.enabled && <div className={styles.formNote}><strong>Worker readiness</strong><p>{readiness.reason}</p></div>}
+        </section>}
         <section className={styles.statusGrid} aria-label="Campaign summary">
           <article className={styles.statusCard}><span className={styles.eyebrow}>FROZEN AUDIENCE</span><h2>{campaign.audienceSource === "import_batch" ? "Selected import" : "All eligible contacts"}</h2><strong>{campaign.audienceCount}</strong><p>{campaign.audienceSourceLabel}. Numbers that replied STOP are skipped.</p></article>
           <article className={styles.statusCard}><span className={styles.eyebrow}>MESSAGE</span><h2>Approved template</h2><strong className={styles.templateName}>{campaign.templateName}</strong><p>{campaign.templateLanguage} · Approval is rechecked before schedule and each send.</p></article>
@@ -115,11 +125,12 @@ export default async function CampaignDetailPage({ params }: PageProps) {
         </div>
 
         <div className={styles.twoColumn}>
+          {campaign.state !== "draft" && 
           <section className={styles.panel} aria-labelledby="control-heading">
             <div className={styles.panelHeading}><div><span className={styles.eyebrow}>CONTROL</span><h2 id="control-heading">Campaign actions</h2></div><span className={styles.statePill}>{campaign.state}</span></div>
             <CampaignControls id={campaign.id} state={campaign.state} audienceCount={campaign.audienceCount} audienceSourceLabel={campaign.audienceSourceLabel} reviewSha256={campaign.reviewSha256} />
             <div className={styles.formNote}><strong>Worker readiness</strong><p>{readiness.enabled ? "Sending policy is configured. A separate worker process must also be running; this page cannot verify its process state." : readiness.reason}</p></div>
-          </section>
+          </section>}
           <section className={styles.panel} aria-labelledby="counts-heading">
             <div className={styles.panelHeading}><div><span className={styles.eyebrow}>SEND OUTCOMES</span><h2 id="counts-heading">Recipient states</h2></div><span>{campaign.audienceCount} total</span></div>
             <dl className={styles.countList}>{outcomeKeys.map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{campaign.counts[key]}</dd></div>)}</dl>

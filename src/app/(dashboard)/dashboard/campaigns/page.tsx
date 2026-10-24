@@ -60,12 +60,12 @@ export default async function CampaignsPage() {
         <div>
           <span className={styles.eyebrow}>AUDIENCE / CAMPAIGNS</span>
           <h1>WhatsApp campaigns<span>.</span></h1>
-          <p>Create a reviewed audience from verified contacts, then schedule an approved marketing template.</p>
+          <p>Pick a message and audience, then send or schedule it on the next screen.</p>
         </div>
         <Link href="/dashboard/campaigns" className={styles.refreshLink}>Refresh ↻</Link>
       </div>
 
-      <section className={styles.statusGrid} aria-label="Campaign readiness">
+      <section className={`${styles.statusGrid} ${styles.compactStatus}`} aria-label="Campaign readiness">
         <article className={styles.statusCard}>
           <span className={styles.eyebrow}>01 / ACCOUNT</span>
           <h2>Meta templates</h2>
@@ -95,13 +95,13 @@ export default async function CampaignsPage() {
         <p>Apply <code>drizzle/0001_meta_webhook_inbox.sql</code>, <code>drizzle/0002_contacts.sql</code>, then <code>drizzle/0003_campaigns.sql</code> to the configured Supabase database.</p>
       </section>}
 
-      <div className={styles.twoColumn}>
+      <div className={styles.stack}>
         <section className={styles.panel} aria-labelledby="create-heading">
-          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>STEP 1</span><h2 id="create-heading">Create a draft</h2></div><span>Does not send</span></div>
+          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>NEW CAMPAIGN</span><h2 id="create-heading">Message and audience</h2></div><span>Nothing sends yet</span></div>
           {canCreate ? <CreateCampaignForm options={options} batches={batches ?? []} /> : <p className={styles.empty}>Draft creation becomes available after import history, campaign storage, and a supported approved marketing template are ready.</p>}
         </section>
         <section className={styles.panel} aria-labelledby="campaigns-heading">
-          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>STEP 2</span><h2 id="campaigns-heading">Review and schedule</h2></div><span>{campaigns ? `${campaigns.length} shown` : "Unavailable"}</span></div>
+          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>CAMPAIGNS</span><h2 id="campaigns-heading">Recent campaigns</h2></div><span>{campaigns ? `${campaigns.length} shown` : "Unavailable"}</span></div>
           {campaigns?.length ? <div className={styles.campaignList}>
             {campaigns.map((campaign) => <Link className={styles.campaignRow} key={campaign.id} href={`/dashboard/campaigns/${campaign.id}`}>
               <div><strong>{campaign.name}</strong><small>{campaign.audienceSourceLabel} · {campaign.templateName} · {campaign.templateLanguage} · {campaign.audienceCount} recipients</small></div>

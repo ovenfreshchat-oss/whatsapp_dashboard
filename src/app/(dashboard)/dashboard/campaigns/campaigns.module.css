@@ -98,3 +98,42 @@
   .recipientRow { flex-wrap: wrap; }
   .tableWrap, .campaignTable { overflow-x: auto; }
 }
+
+/* Simple flow */
+.stack { display: grid; gap: 12px; }
+.createGrid { grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: start; column-gap: 18px; }
+.formCol { display: grid; gap: 13px; min-width: 0; }
+.formFooter, .createGrid > .formError { grid-column: 1 / -1; }
+.readyPanel { border-color: #cbc9f2; }
+.readySummary { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 10px; margin-bottom: 12px; }
+.readySummary > div { display: grid; gap: 2px; padding: 10px 14px; border: 1px solid #e2e4f8; border-radius: 10px; background: #f5f5ff; min-width: 0; }
+.readySummary strong { color: #5852ca; font-size: 20px; overflow-wrap: anywhere; }
+.readySummary > div:last-child strong { font-size: 13px; }
+.readySummary small { color: #8e9aae; font-size: 10px; }
+.readyPanel .renderedPreview { margin: 0 0 12px; max-height: 120px; overflow: auto; }
+.segment { display: grid; grid-template-columns: 1fr 1fr; padding: 3px; border: 1px solid #dfe5f1; border-radius: 11px; background: #f3f5fb; }
+.segment button { min-height: 38px; border: 0; border-radius: 9px; background: transparent; color: #6b7690; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.segment .segmentOn { background: #fff; color: #4e46b7; box-shadow: 0 1px 4px rgba(77,103,150,.18); }
+.whenBox { display: grid; gap: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.chip { min-height: 34px; padding: 7px 12px; border: 1px solid #d6d4f5; border-radius: 99px; background: #f5f5ff; color: #4e46b7; font: inherit; font-size: 11px; font-weight: 800; cursor: pointer; }
+.chip:hover { background: #eae9ff; }
+.whenSummary { margin: 0; padding: 8px 11px; border-radius: 9px; background: #e6f7f1; color: #168975; font-size: 11px; font-weight: 700; }
+.stickyBar { display: grid; gap: 10px; }
+.stickyBar .primaryButton { width: 100%; min-height: 44px; font-size: 13px; }
+.compactStatus .statusCard { min-height: 0; padding: 13px 15px; }
+.compactStatus .statusCard strong { font-size: 22px; }
+
+@media (max-width: 850px) {
+  .createGrid { grid-template-columns: 1fr; }
+  .compactStatus { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+  .compactStatus .statusCard { padding: 11px; }
+  .compactStatus .statusCard p, .compactStatus .statusCard a, .compactStatus .statusCard .eyebrow { display: none; }
+  .compactStatus .statusCard h2 { font-size: 11px; margin: 0; }
+  .compactStatus .statusCard strong { font-size: 18px; }
+}
+@media (max-width: 700px) {
+  .stickyBar { position: sticky; bottom: 0; z-index: 5; margin: 0 -14px -14px; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid #e2e4f8; border-radius: 0 0 18px 18px; background: rgba(255,255,255,.96); backdrop-filter: blur(6px); }
+  .chip { min-height: 40px; }
+  .segment button { min-height: 44px; }
+}

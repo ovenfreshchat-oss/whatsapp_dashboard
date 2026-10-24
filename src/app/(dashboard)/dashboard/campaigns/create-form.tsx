@@ -19,7 +19,7 @@ const initialState: CampaignActionState = { error: "", success: "" };
 function CreateButton() {
   const { pending } = useFormStatus();
   return <button type="submit" className={styles.primaryButton} disabled={pending}>
-    {pending ? "Creating draft…" : "Create draft"}
+    {pending ? "Preparing…" : "Continue → choose when to send"}
   </button>;
 }
 
@@ -32,10 +32,12 @@ export function CreateCampaignForm({ options, batches }: {
   const [selectedAudience, setSelectedAudience] = useState(
     batches[0] ? `batch:${batches[0].id}` : "",
   );
+  const [preview, setPreview] = useState("");
   const template = options.find((item) => item.key === selected);
   const selectedBatch = batches.find((item) => selectedAudience === `batch:${item.id}`);
 
-  return <form action={action} className={styles.form}>
+  return <form action={action} className={`${styles.form} ${styles.createGrid}`}>
+    <div className={styles.formCol}>
     <label className={styles.field}>
       <span>Campaign name</span>
       <input name="name" type="text" maxLength={120} placeholder="October weekend offer" required />
@@ -57,16 +59,27 @@ export function CreateCampaignForm({ options, batches }: {
         <option value="all">All eligible contacts across imports</option>
       </select>
     </label>
+    <div className={styles.formNote}>
+      <p>{selectedBatch
+        ? `Audience: contacts from “${selectedBatch.fileName}” who can still receive marketing. It is frozen when you continue, and you see the final count before sending.`
+        : "Audience: every eligible contact across imports, frozen when you continue."}</p>
+    </div>
+    </div>
+    <div className={styles.formCol}>
     {template && template.headerFormat === "IMAGE" && <label className={styles.field} key={`${selected}-header`}>
-      <span>Header image URL (HTTPS)</span>
+      <span>Header image (JPG or PNG, up to 4 MB)</span>
       <input
-        name="headerMediaUrl"
-        type="url"
-        pattern="https://.*"
-        placeholder="https://example.com/banner.jpg"
+        name="headerImage"
+        type="file"
+        accept="image/jpeg,image/png"
         required
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          setPreview((old) => { if (old) URL.revokeObjectURL(old); return file ? URL.createObjectURL(file) : ""; });
+        }}
       />
-      <small>Meta requires a publicly accessible HTTPS URL for image headers.</small>
+      {preview && /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={preview} alt="Selected header preview" className={styles.headerImagePreview} />}
     </label>}
     {template && <div className={styles.templatePreview}>
       <span>TEMPLATE BODY</span>
@@ -81,13 +94,8 @@ export function CreateCampaignForm({ options, batches }: {
         required
       />
     </label> : <input name="bodyParameters" type="hidden" value="" />}
-    <div className={styles.formNote}>
-      <strong>Audience snapshot</strong>
-      <p>{selectedBatch
-        ? `Only contacts with a verified Yes claim from “${selectedBatch.fileName}” and current marketing eligibility enter this draft. ${selectedBatch.pendingClaims} Yes claims were imported; any unreviewed claims stay out.`
-        : "The all-eligible option deliberately includes eligible contacts across imports."} The selected audience is frozen now. Review the resulting count before scheduling.</p>
     </div>
-    <CreateButton />
+    <div className={styles.formFooter}><CreateButton /></div>
     {state.error && <p className={styles.formError} role="alert">{state.error}</p>}
   </form>;
 }
