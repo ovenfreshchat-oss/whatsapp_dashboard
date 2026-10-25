@@ -51,8 +51,8 @@ async function assertTestRecipientAllowed(
   if (holds.error || optOuts.error) {
     throw new MetaApiError("Opt-out safety checks are unavailable; no test message was sent.", "validation", { definitiveRejection: true });
   }
-  if (holds.data?.length || optOuts.data?.length) {
-    throw new MetaApiError("Sending is on hold after an opt-out. Reconcile the request before testing again.", "validation", { definitiveRejection: true });
+  if (optOuts.data?.length) {
+    throw new MetaApiError("This number has opted out, so no test message was sent.", "validation", { definitiveRejection: true });
   }
 }
 

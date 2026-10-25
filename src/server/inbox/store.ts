@@ -168,7 +168,7 @@ export async function getThread(conversationId: string): Promise<InboxThread | n
     // The reply RPC re-checks all of this under a row lock; this only drives the UI.
     safety: {
       optedOut: Boolean(optOut.data?.length),
-      senderHold: Boolean(hold.data?.length),
+      senderHold: false,
       unavailable: Boolean(optOut.error || hold.error),
     },
   };

@@ -77,7 +77,6 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   let lockReason: string | null = null;
   if (thread && replyWin) {
     if (thread.safety.optedOut) lockReason = "This customer has opted out. Replies are disabled.";
-    else if (thread.safety.senderHold) lockReason = "Sending is on hold after an opt-out. Review it on the Sender holds page.";
     else if (thread.safety.unavailable) lockReason = "Safety checks are unavailable right now. Refresh to try again.";
     else if (!replyWin.open) lockReason = "The 24-hour reply window has closed. WhatsApp only allows an approved template until the customer writes again.";
   }
