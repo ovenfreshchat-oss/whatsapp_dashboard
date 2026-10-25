@@ -179,6 +179,26 @@
   margin: 0;
 }
 
+/* Badge and Sign out share one height so the row looks even. */
+.headerActions > span,
+.headerActions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 38px;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-radius: 99px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.headerActions button {
+  padding-right: 16px;
+  padding-left: 16px;
+}
+
 @media (max-width: 900px) {
   .topbarTitle {
     display: none;
@@ -192,7 +212,7 @@
 @media (max-width: 700px) {
   /* Room for the bottom tab bar. */
   .page {
-    padding: 8px 8px calc(78px + env(safe-area-inset-bottom));
+    padding: 8px 8px calc(92px + env(safe-area-inset-bottom));
   }
 
   .shell {
@@ -237,18 +257,20 @@
   .navItem {
     flex-direction: column;
     justify-content: center;
-    gap: 3px;
+    gap: 4px;
     width: auto;
-    min-height: 52px;
+    min-height: 62px;
     padding: 0 2px;
-    font-size: 10px;
+    border-radius: 14px;
+    font-size: 11px;
     line-height: 1.1;
     text-align: center;
   }
 
   .navIcon {
     flex: none;
-    font-size: 19px;
+    font-size: 28px;
+    line-height: 1;
   }
 
   .navCaption,
@@ -262,13 +284,18 @@
   }
 
   .topbar {
-    justify-content: flex-start;
+    justify-content: flex-end;
     padding: 10px 2px;
   }
 
   .headerActions {
-    flex-wrap: wrap;
-    justify-content: flex-start;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .headerActions > span:first-child {
+    margin-right: auto;
   }
 }
 
