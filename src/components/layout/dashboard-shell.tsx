@@ -14,40 +14,22 @@ type DashboardShellProps = {
 
 export function DashboardShell({ label, headerAction, showMetaSetup = false, children }: DashboardShellProps) {
   return (
-    <main className={styles.page}>
-      <section className={styles.shell} aria-label={label}>
-        <aside className={styles.sidebar} aria-label="Workspace navigation">
-          <div className={styles.brandWrap}>
-            <Brand compact showTagline={false} className={styles.sidebarBrand} />
-            {/* Mobile only: sign out lives in the app bar next to the brand. */}
-            <form action={signOut} className={styles.appBarSignOutForm}>
-              <button type="submit" className={styles.appBarSignOut} aria-label="Sign out" title="Sign out"><LogOut size={18} strokeWidth={2} aria-hidden="true" /></button>
-            </form>
-          </div>
+    <main className={styles.page} aria-label={label}>
+      <header className={styles.topNav}>
+        <div className={styles.topNavInner}>
+          <Brand compact showTagline={false} className={styles.navBrand} />
           <nav className={styles.navigation} aria-label="Main navigation">
-            <span className={styles.navCaption}>WORKSPACE</span>
             <NavLinks showAdminLinks={showMetaSetup} />
           </nav>
-          <div className={styles.sidebarFooter}>
-            <span className={styles.footerSparkle} aria-hidden="true">✦</span>
-            <span>More tools coming soon</span>
+          <div className={styles.headerActions}>
+            {headerAction}
+            <form action={signOut}>
+              <button type="submit" className={styles.signOut} aria-label="Sign out" title="Sign out"><LogOut size={18} strokeWidth={2} aria-hidden="true" /></button>
+            </form>
           </div>
-        </aside>
-
-        <div className={styles.workspace}>
-          <header className={[styles.topbar, headerAction ? "" : styles.topbarEmptyMobile].filter(Boolean).join(" ")}>
-            <div className={styles.topbarTitle}>
-              <span className={styles.topbarDot} aria-hidden="true" />
-              <span>Campaign workspace</span>
-            </div>
-            <div className={styles.headerActions}>
-              {headerAction}
-              <form action={signOut} className={styles.desktopSignOutForm}><button type="submit" className={styles.signOut} aria-label="Sign out" title="Sign out"><LogOut size={18} strokeWidth={2} aria-hidden="true" /></button></form>
-            </div>
-          </header>
-          {children}
         </div>
-      </section>
+      </header>
+      <div className={styles.workspace}>{children}</div>
     </main>
   );
 }

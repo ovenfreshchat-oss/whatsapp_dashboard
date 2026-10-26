@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BackLink } from "@/components/ui/back-link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { createStaffAdminClient, getStaffAdminAccess } from "@/server/auth/staff-users/admin";
 import { getConfiguredMetaIdentifiers, getMetaConfigurationStatus } from "@/server/meta/client";
@@ -147,7 +147,7 @@ export default async function MetaInboundReviewPage() {
 
   return <DashboardShell label="WhatsApp integration" showMetaSetup>
     <div className={styles.content}>
-      <Link href="/dashboard/meta" className={styles.backLink}>← WhatsApp setup</Link>
+      <BackLink href="/dashboard/meta">WhatsApp setup</BackLink>
       <div className={styles.intro}>
         <div><span className={styles.eyebrow}>INTEGRATIONS / INBOUND REVIEW</span>
           <h1>Sender holds<span>.</span></h1>

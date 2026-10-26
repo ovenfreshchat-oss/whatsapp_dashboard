@@ -34,3 +34,4 @@ Ambiguous inbound opt-out language creates a sender-wide hold and one `meta_ambi
 - `0018_fix_delivery_status_projection.sql`: fixes the delivery-status projection crashing on the first status of a message (NULL `delivery_conflict`), which made the webhook fail and left campaigns with no delivered/read data. Apply after 0003. Safe to rerun.
 
 - `0019_no_sender_holds.sql` — releases all sender holds and adds a trigger so a hold can never block inbox replies, test sends or marketing again. Clear STOP messages still opt out the individual customer.
+- `0020_contact_campaign_active.sql`: adds `contacts.campaign_active` (default on) and the RPCs `set_contact_campaign_active` / `set_batch_campaign_active`. Inactive contacts are left out of new campaign drafts and rechecked at send time by `can_send_whatsapp_marketing`; opt-outs still always win. Used by the Numbers tab on each upload at `/dashboard/contacts/imports/[batchId]`. Apply after 0010. Safe to rerun.

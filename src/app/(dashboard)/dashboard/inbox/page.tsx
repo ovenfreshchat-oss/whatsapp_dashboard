@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Fragment } from "react";
 import { randomUUID } from "node:crypto";
+import { ArrowLeft } from "lucide-react";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import {
   conversationTitle,
@@ -141,7 +142,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
           {thread && replyWin && <>
             {thread.conversation.unread_count > 0 && <MarkRead conversationId={thread.conversation.id} seenThrough={thread.conversation.last_message_at} />}
             <header className={styles.threadHeader}>
-              <Link href="/dashboard/inbox" className={styles.backToList} aria-label="Back to chats">←</Link>
+              <Link href="/dashboard/inbox" className={styles.backToList} aria-label="Back to chats"><ArrowLeft size={24} strokeWidth={2.2} aria-hidden="true" /></Link>
               <span className={[styles.avatar, styles.headerAvatar].join(" ")} aria-hidden="true">{conversationTitle(thread.conversation.profile_name, thread.conversation.wa_id).replace(/^\+/, "").charAt(0).toUpperCase()}</span>
               <div className={styles.threadTitle}>
                 <strong>{conversationTitle(thread.conversation.profile_name, thread.conversation.wa_id)}</strong>

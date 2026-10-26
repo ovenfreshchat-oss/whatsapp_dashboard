@@ -5,7 +5,7 @@
   padding: 24px;
   background:
     radial-gradient(circle at 12% 78%, rgba(149, 213, 235, .7), transparent 37%),
-    radial-gradient(circle at 88% 13%, rgba(181, 181, 244, .66), transparent 36%),
+    radial-gradient(circle at 88% 13%, rgba(184, 241, 225, .66), transparent 36%),
     #edf3fb;
 }
 
@@ -18,7 +18,7 @@
   border: 1px solid rgba(255, 255, 255, .92);
   border-radius: 28px;
   background: rgba(255, 255, 255, .72);
-  box-shadow: 0 34px 100px rgba(77, 95, 154, .17);
+  box-shadow: 0 34px 100px rgba(37, 112, 91, .17);
   backdrop-filter: blur(24px) saturate(1.25);
 }
 
@@ -47,14 +47,14 @@
   margin: 0 auto 27px;
   border: 1px solid rgba(255, 255, 255, .9);
   border-radius: 18px;
-  color: #5552bf;
-  background: linear-gradient(145deg, #e6e7ff, #e3f5fa);
-  box-shadow: 0 12px 28px rgba(78, 87, 172, .13);
+  color: #1ea27c;
+  background: linear-gradient(145deg, #e7fef7, #e3f5fa);
+  box-shadow: 0 12px 28px rgba(37, 132, 105, .13);
   font-size: 34px;
 }
 
 .eyebrow {
-  color: #5552bf;
+  color: #1ea27c;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: .16em;
@@ -62,7 +62,7 @@
 
 .content h1 {
   margin: 15px 0 15px;
-  color: #30334d;
+  color: #0e1d19;
   font-size: clamp(32px, 5vw, 46px);
   font-weight: 760;
   letter-spacing: -.06em;

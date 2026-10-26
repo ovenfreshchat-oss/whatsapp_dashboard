@@ -16,12 +16,12 @@
 }
 
 .backLink:hover {
-  color: #4445b7;
+  color: #1a8f6e;
 }
 
 .backLink:focus-visible {
   border-radius: 3px;
-  outline: 3px solid rgba(67, 66, 201, .3);
+  outline: 3px solid rgba(15, 170, 126, .3);
   outline-offset: 4px;
 }
 
@@ -37,7 +37,7 @@
 .eyebrow,
 .cardEyebrow,
 .infoLabel {
-  color: #5357bb;
+  color: #219b79;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: .15em;
@@ -45,14 +45,14 @@
 
 .intro h1 {
   margin: 10px 0 7px;
-  color: #30334c;
+  color: #0e1c18;
   font-size: clamp(32px, 3.4vw, 46px);
   letter-spacing: -.06em;
   line-height: 1.08;
 }
 
 .intro h1 span {
-  color: #5153c7;
+  color: #17b084;
 }
 
 .intro p {
@@ -100,14 +100,14 @@
   width: 39px;
   height: 39px;
   border-radius: 12px;
-  color: #5151c6;
-  background: #ececff;
+  color: #18ae83;
+  background: #edfef9;
   font-size: 22px;
 }
 
 .cardHeader h2 {
   margin: 4px 0 0;
-  color: #34364e;
+  color: #111f1b;
   font-size: 18px;
   letter-spacing: -.035em;
 }
@@ -169,7 +169,7 @@
   flex-direction: column;
   min-height: 420px;
   padding: 29px 28px 25px;
-  background: linear-gradient(141deg, rgba(214, 231, 249, .84), rgba(234, 246, 251, .68) 55%, rgba(217, 217, 249, .77));
+  background: linear-gradient(141deg, rgba(214, 231, 249, .84), rgba(234, 246, 251, .68) 55%, rgba(219, 247, 239, .77));
 }
 
 .infoGlow {
@@ -190,14 +190,14 @@
 
 .infoCard h2 {
   margin: 14px 0 14px;
-  color: #34364f;
+  color: #11201c;
   font-size: clamp(30px, 3vw, 40px);
   letter-spacing: -.065em;
   line-height: 1.09;
 }
 
 .infoCard h2 em {
-  color: #5354c3;
+  color: #1ba981;
   font-style: normal;
 }
 
@@ -237,7 +237,7 @@
   height: 26px;
   border: 1px solid rgba(255, 255, 255, .9);
   border-radius: 8px;
-  color: #5151bd;
+  color: #1f9e7a;
   background: rgba(255, 255, 255, .63);
   font-size: 9px;
   font-weight: 800;
@@ -250,7 +250,7 @@
 }
 
 .infoList strong {
-  color: #4c5572;
+  color: #26463d;
   font-size: 12px;
 }
 
@@ -272,7 +272,7 @@
 }
 
 .infoFooter span {
-  color: #5354c3;
+  color: #1ba981;
   font-size: 17px;
 }
 

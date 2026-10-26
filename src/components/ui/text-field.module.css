@@ -4,7 +4,7 @@
 }
 
 .field label {
-  color: #42465d;
+  color: #1d312b;
   font-size: 12px;
   font-weight: 700;
 }
@@ -22,8 +22,8 @@
 }
 
 .inputShell:focus-within {
-  border-color: #8587d8;
-  box-shadow: 0 0 0 4px rgba(83, 82, 207, .11), inset 0 1px rgba(255, 255, 255, .9);
+  border-color: #89d4bf;
+  box-shadow: 0 0 0 4px rgba(16, 192, 142, .11), inset 0 1px rgba(255, 255, 255, .9);
 }
 
 .inputShell svg {
@@ -38,7 +38,7 @@
   min-width: 0;
   border: 0;
   outline: 0;
-  color: #39415a;
+  color: #162c25;
   background: transparent;
   font-size: 13px;
 }

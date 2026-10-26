@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BackLink } from "@/components/ui/back-link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import {
@@ -108,7 +109,7 @@ export default async function MetaSetupPage() {
   return (
     <DashboardShell label="WhatsApp integration" showMetaSetup>
       <div className={styles.content}>
-        <Link href="/dashboard" className={styles.backLink}><span aria-hidden="true">←</span> Back to dashboard</Link>
+        <BackLink href="/dashboard">Back to dashboard</BackLink>
         <div className={styles.intro}>
           <div>
             <span className={styles.eyebrow}>INTEGRATIONS / META WHATSAPP</span>

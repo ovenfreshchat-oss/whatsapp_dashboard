@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BackLink } from "@/components/ui/back-link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { getMetaConfigurationStatus } from "@/server/meta/client";
 import { syncMetaTemplates, type MetaTemplate } from "@/server/meta/templates";
@@ -42,7 +43,7 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
 
   return <DashboardShell label="WhatsApp templates" showMetaSetup>
     <div className={styles.content}>
-      <Link href="/dashboard" className={styles.backLink}>← Back to dashboard</Link>
+      <BackLink href="/dashboard">Back to dashboard</BackLink>
       <div className={styles.intro}>
         <div>
           <span className={styles.eyebrow}>MESSAGE TEMPLATES</span>

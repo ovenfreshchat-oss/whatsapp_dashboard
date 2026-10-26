@@ -1,295 +1,156 @@
+/* App shell: flat gray page, white top bar with tabs, white cards. */
 .page {
   min-height: 100svh;
-  padding: 8px;
-  background:
-    radial-gradient(circle at 0 20%, rgba(182, 215, 238, .72), transparent 38%),
-    radial-gradient(circle at 96% 13%, rgba(185, 222, 249, .72), transparent 30%),
-    radial-gradient(circle at 74% 92%, rgba(212, 202, 255, .42), transparent 38%),
-    #f4f8fc;
+  background: var(--page-bg);
+  color: var(--text);
 }
 
-.shell {
-  display: grid;
-  grid-template-columns: clamp(148px, 16vw, 214px) minmax(0, 1fr);
-  gap: 10px;
-  width: 100%;
-  min-height: calc(100svh - 16px);
-}
-
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  align-self: start;
+.topNav {
   position: sticky;
-  top: 8px;
-  min-height: calc(100svh - 16px);
-  padding: 12px 10px;
-  border: 1px solid rgba(255, 255, 255, .88);
-  border-radius: 18px;
-  background: linear-gradient(150deg, rgba(217, 233, 244, .76), rgba(255, 255, 255, .72) 45%, rgba(255, 255, 255, .6));
-  box-shadow: 0 14px 34px rgba(71, 97, 143, .09), inset 0 1px rgba(255, 255, 255, .64);
-  backdrop-filter: blur(20px) saturate(1.2);
-}
-
-.brandWrap {
-  display: flex;
-  align-items: center;
-  min-height: 54px;
-  padding: 2px 2px 13px;
-  border-bottom: 1px solid rgba(158, 185, 210, .3);
-}
-
-.brandWrap .sidebarBrand {
-  gap: 7px;
-}
-
-/* Sign out inside the app bar is mobile only. */
-.appBarSignOutForm {
-  display: none;
-  margin: 0 0 0 auto;
-}
-
-.appBarSignOut {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  border: 1px solid #d9e1ee;
-  border-radius: 99px;
-  color: #505c7c;
-  background: rgba(255, 255, 255, .85);
-  cursor: pointer;
-}
-
-.appBarSignOut:hover {
-  color: #383ca3;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid var(--line);
   background: #fff;
 }
 
-.appBarSignOut:focus-visible {
-  outline: 3px solid rgba(67, 66, 201, .3);
-  outline-offset: 2px;
+.topNavInner {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  max-width: 1400px;
+  min-height: 60px;
+  margin: 0 auto;
+  padding: 0 20px;
 }
 
-.brandWrap .sidebarBrand > span:first-child {
-  width: 34px;
-  height: 34px;
+.navBrand {
+  flex: 0 0 auto;
+  gap: 10px;
 }
 
-.brandWrap .sidebarBrand strong {
-  font-size: 13px;
+.navBrand > span:first-child {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+.navBrand strong {
+  font-size: 15px;
+  color: var(--text);
 }
 
 .navigation {
-  display: grid;
-  align-content: start;
-  gap: 4px;
-  padding-top: 23px;
-}
-
-.navCaption {
-  padding: 0 10px 8px;
-  color: #8998aa;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .16em;
-}
-
-.navItem,
-.navItemMuted {
   display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  align-self: stretch;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.navItem {
+  display: inline-flex;
   align-items: center;
-  gap: 11px;
-  min-height: 38px;
-  padding: 0 11px;
-  border: 1px solid transparent;
-  border-radius: 11px;
-  color: #47566d;
-  font-size: 12px;
-  font-weight: 650;
+  gap: 8px;
+  padding: 0 14px;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
 }
 
 .navItem:hover {
-  background: rgba(255, 255, 255, .56);
+  color: var(--accent);
 }
 
 .navItem:focus-visible {
-  outline: 3px solid rgba(69, 79, 199, .3);
-  outline-offset: 2px;
+  outline: 3px solid var(--accent-ring);
+  outline-offset: -3px;
 }
 
 .navItemActive {
-  border-color: rgba(255, 255, 255, .86);
-  color: #383ca3;
-  background: rgba(255, 255, 255, .8);
-  box-shadow: 0 7px 16px rgba(77, 102, 142, .12);
-}
-
-.navItemMuted {
-  color: #79879a;
-  cursor: default;
+  border-bottom-color: var(--accent);
+  color: var(--accent);
 }
 
 .navIcon {
   display: inline-grid;
-  flex: 0 0 20px;
   place-items: center;
-  color: currentColor;
-  font-size: 17px;
-  font-weight: 500;
-  line-height: 1;
 }
 
-.sidebarFooter {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: auto;
-  padding: 14px 7px 3px;
-  border-top: 1px solid rgba(158, 185, 210, .3);
-  color: #8794a6;
-  font-size: 10px;
-  line-height: 1.35;
-}
-
-.footerSparkle {
-  color: #6665d7;
-  font-size: 15px;
-}
-
-.workspace {
-  min-width: 0;
+.navIcon svg {
+  width: 18px;
+  height: 18px;
 }
 
 .labelShort {
   display: none;
 }
 
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 50px;
-  padding: 6px 8px 8px;
-}
-
-.topbarTitle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  color: #65758d;
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.topbarDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #6264da;
-  box-shadow: 0 0 0 4px rgba(98, 100, 218, .12);
-}
-
 .headerActions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 8px;
-  min-width: 0;
+  margin-left: auto;
 }
 
 .headerActions form {
   margin: 0;
 }
 
-/* Badge and Sign out share one height so the row looks even. */
-.headerActions > span,
-.headerActions button {
+.signOut {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-sizing: border-box;
-  height: 38px;
-  padding-top: 0;
-  padding-bottom: 0;
-  border-radius: 99px;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.headerActions .signOut {
   width: 38px;
+  height: 38px;
   padding: 0;
-  border: 1px solid #d9e1ee;
-  color: #505c7c;
-  background: rgba(255, 255, 255, .85);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--muted);
+  background: #fff;
   cursor: pointer;
 }
 
-.headerActions .signOut:hover {
-  color: #383ca3;
-  background: #fff;
+.signOut:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
-.headerActions .signOut:focus-visible {
-  outline: 3px solid rgba(67, 66, 201, .3);
+.signOut:focus-visible {
+  outline: 3px solid var(--accent-ring);
   outline-offset: 2px;
 }
 
+.workspace {
+  min-width: 0;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
 @media (max-width: 900px) {
-  .topbarTitle {
-    display: none;
+  .topNavInner {
+    gap: 14px;
+    padding: 0 14px;
   }
 
-  .topbar {
-    justify-content: flex-end;
+  .navItem {
+    padding: 0 10px;
   }
 }
 
+/* Phone: slim top bar (logo + logout), thumb-friendly bottom tab bar. */
 @media (max-width: 700px) {
-  /* Room for the bottom tab bar. */
-  .page {
-    padding: 8px 8px calc(92px + env(safe-area-inset-bottom));
+  .topNavInner {
+    min-height: 56px;
+    padding: 0 12px;
   }
 
-  .shell {
-    display: block;
-  }
-
-  .sidebar {
-    position: static;
-    min-height: 0;
-    padding: 8px 10px;
-  }
-
-  .brandWrap {
-    min-height: 42px;
-    padding: 0;
-    border: 0;
-  }
-
-  .appBarSignOutForm {
-    display: block;
-  }
-
-  .desktopSignOutForm {
-    display: none;
-  }
-
-  /* backdrop-filter would make the sidebar the containing block of the fixed tab bar. */
-  .sidebar {
-    backdrop-filter: none;
-  }
-
-  /* Bottom tab bar: thumb-reachable, always visible. */
   .navigation {
     position: fixed;
     right: 0;
@@ -301,85 +162,52 @@
     grid-auto-columns: minmax(0, 1fr);
     gap: 2px;
     padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
-    border-top: 1px solid rgba(158, 185, 210, .4);
-    background: rgba(255, 255, 255, .96);
-    box-shadow: 0 -6px 20px rgba(71, 97, 143, .1);
-    backdrop-filter: blur(14px);
+    border-top: 1px solid var(--line);
+    background: rgba(255, 255, 255, .97);
+    box-shadow: 0 -6px 20px rgba(16, 24, 40, .08);
+    overflow: visible;
   }
 
   .navItem {
     flex-direction: column;
     justify-content: center;
     gap: 4px;
-    width: auto;
-    min-height: 62px;
+    min-height: 58px;
     padding: 0 2px;
-    border-radius: 14px;
+    border-bottom: 0;
+    border-radius: 12px;
     font-size: 11px;
     line-height: 1.1;
     text-align: center;
   }
 
-  .navIcon {
-    flex: none;
-    line-height: 1;
+  .navItemActive {
+    background: var(--accent-soft);
   }
 
   .navIcon svg {
-    width: 26px;
-    height: 26px;
-  }
-
-  .navCaption,
-  .navItemMuted,
-  .sidebarFooter {
-    display: none;
+    width: 24px;
+    height: 24px;
   }
 
   .labelFull {
     display: none;
   }
 
-  .topbar {
-    justify-content: flex-end;
-    padding: 10px 2px;
-  }
-
-  /* Sign out moved into the app bar, so a top bar with no actions is just dead space. */
-  .topbarEmptyMobile {
-    display: none !important;
-  }
-
-  .workspace {
-    padding-top: 6px;
-  }
-
-  .headerActions {
-    flex-wrap: nowrap;
-    justify-content: flex-end;
-    width: 100%;
-  }
-
-
-}
-
-@media (max-width: 700px) {
   .labelShort {
     display: inline;
   }
-}
 
-/* Phone: an open conversation takes the whole screen, with no app bar or tab bar. */
-@media (max-width: 700px) {
-  .page:has([data-thread-open]) {
-    padding: 0;
+  .workspace {
+    padding: 10px 10px calc(84px + env(safe-area-inset-bottom));
   }
 
-  .page:has([data-thread-open]) .sidebar {
+  /* An open conversation takes the whole screen. */
+  .page:has([data-thread-open]) .topNav {
     display: none;
   }
 
   .page:has([data-thread-open]) .workspace {
-    padding-top: 0;
+    padding: 0;
   }
 }

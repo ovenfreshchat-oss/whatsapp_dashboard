@@ -2,9 +2,12 @@ import { randomUUID } from "node:crypto";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackLink } from "@/components/ui/back-link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
+import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { BatchReviewForm } from "../../batch-review-form";
+import { ActiveSwitch, BatchActiveButtons } from "../../number-switch";
 import styles from "../../contacts.module.css";
 
 export const metadata: Metadata = { title: "Import consent review | The Oven Fresh" };
@@ -21,8 +24,18 @@ function dateLabel(value: string | null) {
   return Number.isNaN(date.valueOf()) ? "—" : `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
 }
 
-export default async function ImportReviewPage({ params }: { params: Promise<{ batchId: string }> }) {
+type NumberRow = { id: string; phone_e164: string; display_name: string | null; campaign_active: boolean };
+const NUMBERS_SIZE = 25;
+
+export default async function ImportReviewPage({ params, searchParams }: {
+  params: Promise<{ batchId: string }>;
+  searchParams: Promise<{ tab?: string | string[]; np?: string | string[] }>;
+}) {
   const { batchId } = await params;
+  const query = await searchParams;
+  const rawTab = Array.isArray(query.tab) ? query.tab[0] : query.tab;
+  const tab: "numbers" | "consent" = rawTab === "consent" ? "consent" : "numbers";
+  const numbersPage = pageFrom(query.np);
   if (!UUID.test(batchId)) notFound();
   const admin = createStaffAdminClient();
   if (!admin) throw new Error("The contact database is unavailable.");
@@ -49,6 +62,29 @@ export default async function ImportReviewPage({ params }: { params: Promise<{ b
   ]);
   if (batchResult.error || !batchResult.data) notFound();
   const batch = batchResult.data;
+
+  // Numbers tab: every number in this upload, with its on/off state.
+  const first = (numbersPage - 1) * NUMBERS_SIZE;
+  const [numbersResult, inactiveResult] = tab === "numbers"
+    ? await Promise.all([
+        admin.from("contacts")
+          .select("id,phone_e164,display_name,campaign_active,contact_batch_members!inner(batch_id)", { count: "exact" })
+          .eq("contact_batch_members.batch_id", batchId)
+          .order("phone_e164").range(first, first + NUMBERS_SIZE - 1),
+        admin.from("contacts")
+          .select("id,contact_batch_members!inner(batch_id)", { count: "exact", head: true })
+          .eq("contact_batch_members.batch_id", batchId).eq("campaign_active", false),
+      ])
+    : [null, null];
+  const numbersReady = Boolean(numbersResult && !numbersResult.error && inactiveResult && !inactiveResult.error);
+  const numberRows = (numbersReady ? numbersResult?.data ?? [] : []) as NumberRow[];
+  const totalNumbers = numbersResult?.count ?? 0;
+  const inactiveNumbers = inactiveResult?.count ?? 0;
+  const optOutResult = numberRows.length
+    ? await admin.from("opt_out_numbers").select("phone_e164")
+        .in("phone_e164", numberRows.map((row) => row.phone_e164)).is("released_at", null)
+    : null;
+  const optedOut = new Set((optOutResult?.data ?? []).map((row: { phone_e164: string }) => row.phone_e164));
   const ready = !claimsResult.error && !reviewableResult.error && !errorsResult.error;
   const claims = (ready ? claimsResult.data ?? [] : []) as Claim[];
   const ids = [...new Set(claims.map((claim) => claim.contact_id))];
@@ -59,9 +95,33 @@ export default async function ImportReviewPage({ params }: { params: Promise<{ b
   const contactsReady = ids.length === 0 || Boolean(contactsResult && !contactsResult.error && contacts.size === ids.length);
   const reviewableCount = ready ? reviewableResult.count ?? 0 : 0;
 
-  return <DashboardShell label="Contacts · import review" showMetaSetup><div className={styles.content}>
-    <Link href="/dashboard/contacts" className={styles.backLink}>← Back to contacts</Link>
-    <div className={styles.intro}><div><span className={styles.eyebrow}>CONTACTS / IMPORT REVIEW</span><h1>{batch.file_name}<span>.</span></h1><p>Uploaded {dateLabel(batch.created_at)} · File hash {batch.file_sha256.slice(0, 12)}…</p></div><span className={styles.countPill}>{claimsResult.count ?? 0} pending claims</span></div>
+  return <DashboardShell label="Contacts · upload" showMetaSetup><div className={styles.content}>
+    <BackLink href="/dashboard/contacts?tab=uploads">Uploads</BackLink>
+    <div className={styles.pageHead}>
+      <div><h1 className={styles.fileTitle}>{batch.file_name}</h1><p className={styles.muted}>Uploaded {dateLabel(batch.created_at).slice(0, 10)}</p></div>
+    </div>
+    <nav className={styles.tabs} aria-label="Upload sections">
+      <Link href={`/dashboard/contacts/imports/${batchId}`} className={tab === "numbers" ? styles.tabOn : undefined} aria-current={tab === "numbers" ? "page" : undefined}>Numbers</Link>
+      <Link href={`/dashboard/contacts/imports/${batchId}?tab=consent`} className={tab === "consent" ? styles.tabOn : undefined} aria-current={tab === "consent" ? "page" : undefined}>Consent review{(claimsResult.count ?? 0) > 0 && <b className={styles.badge}>{claimsResult.count}</b>}</Link>
+    </nav>
+
+    {tab === "numbers" && <section className={styles.panel} aria-label="Numbers in this upload">
+      {!numbersReady ? <p className={styles.empty}>Numbers could not be loaded. Apply <code>drizzle/0020_contact_campaign_active.sql</code> and refresh.</p> : <>
+        <div className={styles.numbersHead}>
+          <p className={styles.muted}><strong>{totalNumbers - inactiveNumbers}</strong> active · <strong>{inactiveNumbers}</strong> inactive. Inactive numbers get no campaigns until you switch them back on.</p>
+          {totalNumbers > 0 && <BatchActiveButtons batchId={batchId} />}
+        </div>
+        {numberRows.length ? <ul className={styles.rowList}>{numberRows.map((row) => <li key={row.id} className={styles.numRow}>
+          <span className={styles.rowMain}><strong>{row.display_name ?? row.phone_e164}</strong>{row.display_name && <small>{row.phone_e164}</small>}</span>
+          {optedOut.has(row.phone_e164)
+            ? <span className={styles.optedOut} title="This number is on the do-not-contact list">Opted out</span>
+            : <ActiveSwitch contactId={row.id} initial={row.campaign_active} name={row.display_name ?? row.phone_e164} />}
+        </li>)}</ul> : <p className={styles.empty}>No numbers are linked to this upload.</p>}
+        <Pagination page={numbersPage} total={totalNumbers} pageSize={NUMBERS_SIZE} param="np" path={`/dashboard/contacts/imports/${batchId}`} label="Number pages" />
+      </>}
+    </section>}
+
+    {tab === "consent" && <>
     <div className={styles.statGrid}><span><strong>{batch.accepted_rows}</strong> imported</span><span><strong>{batch.rejected_rows}</strong> skipped rows</span><span><strong>{batch.negative_consent_rows}</strong> explicit No suppressions</span><span><strong>{reviewableCount}</strong> evidenced claims ready</span></div>
     {!ready && <section className={styles.notice}><strong>Review data is unavailable.</strong><p>Refresh after the contacts migration is applied. No consent can be approved from this page until the evidence is loaded.</p></section>}
     {ready && !contactsReady && <section className={styles.notice}><strong>Contact details are unavailable.</strong><p>Refresh before reviewing consent. No batch approval is available until the contact list loads.</p></section>}
@@ -77,5 +137,6 @@ export default async function ImportReviewPage({ params }: { params: Promise<{ b
     <section className={styles.panel}><div className={styles.panelHeading}><div><span className={styles.eyebrow}>VALIDATION</span><h2>Skipped row errors</h2></div><span>{errorsResult.count ?? 0} issues</span></div>
       {(errorsResult.data ?? []).length ? <div className={styles.tableWrap}><table><thead><tr><th>Row</th><th>Issue</th></tr></thead><tbody>{(errorsResult.data ?? []).map((error, index) => <tr key={`${error.row_number}-${error.code}-${index}`}><td>{error.row_number}</td><td>{error.message}</td></tr>)}</tbody></table></div> : <p className={styles.empty}>No skipped row errors.</p>}
     </section>
+    </>}
   </div></DashboardShell>;
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BackLink } from "@/components/ui/back-link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { CAMPAIGNS_PAGE_SIZE, listCampaigns, listCampaignImportBatches } from "@/server/campaigns/admin";
 import { getMetaConfigurationStatus } from "@/server/meta/client";
@@ -64,7 +65,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
     return <DashboardShell label="New WhatsApp campaign" showMetaSetup>
       <div className={styles.content}>
         <div className={styles.pageHead}>
-          <Link href="/dashboard/campaigns" className={styles.backLink}>← Campaigns</Link>
+          <BackLink href="/dashboard/campaigns" className={styles.headBack}>Campaigns</BackLink>
           <h1>New campaign</h1>
         </div>
         <section className={styles.panel} aria-label="Message and audience">

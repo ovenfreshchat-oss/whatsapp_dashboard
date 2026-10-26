@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BackLink } from "@/components/ui/back-link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { AUDIT_PAGE_SIZE, getCampaignDetail, listExcludedRecipients, RECIPIENTS_PAGE_SIZE } from "@/server/campaigns/admin";
 import { estimateCost, getRateCard, listCampaignPhones } from "@/server/campaigns/pricing";
@@ -84,7 +85,7 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
 
   return <DashboardShell label="Campaign review" showMetaSetup>
     <div className={styles.content}>
-      <Link href="/dashboard/campaigns" className={styles.backLink}>← All campaigns</Link>
+      <BackLink href="/dashboard/campaigns">All campaigns</BackLink>
       {campaign ? <>
         <div className={styles.intro}>
           <div><span className={styles.eyebrow}>CAMPAIGN / {campaign.state.toUpperCase()}</span><h1>{campaign.name}<span>.</span></h1><p>{isDraft ? "Check the message and audience, then send or schedule." : "Progress updates on its own while sending."}</p></div>

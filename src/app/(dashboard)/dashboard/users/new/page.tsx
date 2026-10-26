@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { BackLink } from "@/components/ui/back-link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { StaffUserForm } from "./staff-user-form";
 import styles from "./new-user.module.css";
@@ -14,9 +14,7 @@ export default function NewStaffUserPage() {
   return (
     <DashboardShell label="Add a staff user" showMetaSetup>
         <div className={styles.content}>
-          <Link className={styles.backLink} href="/dashboard">
-            <span aria-hidden="true">←</span> Back to dashboard
-          </Link>
+          <BackLink href="/dashboard">Back to dashboard</BackLink>
 
           <div className={styles.intro}>
             <span className={styles.eyebrow}>TEAM ACCESS / NEW USER</span>

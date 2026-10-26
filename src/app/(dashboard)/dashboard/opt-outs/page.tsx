@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Pagination, pageFrom } from "@/components/ui/pagination";
+import { BackLink } from "@/components/ui/back-link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { AddOptOutForm, ReleaseOptOutButton } from "./opt-out-forms";
@@ -36,7 +36,7 @@ export default async function OptOutsPage({ searchParams }: { searchParams: Prom
   return (
     <DashboardShell label="Contacts opt-outs" showMetaSetup>
       <div className={styles.content}>
-        <Link href="/dashboard/contacts" className={styles.backLink}>← Back to contacts</Link>
+        <BackLink href="/dashboard/contacts">Back to contacts</BackLink>
         <div className={styles.intro}>
           <div><span className={styles.eyebrow}>AUDIENCE / OPT-OUTS</span><h1>Opt-out list<span>.</span></h1>
             <p>Numbers here are removed from every campaign when it is created and checked again right before each message is sent.</p></div>

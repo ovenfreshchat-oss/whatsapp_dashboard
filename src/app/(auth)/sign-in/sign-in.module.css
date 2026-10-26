@@ -8,8 +8,8 @@
   overflow: hidden;
   background:
     radial-gradient(circle at 10% 82%, rgba(160, 210, 239, 0.77), transparent 37%),
-    radial-gradient(circle at 88% 16%, rgba(184, 185, 246, 0.73), transparent 33%),
-    linear-gradient(130deg, #f5f8fd 0%, #eaf1fa 52%, #e4e8f7 100%);
+    radial-gradient(circle at 88% 16%, rgba(187, 243, 227, 0.73), transparent 33%),
+    linear-gradient(130deg, #f5f8fd 0%, #eaf1fa 52%, #e5f6f1 100%);
 }
 
 .page::before {
@@ -43,7 +43,7 @@
 .haloTwo {
   right: -150px;
   bottom: -180px;
-  background: rgba(150, 153, 236, 0.36);
+  background: rgba(154, 232, 210, 0.36);
 }
 
 .shell {
@@ -55,7 +55,7 @@
   border: 1px solid rgba(255, 255, 255, 0.88);
   border-radius: 19px;
   background: rgba(255, 255, 255, 0.62);
-  box-shadow: 0 36px 110px rgba(77, 95, 154, 0.19), 0 2px 20px rgba(62, 74, 131, 0.08), inset 0 1px rgba(255, 255, 255, 0.94);
+  box-shadow: 0 36px 110px rgba(37, 112, 91, 0.19), 0 2px 20px rgba(26, 86, 69, 0.08), inset 0 1px rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(24px) saturate(1.3);
 }
 
@@ -67,7 +67,7 @@
   overflow: hidden;
   padding: 40px 46px 31px;
   border-right: 1px solid rgba(255, 255, 255, 0.83);
-  background: linear-gradient(145deg, rgba(214, 229, 246, 0.8), rgba(232, 244, 250, 0.53) 49%, rgba(207, 210, 246, 0.55));
+  background: linear-gradient(145deg, rgba(214, 229, 246, 0.8), rgba(232, 244, 250, 0.53) 49%, rgba(209, 244, 234, 0.55));
 }
 
 .storyPanel::after {
@@ -139,7 +139,7 @@
 
 .storyCopy h1 {
   margin: 23px 0 18px;
-  color: #33364e;
+  color: #101f1b;
   font-size: clamp(43px, 4.3vw, 61px);
   font-weight: 760;
   letter-spacing: -0.075em;
@@ -148,7 +148,7 @@
 
 .storyCopy h1 em {
   font-style: normal;
-  background: linear-gradient(105deg, #4342c9 8%, #42a8c8 91%);
+  background: linear-gradient(105deg, #0faa7e 8%, #42a8c8 91%);
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -189,7 +189,7 @@
   border: 1px solid rgba(255, 255, 255, .92);
   border-radius: 20px;
   background: rgba(255, 255, 255, .76);
-  box-shadow: 0 23px 55px rgba(73, 88, 150, 0.18), inset 0 1px rgba(255,255,255,.95);
+  box-shadow: 0 23px 55px rgba(34, 107, 87, 0.18), inset 0 1px rgba(255,255,255,.95);
   backdrop-filter: blur(20px);
 }
 
@@ -220,7 +220,7 @@
 }
 
 .previewWindowDots i:first-child {
-  background: #9b9cf0;
+  background: #9fecd6;
 }
 
 .previewWindowDots i:nth-child(2) {
@@ -229,7 +229,7 @@
 
 .previewSparkle {
   margin-left: auto;
-  color: #6766cd;
+  color: #6bc8ae;
   font-size: 15px;
 }
 
@@ -249,8 +249,8 @@
   width: 31px;
   height: 31px;
   border-radius: 10px;
-  color: #5250cf;
-  background: #e8e7ff;
+  color: #0fbe8d;
+  background: #e8fef8;
   font-size: 19px;
 }
 
@@ -262,7 +262,7 @@
 }
 
 .previewHeading strong {
-  color: #32334b;
+  color: #0f1c19;
   font-size: 12px;
 }
 
@@ -292,8 +292,8 @@
   width: 21px;
   height: 21px;
   border-radius: 7px;
-  color: #5858c6;
-  background: #eeefff;
+  color: #1bb187;
+  background: #effefa;
   font-size: 8px;
 }
 
@@ -303,8 +303,8 @@
 }
 
 .previewStep:nth-child(3) .stepIcon {
-  color: #936db6;
-  background: #f3eafa;
+  color: #349d7f;
+  background: #ebf9f5;
 }
 
 .stepLine {
@@ -335,7 +335,7 @@
   border: 1px solid rgba(255, 255, 255, .97);
   border-radius: 13px;
   background: rgba(249, 253, 255, .83);
-  box-shadow: 0 13px 29px rgba(74, 94, 154, 0.13);
+  box-shadow: 0 13px 29px rgba(35, 112, 90, 0.13);
   backdrop-filter: blur(16px);
 }
 
@@ -405,13 +405,13 @@
 }
 
 .sectionLabel {
-  color: #484ac3;
+  color: #16a37b;
   font-size: 11px;
 }
 
 .formContent h2 {
   margin: 16px 0 12px;
-  color: #2e3048;
+  color: #0c1815;
   font-size: clamp(50px, 5vw, 65px);
   font-weight: 760;
   letter-spacing: -.075em;
@@ -419,7 +419,7 @@
 }
 
 .formContent h2 span {
-  color: #5052bf;
+  color: #1da17b;
 }
 
 .formIntro {
@@ -451,7 +451,7 @@
 
 .formFooter span span {
   margin-left: 3px;
-  color: #757ac3;
+  color: #79bfab;
 }
 
 @media (max-width: 950px) {

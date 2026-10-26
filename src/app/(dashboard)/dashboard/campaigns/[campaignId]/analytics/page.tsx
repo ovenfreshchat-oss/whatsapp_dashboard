@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { BackLink } from "@/components/ui/back-link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { getCampaignAnalytics, getMetaTemplateStats, type CampaignAnalytics } from "@/server/campaigns/analytics";
 import { AutoRefresh } from "../../auto-refresh";
@@ -54,7 +54,7 @@ export default async function CampaignAnalyticsPage({ params }: { params: Promis
 
   return <DashboardShell label="Campaign analytics" showMetaSetup>
     <div className={styles.content}>
-      <Link href={`/dashboard/campaigns/${campaignId}`} className={styles.backLink}>← Back to campaign</Link>
+      <BackLink href={`/dashboard/campaigns/${campaignId}`}>Back to campaign</BackLink>
       {!a ? <section className={styles.notice}><strong>Analytics unavailable</strong><p>{loadError}</p></section> : <>
         <div className={styles.intro}>
           <div>

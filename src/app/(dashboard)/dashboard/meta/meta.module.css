@@ -8,7 +8,7 @@
 .backLink,
 .refreshLink {
   width: fit-content;
-  color: #5959b7;
+  color: #279878;
   font-size: 11px;
   font-weight: 750;
   text-decoration: none;
@@ -22,7 +22,7 @@
 
 .backLink:focus-visible,
 .refreshLink:focus-visible {
-  outline: 3px solid rgba(89, 89, 183, .3);
+  outline: 3px solid rgba(39, 152, 120, .3);
   outline-offset: 3px;
 }
 
@@ -41,7 +41,7 @@
 }
 
 .eyebrow {
-  color: #7371b9;
+  color: #35a384;
   font-size: 9px;
   font-weight: 850;
   letter-spacing: .15em;
@@ -49,14 +49,14 @@
 
 .intro h1 {
   margin: 7px 0 5px;
-  color: #34384f;
+  color: #11201c;
   font-size: clamp(26px, 3vw, 36px);
   line-height: 1.1;
   letter-spacing: -.05em;
 }
 
 .intro h1 span {
-  color: #645ad2;
+  color: #10ca95;
 }
 
 .intro p,
@@ -70,7 +70,7 @@
 
 .refreshLink {
   padding: 9px 12px;
-  border: 1px solid rgba(117, 123, 197, .19);
+  border: 1px solid rgba(121, 193, 173, .19);
   border-radius: 9px;
   background: rgba(255, 255, 255, .7);
   white-space: nowrap;
@@ -114,8 +114,8 @@
   width: 34px;
   height: 34px;
   border-radius: 11px;
-  color: #5552c0;
-  background: #ececff;
+  color: #1da37d;
+  background: #edfef9;
   font-size: 19px;
 }
 
@@ -136,14 +136,14 @@
 .waiting,
 .otherStatus {
   color: #8c7893;
-  background: #f3eefa;
+  background: #eff9f6;
 }
 
 .statusCard h2,
 .panelHeading h2,
 .setupNotice h2 {
   margin: 15px 0 6px;
-  color: #353c52;
+  color: #12231e;
   font-size: 15px;
   letter-spacing: -.03em;
 }
@@ -195,7 +195,7 @@
 }
 
 .templateCount strong {
-  color: #5852ca;
+  color: #15b688;
   font-size: 32px;
   line-height: 1;
 }
@@ -212,7 +212,7 @@
 
 .setupNotice {
   padding: 15px 18px;
-  background: linear-gradient(130deg, #f3f0ff, #eef8ff);
+  background: linear-gradient(130deg, #f1fefa, #eef8ff);
 }
 
 .setupNotice h2 {
@@ -224,7 +224,7 @@
 }
 
 .setupNotice code {
-  color: #5950ac;
+  color: #278469;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
 }
 
@@ -283,7 +283,7 @@
 .templateItem strong,
 .historyRow strong {
   overflow: hidden;
-  color: #454b61;
+  color: #20352f;
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -337,7 +337,7 @@
   border: 1px solid #d9e1ee;
   border-radius: 10px;
   padding: 10px 11px;
-  color: #424a63;
+  color: #1d362f;
   background: rgba(255, 255, 255, .92);
   font: inherit;
   font-size: 11px;
@@ -358,7 +358,7 @@
 .field input:focus-visible,
 .consentLabel input:focus-visible,
 .primaryButton:focus-visible {
-  outline: 3px solid rgba(83, 82, 207, .27);
+  outline: 3px solid rgba(16, 192, 142, .27);
   outline-offset: 2px;
 }
 
@@ -370,7 +370,7 @@
 }
 
 .templatePreview > span {
-  color: #8886bd;
+  color: #89baac;
   font-size: 8px;
   font-weight: 850;
   letter-spacing: .12em;
@@ -411,8 +411,8 @@
   border-radius: 10px;
   padding: 10px 14px;
   color: #fff;
-  background: linear-gradient(120deg, #5b58ce, #3c38ae);
-  box-shadow: 0 8px 17px rgba(62, 58, 170, .17);
+  background: linear-gradient(120deg, #13c190, #118363);
+  box-shadow: 0 8px 17px rgba(19, 127, 97, .17);
   cursor: pointer;
   font-size: 11px;
   font-weight: 750;
@@ -456,7 +456,7 @@
 }
 
 .historyRow > span {
-  color: #5d5aa8;
+  color: #2f816a;
   font-size: 10px;
   font-weight: 750;
   text-align: right;
