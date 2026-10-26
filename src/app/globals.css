@@ -85,3 +85,11 @@ body {
     -webkit-tap-highlight-color: rgba(89, 89, 183, 0.15);
   }
 }
+
+/* Inbox: the page itself never scrolls; only the chat list and the open conversation do. */
+html:has([data-inbox]),
+body:has([data-inbox]) {
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}

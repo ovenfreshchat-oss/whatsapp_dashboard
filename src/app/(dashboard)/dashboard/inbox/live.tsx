@@ -124,7 +124,7 @@ export function MessageList({ conversationId, className, children }: { conversat
           <div className={[styles.bubble, styles.bubbleOut].join(" ")}>
             {item.media && <p className={styles.bubbleText}>📎 Attachment</p>}
             {item.text && <p className={styles.bubbleText}>{item.text}</p>}
-            <span className={styles.bubbleMeta}>{item.sent ? "Sent" : "Sending…"}</span>
+            <span className={styles.bubbleMeta}>{item.sent ? "✓" : "🕓"}</span>
           </div>
         </li>
       ))}

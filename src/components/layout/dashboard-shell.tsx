@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { signOut } from "@/server/auth/actions";
-import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { LogOut } from "lucide-react";
 import { Brand } from "./brand";
 import { NavLinks } from "./nav-links";
 import styles from "./dashboard-shell.module.css";
@@ -36,9 +35,8 @@ export function DashboardShell({ label, headerAction, showMetaSetup = false, chi
               <span>Campaign workspace</span>
             </div>
             <div className={styles.headerActions}>
-              <StatusBadge>STAFF WORKSPACE</StatusBadge>
               {headerAction}
-              <form action={signOut}><Button type="submit" variant="secondary">Sign out</Button></form>
+              <form action={signOut}><button type="submit" className={styles.signOut} aria-label="Sign out" title="Sign out"><LogOut size={18} strokeWidth={2} aria-hidden="true" /></button></form>
             </div>
           </header>
           {children}

@@ -106,7 +106,7 @@
 
 .navIcon {
   display: inline-grid;
-  flex: 0 0 16px;
+  flex: 0 0 20px;
   place-items: center;
   color: currentColor;
   font-size: 17px;
@@ -194,9 +194,23 @@
   white-space: nowrap;
 }
 
-.headerActions button {
-  padding-right: 16px;
-  padding-left: 16px;
+.headerActions .signOut {
+  width: 38px;
+  padding: 0;
+  border: 1px solid #d9e1ee;
+  color: #505c7c;
+  background: rgba(255, 255, 255, .85);
+  cursor: pointer;
+}
+
+.headerActions .signOut:hover {
+  color: #383ca3;
+  background: #fff;
+}
+
+.headerActions .signOut:focus-visible {
+  outline: 3px solid rgba(67, 66, 201, .3);
+  outline-offset: 2px;
 }
 
 @media (max-width: 900px) {
@@ -269,8 +283,12 @@
 
   .navIcon {
     flex: none;
-    font-size: 28px;
     line-height: 1;
+  }
+
+  .navIcon svg {
+    width: 26px;
+    height: 26px;
   }
 
   .navCaption,
@@ -294,9 +312,7 @@
     width: 100%;
   }
 
-  .headerActions > span:first-child {
-    margin-right: auto;
-  }
+
 }
 
 @media (max-width: 700px) {

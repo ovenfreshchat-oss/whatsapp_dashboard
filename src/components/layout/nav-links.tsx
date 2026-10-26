@@ -3,16 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LayoutDashboard, Users, Megaphone, MessageSquare, Settings, type LucideIcon } from "lucide-react";
 import styles from "./dashboard-shell.module.css";
 
-type Item = { href: string; icon: string; label: string; short?: string; match: string[]; adminOnly?: boolean };
+type Item = { href: string; icon: LucideIcon; label: string; short?: string; match: string[]; adminOnly?: boolean };
 
 const ITEMS: Item[] = [
-  { href: "/dashboard", icon: "⌂", label: "Dashboard", match: [] },
-  { href: "/dashboard/contacts", icon: "◎", label: "Contacts", match: ["/dashboard/contacts", "/dashboard/opt-outs"], adminOnly: true },
-  { href: "/dashboard/campaigns", icon: "▦", label: "Campaigns", match: ["/dashboard/campaigns"], adminOnly: true },
-  { href: "/dashboard/inbox", icon: "✉", label: "Inbox", match: ["/dashboard/inbox"], adminOnly: true },
-  { href: "/dashboard/meta", icon: "⚙", label: "WhatsApp setup", short: "Setup", match: ["/dashboard/meta"], adminOnly: true },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", match: [] },
+  { href: "/dashboard/contacts", icon: Users, label: "Contacts", match: ["/dashboard/contacts", "/dashboard/opt-outs"], adminOnly: true },
+  { href: "/dashboard/campaigns", icon: Megaphone, label: "Campaigns", match: ["/dashboard/campaigns"], adminOnly: true },
+  { href: "/dashboard/inbox", icon: MessageSquare, label: "Inbox", match: ["/dashboard/inbox"], adminOnly: true },
+  { href: "/dashboard/meta", icon: Settings, label: "WhatsApp setup", short: "Setup", match: ["/dashboard/meta"], adminOnly: true },
 ];
 
 function isActive(item: Item, pathname: string) {
@@ -40,7 +41,7 @@ export function NavLinks({ showAdminLinks }: { showAdminLinks: boolean }) {
         aria-current={active ? "page" : undefined}
         onClick={() => setClicked(item.href)}
       >
-        <span className={styles.navIcon} aria-hidden="true">{item.icon}</span>
+        <span className={styles.navIcon} aria-hidden="true"><item.icon size={22} strokeWidth={1.9} /></span>
         {item.short
           ? <><span className={styles.labelFull}>{item.label}</span><span className={styles.labelShort}>{item.short}</span></>
           : <span>{item.label}</span>}

@@ -90,3 +90,40 @@ export function isUuid(value: unknown): value is string {
   return typeof value === "string" &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
+
+/** WhatsApp-style clock, e.g. "2:05 pm". */
+export function formatClock(iso: string | null, timeZone: string): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.valueOf())) return "";
+  return new Intl.DateTimeFormat("en-IN", { timeZone, hour: "numeric", minute: "2-digit", hour12: true }).format(date);
+}
+
+function dayKey(date: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+}
+
+/** "Today", "Yesterday", a weekday for the last week, otherwise the date. */
+export function formatDayLabel(iso: string, timeZone: string, now: Date = new Date()): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.valueOf())) return "";
+  const key = dayKey(date, timeZone);
+  if (key === dayKey(now, timeZone)) return "Today";
+  if (key === dayKey(new Date(now.getTime() - 86_400_000), timeZone)) return "Yesterday";
+  const ageDays = (now.getTime() - date.getTime()) / 86_400_000;
+  if (ageDays < 6) return new Intl.DateTimeFormat("en-GB", { timeZone, weekday: "long" }).format(date);
+  return new Intl.DateTimeFormat("en-GB", { timeZone, day: "numeric", month: "long", year: "numeric" }).format(date);
+}
+
+export function sameDay(a: string, b: string, timeZone: string): boolean {
+  return dayKey(new Date(a), timeZone) === dayKey(new Date(b), timeZone);
+}
+
+/** Chat-list timestamp: clock today, "Yesterday", otherwise dd/mm/yyyy. */
+export function formatListTime(iso: string | null, timeZone: string, now: Date = new Date()): string {
+  if (!iso) return "";
+  const label = formatDayLabel(iso, timeZone, now);
+  if (label === "Today") return formatClock(iso, timeZone);
+  if (label === "Yesterday") return label;
+  return new Intl.DateTimeFormat("en-GB", { timeZone, day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(iso));
+}

@@ -75,6 +75,7 @@ export function ReplyForm({
     const bubbleId = crypto.randomUUID();
     emitOptimistic({ type: "add", id: bubbleId, conversationId, text: draftText.trim(), media: Boolean(draftFile) });
     setBody("");
+    if (textRef.current) textRef.current.style.height = "auto";
     setFile(null);
     if (fileRef.current) fileRef.current.value = "";
     let delivered = false;
@@ -111,6 +112,11 @@ export function ReplyForm({
     }
   }
 
+  function autosize(el: HTMLTextAreaElement) {
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  }
+
   return (
     <form className={styles.composer} onSubmit={(event) => { event.preventDefault(); void send(); }}>
       {locked && <p className={styles.lockNotice} role="status">{disabledReason}</p>}
@@ -124,35 +130,45 @@ export function ReplyForm({
           <button type="button" onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ""; }}>Remove</button>
         </div>
       )}
-      <label className={styles.composerField}>
-        <span className={styles.srOnly}>Reply</span>
-        <textarea
-          ref={textRef}
-          rows={3}
-          maxLength={limit}
-          disabled={locked}
-          value={body}
-          placeholder={locked ? "Replies are unavailable." : file ? "Add a caption (optional)" : "Write a reply (Ctrl+Enter to send)"}
-          onChange={(event) => setBody(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) { event.preventDefault(); void send(); }
-          }}
-        />
-      </label>
       {pickerOpen && !locked && (
         <div className={styles.emojiPicker} role="listbox" aria-label="Emoji">
           {EMOJIS.map((emoji) => <button type="button" key={emoji} onClick={() => insertEmoji(emoji)}>{emoji}</button>)}
         </div>
       )}
-      <div className={styles.composerFooter}>
-        <span className={styles.tools}>
-          <button type="button" className={styles.toolButton} disabled={locked} onClick={() => setPickerOpen((open) => !open)} aria-label="Add emoji">😊</button>
-          <button type="button" className={styles.toolButton} disabled={locked} onClick={() => fileRef.current?.click()} aria-label="Attach photo or video">📎</button>
+      <div className={styles.composerRow}>
+        <div className={styles.inputPill}>
+          <button type="button" className={styles.iconButton} disabled={locked} onClick={() => setPickerOpen((open) => !open)} aria-label="Add emoji">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M8.5 14.2c.8 1.2 2 1.8 3.5 1.8s2.7-.6 3.5-1.8" /><circle cx="9" cy="9.6" r=".6" fill="currentColor" /><circle cx="15" cy="9.6" r=".6" fill="currentColor" /></svg>
+          </button>
+          <label className={styles.composerField}>
+            <span className={styles.srOnly}>Reply</span>
+            <textarea
+              ref={textRef}
+              rows={1}
+              maxLength={limit}
+              disabled={locked}
+              value={body}
+              placeholder={locked ? "Replies are unavailable." : file ? "Add a caption" : "Type a message"}
+              onChange={(event) => { setBody(event.target.value); autosize(event.target); }}
+              onKeyDown={(event) => {
+                // Enter sends and Shift+Enter adds a line, as in WhatsApp Web (phones keep Enter as a new line).
+                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && window.matchMedia("(pointer: fine)").matches) {
+                  event.preventDefault();
+                  void send();
+                }
+              }}
+            />
+          </label>
+          <button type="button" className={styles.iconButton} disabled={locked} onClick={() => fileRef.current?.click()} aria-label="Attach photo or video">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m20.5 11.5-8.2 8.2a5 5 0 0 1-7-7l8.6-8.6a3.4 3.4 0 0 1 4.8 4.8l-8.6 8.6a1.8 1.8 0 0 1-2.5-2.5l7.9-7.9" /></svg>
+          </button>
           <input ref={fileRef} type="file" hidden accept="image/jpeg,image/png,video/mp4,video/3gpp" onChange={(event) => choose(event.target.files?.[0] ?? null)} />
-          <span className={styles.counter}>{body.length}/{limit}</span>
-        </span>
-        <button className={styles.sendButton} type="submit" disabled={!canSend}>{busy ? (file ? "Uploading…" : "Sending…") : "Send"}</button>
+        </div>
+        <button className={styles.sendButton} type="submit" disabled={!canSend} aria-label={busy ? "Sending" : "Send"}>
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6l.01 6.5L15 12 3.41 13.9z" /></svg>
+        </button>
       </div>
+      {body.length > limit - 200 && <span className={styles.counter}>{body.length}/{limit}</span>}
       {(error || success) && <p className={error ? styles.formError : styles.formSuccess} role="status">{error || success}</p>}
     </form>
   );
