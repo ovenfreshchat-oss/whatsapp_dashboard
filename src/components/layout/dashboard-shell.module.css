@@ -43,6 +43,37 @@
   gap: 7px;
 }
 
+/* Sign out inside the app bar is mobile only. */
+.appBarSignOutForm {
+  display: none;
+  margin: 0 0 0 auto;
+}
+
+.appBarSignOut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid #d9e1ee;
+  border-radius: 99px;
+  color: #505c7c;
+  background: rgba(255, 255, 255, .85);
+  cursor: pointer;
+}
+
+.appBarSignOut:hover {
+  color: #383ca3;
+  background: #fff;
+}
+
+.appBarSignOut:focus-visible {
+  outline: 3px solid rgba(67, 66, 201, .3);
+  outline-offset: 2px;
+}
+
 .brandWrap .sidebarBrand > span:first-child {
   width: 34px;
   height: 34px;
@@ -245,6 +276,14 @@
     border: 0;
   }
 
+  .appBarSignOutForm {
+    display: block;
+  }
+
+  .desktopSignOutForm {
+    display: none;
+  }
+
   /* backdrop-filter would make the sidebar the containing block of the fixed tab bar. */
   .sidebar {
     backdrop-filter: none;
@@ -306,6 +345,15 @@
     padding: 10px 2px;
   }
 
+  /* Sign out moved into the app bar, so a top bar with no actions is just dead space. */
+  .topbarEmptyMobile {
+    display: none !important;
+  }
+
+  .workspace {
+    padding-top: 6px;
+  }
+
   .headerActions {
     flex-wrap: nowrap;
     justify-content: flex-end;
@@ -318,5 +366,20 @@
 @media (max-width: 700px) {
   .labelShort {
     display: inline;
+  }
+}
+
+/* Phone: an open conversation takes the whole screen, with no app bar or tab bar. */
+@media (max-width: 700px) {
+  .page:has([data-thread-open]) {
+    padding: 0;
+  }
+
+  .page:has([data-thread-open]) .sidebar {
+    display: none;
+  }
+
+  .page:has([data-thread-open]) .workspace {
+    padding-top: 0;
   }
 }

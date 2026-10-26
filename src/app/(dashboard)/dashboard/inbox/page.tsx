@@ -99,7 +99,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
 
   return <DashboardShell label="WhatsApp inbox" showMetaSetup>
     <AutoRefresh />
-    <div className={styles.content} data-inbox>
+    <div className={styles.content} data-inbox data-thread-open={selectedId ? "" : undefined}>
       {!list.ready && <section className={styles.notice}>
         <strong>{list.reason === "not-configured" ? "Meta sender configuration is incomplete." : "Inbox storage is unavailable."}</strong>
         <p>{list.reason === "not-configured"

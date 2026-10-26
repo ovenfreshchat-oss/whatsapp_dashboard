@@ -17,7 +17,13 @@ export function DashboardShell({ label, headerAction, showMetaSetup = false, chi
     <main className={styles.page}>
       <section className={styles.shell} aria-label={label}>
         <aside className={styles.sidebar} aria-label="Workspace navigation">
-          <div className={styles.brandWrap}><Brand compact showTagline={false} className={styles.sidebarBrand} /></div>
+          <div className={styles.brandWrap}>
+            <Brand compact showTagline={false} className={styles.sidebarBrand} />
+            {/* Mobile only: sign out lives in the app bar next to the brand. */}
+            <form action={signOut} className={styles.appBarSignOutForm}>
+              <button type="submit" className={styles.appBarSignOut} aria-label="Sign out" title="Sign out"><LogOut size={18} strokeWidth={2} aria-hidden="true" /></button>
+            </form>
+          </div>
           <nav className={styles.navigation} aria-label="Main navigation">
             <span className={styles.navCaption}>WORKSPACE</span>
             <NavLinks showAdminLinks={showMetaSetup} />
@@ -29,14 +35,14 @@ export function DashboardShell({ label, headerAction, showMetaSetup = false, chi
         </aside>
 
         <div className={styles.workspace}>
-          <header className={styles.topbar}>
+          <header className={[styles.topbar, headerAction ? "" : styles.topbarEmptyMobile].filter(Boolean).join(" ")}>
             <div className={styles.topbarTitle}>
               <span className={styles.topbarDot} aria-hidden="true" />
               <span>Campaign workspace</span>
             </div>
             <div className={styles.headerActions}>
               {headerAction}
-              <form action={signOut}><button type="submit" className={styles.signOut} aria-label="Sign out" title="Sign out"><LogOut size={18} strokeWidth={2} aria-hidden="true" /></button></form>
+              <form action={signOut} className={styles.desktopSignOutForm}><button type="submit" className={styles.signOut} aria-label="Sign out" title="Sign out"><LogOut size={18} strokeWidth={2} aria-hidden="true" /></button></form>
             </div>
           </header>
           {children}

@@ -195,3 +195,25 @@
 @media (max-width: 850px) { .messageGrid { grid-template-columns: 1fr; } .summaryStrip { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; } .summaryStrip > div { padding: 10px; } .summaryStrip strong { font-size: 18px; } .summaryStrip .stripText { font-size: 11px; } }
 @media (max-width: 700px) { .tabs { top: 0; } .tabs a { min-height: 44px; } }
 .price { margin: 0 0 4px; color: #4e46b7; font-size: 34px; font-weight: 800; line-height: 1.1; letter-spacing: -.03em; }
+
+/* Simplified list / create screens */
+.pageHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; }
+.pageHead h1 { display: flex; align-items: center; gap: 8px; margin: 0; color: #34384f; font-size: 24px; letter-spacing: -.04em; }
+.pageHead h1 small { padding: 3px 9px; border-radius: 99px; background: #e8f6f0; color: #168a63; font-size: 12px; font-weight: 800; letter-spacing: 0; }
+.pageHead .backLink { flex: 1 0 100%; margin-bottom: -4px; font-size: 12px; }
+.campaignRow strong { font-size: 13px; }
+.campaignRow small { font-size: 11px; }
+.statePill { font-size: 10px; }
+
+/* Green buttons, campaigns only */
+.primaryButton, .newButton { background: #16a34a; color: #fff; }
+.primaryButton:hover, .newButton:hover { background: #15803d; }
+.primaryButton:focus-visible, .newButton:focus-visible, .chip:focus-visible { outline: 3px solid rgba(22,163,74,.35); outline-offset: 2px; }
+.newButton { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 0 16px; border-radius: 10px; font-size: 12px; font-weight: 850; text-decoration: none; white-space: nowrap; box-shadow: 0 6px 14px rgba(22,163,74,.25); }
+.chip { border-color: #b7e4c7; background: #f0fbf4; color: #15803d; }
+.chip:hover { background: #dcf5e5; }
+.reviewCheck input { accent-color: #16a34a; }
+.segment .segmentOn { color: #15803d; }
+@media (max-width: 700px) { .newButton { min-height: 44px; flex: 1 1 auto; } .pageHead h1 { font-size: 22px; } }
+
+.pageHead .buttonRow { gap: 14px; align-items: center; }

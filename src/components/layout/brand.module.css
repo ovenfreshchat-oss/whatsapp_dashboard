@@ -10,16 +10,17 @@
   place-items: center;
   width: 48px;
   height: 48px;
-  border: 1px solid rgba(255, 255, 255, .76);
+  overflow: hidden;
   border-radius: 15px;
-  color: #fff;
-  background: linear-gradient(145deg, #5654d0, #3030a6);
-  box-shadow: 0 10px 19px rgba(58, 57, 180, .21), inset 0 1px rgba(255, 255, 255, .24);
+  background: #000;
+  box-shadow: 0 8px 18px rgba(40, 30, 10, .22);
 }
 
-.mark svg {
-  width: 31px;
-  height: 31px;
+.mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .text {
@@ -50,11 +51,6 @@
   width: 40px;
   height: 40px;
   border-radius: 12px;
-}
-
-.compact .mark svg {
-  width: 27px;
-  height: 27px;
 }
 
 .compact .text strong {
