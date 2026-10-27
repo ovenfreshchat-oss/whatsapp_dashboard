@@ -12,11 +12,11 @@ const TYPES: Record<string, { ext: string; magic: number[] }> = {
 /** Uploads a header image to the public bucket and returns its HTTPS URL for the Meta template header. */
 export async function uploadCampaignHeaderImage(file: File): Promise<string> {
   const type = TYPES[file.type];
-  if (!type) throw new CampaignInputError("Header image must be a JPG or PNG.");
+  if (!type) throw new CampaignInputError("The header image must be a JPG or PNG file.");
   if (file.size > MAX_BYTES) throw new CampaignInputError("Header image must be 4 MB or smaller.");
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (!type.magic.every((value, index) => bytes[index] === value)) {
-    throw new CampaignInputError("That file is not a valid JPG or PNG image.");
+    throw new CampaignInputError("That file is not a valid JPG or PNG image. Please choose another.");
   }
   const store = getCampaignStore();
   const path = `${new Date().toISOString().slice(0, 10)}/${randomUUID()}.${type.ext}`;
@@ -25,6 +25,6 @@ export async function uploadCampaignHeaderImage(file: File): Promise<string> {
     cacheControl: "31536000",
     upsert: false,
   });
-  if (error) throw new CampaignStoreError("Image upload failed. Check that the campaign-media bucket exists (drizzle/0015).");
+  if (error) throw new CampaignStoreError("The image could not be uploaded. Please try again.");
   return store.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }

@@ -3,11 +3,11 @@ import Link from "next/link";
 import { BackLink } from "@/components/ui/back-link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { AUDIT_PAGE_SIZE, getCampaignDetail, listExcludedRecipients, RECIPIENTS_PAGE_SIZE } from "@/server/campaigns/admin";
-import { estimateCost, getRateCard, listCampaignPhones } from "@/server/campaigns/pricing";
 import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { getCampaignWorkerReadiness } from "@/server/campaigns/worker";
 import { parseTemplateBodyParameters } from "@/server/meta/templates";
 import { CampaignControls } from "../campaign-controls";
+import { DeleteDraftButton } from "../delete-draft";
 import { ExcludeNumbers } from "../exclude-numbers";
 import { AutoRefresh } from "../auto-refresh";
 import { RefreshButton } from "@/components/ui/refresh-button";
@@ -73,10 +73,6 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
   const tab: Tab = visibleTabs.some(([key]) => key === requestedTab)
     ? (requestedTab as Tab) : (isDraft ? "message" : "overview");
   const tabHref = (key: Tab) => `/dashboard/campaigns/${campaignId}?tab=${key}`;
-  const rateCard = campaign?.state === "draft" ? getRateCard() : null;
-  const draftEstimate = campaign && rateCard
-    ? estimateCost(await listCampaignPhones(campaign.id, { states: ["pending"] }).catch(() => []), rateCard)
-    : null;
   const excluded = campaign?.state === "draft" ? await listExcludedRecipients(campaignId).catch(() => []) : [];
   const review = campaign ? bodyReview(campaign.templateBody, campaign.bodyParameters) : null;
   const header = campaign?.templateComponents.find((part) => part.type === "HEADER");
@@ -90,6 +86,7 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
         <div className={styles.intro}>
           <div><span className={styles.eyebrow}>CAMPAIGN / {campaign.state.toUpperCase()}</span><h1>{campaign.name}<span>.</span></h1><p>{isDraft ? "Check the message and audience, then send or schedule." : "Progress updates on its own while sending."}</p></div>
           <div className={styles.buttonRow}>
+            {isDraft && <DeleteDraftButton id={campaign.id} name={campaign.name} redirectTo="/dashboard/campaigns" label />}
             {(campaign.state === "scheduled" || campaign.state === "running") && <AutoRefresh intervalMs={5000} />}
             {campaign.state !== "draft" && <Link href={`/dashboard/campaigns/${campaign.id}/analytics`} className={styles.refreshLink}>Analytics →</Link>}
             <RefreshButton className={styles.refreshLink} />
@@ -101,7 +98,6 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
             <div><strong>{campaign.audienceCount}</strong><small>recipients</small></div>
             <div><strong>{campaign.templateName}</strong><small>{campaign.templateLanguage}</small></div>
           </div>
-          {draftEstimate && <p className={styles.helper}>Estimated cost if all are delivered: <strong>{draftEstimate.currency} {draftEstimate.total.toFixed(draftEstimate.total < 1 ? 4 : 2)}</strong>{draftEstimate.unpriced > 0 ? ` (${draftEstimate.unpriced} numbers have no rate set)` : ""}. You are only charged for delivered messages.</p>}
           <div className={styles.renderedPreview}><strong>Message preview</strong><p>{review?.rendered}</p></div>
           <ExcludeNumbers campaignId={campaign.id} excluded={excluded} />
           <CampaignControls id={campaign.id} state={campaign.state} audienceCount={campaign.audienceCount} audienceSourceLabel={campaign.audienceSourceLabel} reviewSha256={campaign.reviewSha256} />
@@ -130,7 +126,7 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
               <p className={styles.helper}>“Needs reconciliation” means the API outcome is uncertain. Those recipients are parked and not retried automatically.</p>
             </section>
             <section className={styles.panel} aria-labelledby="delivery-heading">
-              <div className={styles.panelHeading}><div><h2 id="delivery-heading">Delivery status</h2></div><Link href={`/dashboard/campaigns/${campaign.id}/analytics`} className={styles.contactLink}>Full analytics →</Link></div>
+              <div className={styles.panelHeading}><div><h2 id="delivery-heading">Delivery status</h2></div></div>
               <dl className={styles.countList}>{deliverySteps(campaign.counts).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
               <p className={styles.helper}>Meta acceptance is separate from delivery. Webhook events update these counts when available.</p>
             </section>

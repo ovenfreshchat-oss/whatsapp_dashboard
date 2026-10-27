@@ -24,7 +24,7 @@ export function DashboardShell({ label, headerAction, showMetaSetup = false, chi
           <div className={styles.headerActions}>
             {headerAction}
             <form action={signOut}>
-              <button type="submit" className={styles.signOut} aria-label="Sign out" title="Sign out"><LogOut size={18} strokeWidth={2} aria-hidden="true" /></button>
+              <button type="submit" className={styles.signOut} aria-label="Sign out" title="Sign out"><LogOut size={18} strokeWidth={2} aria-hidden="true" /><span className={styles.signOutLabel}>Log out</span></button>
             </form>
           </div>
         </div>

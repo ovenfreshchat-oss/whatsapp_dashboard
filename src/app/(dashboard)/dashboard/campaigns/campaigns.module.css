@@ -110,7 +110,7 @@
 .readySummary strong { color: #15b688; font-size: 20px; overflow-wrap: anywhere; }
 .readySummary > div:last-child strong { font-size: 13px; }
 .readySummary small { color: #8e9aae; font-size: 10px; }
-.readyPanel .renderedPreview { margin: 0 0 12px; max-height: 120px; overflow: auto; }
+.readyPanel .renderedPreview { margin: 0 0 12px; max-height: none; overflow: visible; }
 .segment { display: grid; grid-template-columns: 1fr 1fr; padding: 3px; border: 1px solid #dfe5f1; border-radius: 11px; background: #f3f5fb; }
 .segment button { min-height: 38px; border: 0; border-radius: 9px; background: transparent; color: #6b7690; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
 .segment .segmentOn { background: #fff; color: #1c8f6f; box-shadow: 0 1px 4px rgba(77,103,150,.18); }
@@ -217,3 +217,28 @@
 @media (max-width: 700px) { .newButton { min-height: 44px; flex: 1 1 auto; } .pageHead h1 { font-size: 22px; } }
 
 .pageHead .buttonRow { gap: 14px; align-items: center; }
+
+/* Delete draft */
+.rowWrap { display: flex; align-items: center; gap: 8px; }
+.rowWrap .campaignRow { flex: 1 1 auto; }
+.deleteIcon, .deleteText { display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex: none; min-height: 40px; border: 1px solid #f5cbd1; border-radius: 10px; background: #fff; color: #b4233c; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.deleteIcon { width: 40px; }
+.deleteText { padding: 0 14px; }
+.deleteIcon:hover, .deleteText:hover { background: #fff0f0; }
+.deleteIcon:focus-visible, .deleteText:focus-visible, .confirmYes:focus-visible, .confirmNo:focus-visible { outline: 3px solid rgba(180,35,60,.3); outline-offset: 2px; }
+.confirmBox { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid #f5cbd1; border-radius: 10px; background: #fff0f0; color: #8f2336; font-size: 12px; font-weight: 700; }
+.confirmYes, .confirmNo { min-height: 34px; padding: 0 12px; border-radius: 8px; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.confirmYes { border: 0; background: #b4233c; color: #fff; }
+.confirmNo { border: 1px solid var(--line); background: #fff; color: var(--text); }
+.confirmYes:disabled, .confirmNo:disabled { opacity: .6; cursor: progress; }
+.switchErrorText { flex: 1 0 100%; color: #b4233c; font-size: 11px; font-weight: 600; }
+@media (max-width: 700px) { .deleteIcon { width: 44px; min-height: 44px; } .deleteText, .confirmYes, .confirmNo { min-height: 44px; } .rowWrap { align-items: stretch; } .confirmBox { flex: 1 1 auto; } }
+
+/* One input per template value */
+.valueFields { display: grid; gap: 12px; }
+.valueFields .field small { color: var(--muted, #5b6470); font-size: 11px; }
+
+/* Hint text must look clearly different from typed text */
+.field input::placeholder, .field textarea::placeholder { color: #a9b1bc; opacity: 1; font-weight: 400; }
+
+.chip.chipOn, .chip.chipOn:hover { background: #0f9d78; border-color: #0f9d78; color: #fff; }

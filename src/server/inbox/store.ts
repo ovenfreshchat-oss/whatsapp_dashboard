@@ -9,6 +9,7 @@ export type InboxConversation = {
   last_message_at: string;
   last_message_preview: string | null;
   unread_count: number;
+  opted_out?: boolean;
 };
 
 export type InboxMessage = {
@@ -67,7 +68,15 @@ export async function listConversations(): Promise<InboxList> {
     .order("last_message_at", { ascending: false })
     .limit(LIST_LIMIT);
   if (error) return { ready: false, reason: "storage-unavailable" };
-  return { ready: true, conversations: (data ?? []) as InboxConversation[], total: count ?? data?.length ?? 0 };
+  const conversations = (data ?? []) as InboxConversation[];
+  if (conversations.length > 0) {
+    const { data: optOuts } = await admin.from("meta_opt_outs").select("identity_value")
+      .eq("waba_id", identifiers.wabaId).eq("phone_number_id", identifiers.phoneNumberId)
+      .in("identity_value", conversations.map((c) => c.wa_id));
+    const blocked = new Set((optOuts ?? []).map((row) => String(row.identity_value)));
+    for (const c of conversations) c.opted_out = blocked.has(c.wa_id);
+  }
+  return { ready: true, conversations, total: count ?? data?.length ?? 0 };
 }
 
 export type InboxThread = {

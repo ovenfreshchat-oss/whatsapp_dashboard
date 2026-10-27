@@ -23,6 +23,28 @@ function CreateButton() {
   </button>;
 }
 
+/** "text" -> "Text", "order_date" -> "Order date"; numbered placeholders become "Value 1". */
+function valueLabel(key: string): string {
+  if (/^\d+$/.test(key)) return `Value ${key}`;
+  const words = key.replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/** One text box per blank in the message. They are sent to the server as one value per line. */
+function BodyValues({ keys }: { keys: string[] }) {
+  const [values, setValues] = useState<string[]>(() => keys.map(() => ""));
+  return <div className={styles.valueFields}>
+    {keys.map((key, index) => <label className={styles.field} key={key}>
+      <span>{valueLabel(key)}</span>
+      <input type="text" value={values[index]} maxLength={1000} required
+        placeholder={`Enter ${valueLabel(key).toLowerCase()}`}
+        onChange={(event) => setValues((old) => old.map((value, at) => (at === index ? event.target.value.replace(/[\r\n]+/g, " ") : value)))} />
+      <small>Fills {`{{${key}}}`} in the message</small>
+    </label>)}
+    <input type="hidden" name="bodyParameters" value={values.map((value) => value.trim()).join("\n")} />
+  </div>;
+}
+
 export function CreateCampaignForm({ options, batches }: {
   options: CampaignTemplateOption[];
   batches: CampaignImportBatchOption[];
@@ -34,7 +56,6 @@ export function CreateCampaignForm({ options, batches }: {
   );
   const [preview, setPreview] = useState("");
   const template = options.find((item) => item.key === selected);
-  const selectedBatch = batches.find((item) => selectedAudience === `batch:${item.id}`);
 
   return <form action={action} className={`${styles.form} ${styles.createGrid}`}>
     <div className={styles.formCol}>
@@ -49,21 +70,16 @@ export function CreateCampaignForm({ options, batches }: {
       </select>
     </label>
     <label className={styles.field}>
-      <span>Audience source</span>
+      <span>Choose contact list</span>
       <select name="audienceSource" value={selectedAudience} onChange={(event) =>
         setSelectedAudience(event.target.value)} required>
-      {!batches.length && <option value="">Select an audience source</option>}
+      {!batches.length && <option value="">Select a contact list</option>}
         {batches.map((batch) => <option key={batch.id} value={`batch:${batch.id}`}>
           {batch.fileName} · uploaded {batch.createdAt.slice(0, 10)} · {batch.acceptedRows} imported rows
         </option>)}
         <option value="all">All eligible contacts across imports</option>
       </select>
     </label>
-    <div className={styles.formNote}>
-      <p>{selectedBatch
-        ? `Audience: contacts from “${selectedBatch.fileName}” who can still receive marketing. It is frozen when you continue, and you see the final count before sending.`
-        : "Audience: every eligible contact across imports, frozen when you continue."}</p>
-    </div>
     </div>
     <div className={styles.formCol}>
     {template && template.headerFormat === "IMAGE" && <label className={styles.field} key={`${selected}-header`}>
@@ -85,15 +101,9 @@ export function CreateCampaignForm({ options, batches }: {
       <span>TEMPLATE BODY</span>
       <p>{template.body}</p>
     </div>}
-    {template && template.parameterKeys.length > 0 ? <label className={styles.field} key={selected}>
-      <span>Body values ({template.parameterKeys.length}, one per line)</span>
-      <textarea
-        name="bodyParameters"
-        rows={Math.min(7, template.parameterKeys.length + 1)}
-        placeholder={template.parameterKeys.map((key) => `Value for {{${key}}}`).join("\n")}
-        required
-      />
-    </label> : <input name="bodyParameters" type="hidden" value="" />}
+    {template && template.parameterKeys.length > 0
+      ? <BodyValues key={selected} keys={template.parameterKeys} />
+      : <input name="bodyParameters" type="hidden" value="" />}
     </div>
     <div className={styles.formFooter}><CreateButton /></div>
     {state.error && <p className={styles.formError} role="alert">{state.error}</p>}

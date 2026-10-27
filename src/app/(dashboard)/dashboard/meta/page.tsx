@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { BackLink } from "@/components/ui/back-link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
-import {
-  getMetaAccountHealth,
-  getMetaConfigurationStatus,
-  listMetaWebhookSubscriptions,
-} from "@/server/meta/client";
-import { assertApprovedMarketingTemplate, parseTemplateBodyParameters, syncMetaTemplates, type MetaTemplate } from "@/server/meta/templates";
-import { TestSendForm, type TestTemplateOption } from "./test-send-form";
+import { getMetaConfigurationStatus } from "@/server/meta/client";
+import { getMetaAccountHealthCached, listMetaWebhookSubscriptionsCached, syncMetaTemplatesCached } from "@/server/meta/cached";
+import { assertApprovedMarketingTemplate, parseTemplateBodyParameters, type MetaTemplate } from "@/server/meta/templates";
+import type { TestTemplateOption } from "./test-send-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
 import styles from "./meta.module.css";
 
@@ -69,9 +65,9 @@ export default async function MetaSetupPage() {
 
   const checks = configuration.configured
     ? await Promise.allSettled([
-        getMetaAccountHealth(),
-        listMetaWebhookSubscriptions(),
-        syncMetaTemplates(),
+        getMetaAccountHealthCached(),
+        listMetaWebhookSubscriptionsCached(),
+        syncMetaTemplatesCached(),
       ] as const)
     : null;
   const health = checks?.[0].status === "fulfilled" ? checks[0].value : null;
@@ -117,42 +113,9 @@ export default async function MetaSetupPage() {
             <p>Check the live Cloud API account, approved marketing templates, and webhook delivery.</p>
           </div>
           <div className={styles.introLinks}>
-            <Link href="/dashboard/meta/review" className={styles.refreshLink}>Review inbound holds ↗</Link>
             <RefreshButton label="Refresh checks" className={styles.refreshLink} />
           </div>
         </div>
-
-        <section className={styles.statusGrid} aria-label="Meta connection checks">
-          <article className={styles.statusCard}>
-            <div className={styles.cardTop}><span className={styles.cardIcon}>◎</span><span className={configuration.configured && health?.phoneBelongsToWaba ? styles.good : styles.waiting}>{health?.phoneBelongsToWaba ? "Verified live" : "Action needed"}</span></div>
-            <h2>Meta account</h2>
-            <p>{health?.phoneBelongsToWaba ? "The configured sender belongs to this WhatsApp Business Account." : configuration.configured ? "The account could not be verified with Meta yet." : "Add the server-side Meta settings to begin."}</p>
-            <dl>
-              <div><dt>WABA</dt><dd>{health?.wabaName ?? (configuration.configured ? "Not verified" : "Not configured")}</dd></div>
-              <div><dt>Phone</dt><dd>{health?.phoneNumber?.displayPhoneNumber ?? "—"}</dd></div>
-              <div><dt>Quality</dt><dd><QualityBadge rating={health?.phoneNumber?.qualityRating} /></dd></div>
-            </dl>
-          </article>
-
-          <article className={styles.statusCard}>
-            <div className={styles.cardTop}><span className={styles.cardIcon}>◈</span><span className={webhookConfigured && subscription?.isCurrentAppSubscribed && inboxReady ? styles.good : styles.waiting}>{webhookConfigured && subscription?.isCurrentAppSubscribed && inboxReady ? "Ready for events" : "Action needed"}</span></div>
-            <h2>Signed webhooks</h2>
-            <p>{subscription?.isCurrentAppSubscribed === true ? "This app is subscribed to the WABA." : subscription?.isCurrentAppSubscribed === false ? "This app is not subscribed to the WABA." : "Add META_APP_ID to verify this app’s subscription."}</p>
-            <dl>
-              <div><dt>Callback path</dt><dd className={styles.code}>/api/webhooks/meta/whatsapp</dd></div>
-              <div><dt>Last received</dt><dd>{dateLabel(lastWebhookAt)}</dd></div>
-              <div><dt>Inbox</dt><dd>{inboxReady ? "Database ready" : "Apply migration"}</dd></div>
-            </dl>
-          </article>
-
-          <article className={styles.statusCard}>
-            <div className={styles.cardTop}><span className={styles.cardIcon}>▤</span><span className={templateSync ? styles.good : styles.waiting}>{templateSync ? "Live list" : "Action needed"}</span></div>
-            <h2>Templates</h2>
-            <p>{templateSync ? "Templates were fetched directly from Meta for this account." : "Template access has not been verified."}</p>
-            <div className={styles.templateCount}><strong>{templateSync ? approvedCount : "—"}</strong><span>approved of {templateSync ? templates.length : "—"} total</span></div>
-            <small>Checked {dateLabel(templateSync?.syncedAt)}</small>
-          </article>
-        </section>
 
         {(!configuration.configured || !webhookConfigured || !historyReady || !inboxReady) && (
           <section className={styles.setupNotice} aria-labelledby="setup-needed-heading">
@@ -181,34 +144,27 @@ export default async function MetaSetupPage() {
               </div>
             ) : <p className={styles.empty}>Meta returned no templates for this WABA.</p> : <p className={styles.empty}>Templates will appear after the account and token are configured and reachable.</p>}
           </section>
-
-          <section className={styles.panel} aria-labelledby="test-heading">
-            <div className={styles.panelHeading}>
-              <div><span className={styles.eyebrow}>OPTIONAL DIAGNOSTIC</span><h2 id="test-heading">One-message test</h2></div>
-            </div>
-            {canSendTest ? <TestSendForm recipient={testRecipient} options={options} /> : (
-              <div className={styles.empty}>
-                <p>Test sending unlocks after the sender, this app’s webhook subscription, database migration, and approved marketing template are verified. Bulk campaigns use imported contacts and do not need a fixed test number.</p>
-                {!testRecipientConfigured && <p>For this optional check, add a permitted test number as META_TEST_RECIPIENT_E164.</p>}
-              </div>
-            )}
-          </section>
         </div>
 
-        <section className={styles.panel} aria-labelledby="history-heading">
-          <div className={styles.panelHeading}>
-            <div><span className={styles.eyebrow}>MESSAGE TRACKING</span><h2 id="history-heading">Recent test attempts</h2></div>
-          </div>
-          {history.length > 0 ? (
-            <div className={styles.historyList}>
-              {history.map((item) => (
-                <div className={styles.historyRow} key={item.id}>
-                  <div><strong>{item.template_name} · {item.template_language}</strong><small>{maskedPhone(item.recipient_e164)} · {dateLabel(item.created_at)}</small></div>
-                  <span>{item.delivery_conflict ? "Status conflict" : item.delivery_status ?? (item.state === "accepted" ? "Accepted by Meta" : item.state)}</span>
-                </div>
-              ))}
-            </div>
-          ) : <p className={styles.empty}>{historyReady ? "No test messages have been sent." : "Apply the Meta database migration to store message history."}</p>}
+        <section className={styles.statusGrid} aria-label="Meta connection checks">
+          <article className={styles.statusCard}>
+            <div className={styles.cardTop}><span className={styles.cardIcon}>◎</span><span className={configuration.configured && health?.phoneBelongsToWaba ? styles.good : styles.waiting}>{health?.phoneBelongsToWaba ? "Verified live" : "Action needed"}</span></div>
+            <h2>Meta account</h2>
+            <p>{health?.phoneBelongsToWaba ? "The configured sender belongs to this WhatsApp Business Account." : configuration.configured ? "The account could not be verified with Meta yet." : "Add the server-side Meta settings to begin."}</p>
+            <dl>
+              <div><dt>WABA</dt><dd>{health?.wabaName ?? (configuration.configured ? "Not verified" : "Not configured")}</dd></div>
+              <div><dt>Phone</dt><dd>{health?.phoneNumber?.displayPhoneNumber ?? "—"}</dd></div>
+              <div><dt>Quality</dt><dd><QualityBadge rating={health?.phoneNumber?.qualityRating} /></dd></div>
+            </dl>
+          </article>
+
+          <article className={styles.statusCard}>
+            <div className={styles.cardTop}><span className={styles.cardIcon}>▤</span><span className={templateSync ? styles.good : styles.waiting}>{templateSync ? "Live list" : "Action needed"}</span></div>
+            <h2>Templates</h2>
+            <p>{templateSync ? "Templates were fetched directly from Meta for this account." : "Template access has not been verified."}</p>
+            <div className={styles.templateCount}><strong>{templateSync ? approvedCount : "—"}</strong><span>approved of {templateSync ? templates.length : "—"} total</span></div>
+            <small>Checked {dateLabel(templateSync?.syncedAt)}</small>
+          </article>
         </section>
       </div>
     </DashboardShell>

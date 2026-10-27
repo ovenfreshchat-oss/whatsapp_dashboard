@@ -4,9 +4,11 @@ import { BackLink } from "@/components/ui/back-link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { CAMPAIGNS_PAGE_SIZE, listCampaigns, listCampaignImportBatches } from "@/server/campaigns/admin";
 import { getMetaConfigurationStatus } from "@/server/meta/client";
-import { assertApprovedMarketingTemplate, parseTemplateBodyParameters, syncMetaTemplates, type MetaTemplate } from "@/server/meta/templates";
+import { assertApprovedMarketingTemplate, parseTemplateBodyParameters, type MetaTemplate } from "@/server/meta/templates";
+import { syncMetaTemplatesCached } from "@/server/meta/cached";
 import { Pagination } from "@/components/ui/pagination";
 import { AutoRefresh } from "./auto-refresh";
+import { DeleteDraftButton } from "./delete-draft";
 import { CreateCampaignForm, type CampaignTemplateOption } from "./create-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
 import styles from "./campaigns.module.css";
@@ -54,7 +56,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
     const configuration = getMetaConfigurationStatus();
     const [batchResult, templateResult] = await Promise.allSettled([
       listCampaignImportBatches(),
-      configuration.configured ? syncMetaTemplates() : Promise.resolve(null),
+      configuration.configured ? syncMetaTemplatesCached() : Promise.resolve(null),
     ]);
     const batches = batchResult.status === "fulfilled" ? batchResult.value : null;
     const templates = templateResult.status === "fulfilled" ? templateResult.value?.templates ?? null : null;
@@ -98,10 +100,13 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
 
       <section className={styles.panel} aria-label="Campaigns">
         {campaigns?.length ? <div className={styles.campaignList}>
-          {campaigns.map((campaign) => <Link className={styles.campaignRow} key={campaign.id} href={`/dashboard/campaigns/${campaign.id}${campaign.state === "draft" ? "" : "/analytics"}`}>
-            <div><strong>{campaign.name}</strong><small>{campaign.audienceCount} recipients · {campaign.templateName}</small></div>
-            <div><span className={styles.statePill}>{campaign.state}</span><small>{campaign.scheduledFor ? dateLabel(campaign.scheduledFor) : "Not scheduled"}</small></div>
-          </Link>)}
+          {campaigns.map((campaign) => <div className={styles.rowWrap} key={campaign.id}>
+            <Link className={styles.campaignRow} href={`/dashboard/campaigns/${campaign.id}${campaign.state === "draft" ? "" : "/analytics"}`}>
+              <div><strong>{campaign.name}</strong><small>{campaign.audienceCount} recipients · {campaign.templateName}</small></div>
+              <div><span className={styles.statePill}>{campaign.state}</span><small>{campaign.scheduledFor ? dateLabel(campaign.scheduledFor) : "Not scheduled"}</small></div>
+            </Link>
+            {campaign.state === "draft" && <DeleteDraftButton id={campaign.id} name={campaign.name} />}
+          </div>)}
         </div> : <p className={styles.empty}>{campaigns ? "No campaigns yet. Tap “+ New campaign” to create your first one." : "Apply the campaign migration to view campaigns."}</p>}
         {campaigns && <Pagination page={page} total={totalCampaigns} pageSize={CAMPAIGNS_PAGE_SIZE} path="/dashboard/campaigns" label="Campaign pages" />}
       </section>

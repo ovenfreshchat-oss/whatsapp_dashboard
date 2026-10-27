@@ -11,7 +11,7 @@ export class CampaignStoreError extends Error {
 export function getCampaignStore() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const key = process.env.SUPABASE_SECRET_KEY?.trim();
-  if (!url || !key) throw new CampaignStoreError("Campaign storage is not configured.");
+  if (!url || !key) throw new CampaignStoreError("Campaigns are not set up yet. Please contact support.");
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
   });

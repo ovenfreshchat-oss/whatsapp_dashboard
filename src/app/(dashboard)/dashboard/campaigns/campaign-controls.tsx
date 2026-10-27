@@ -54,6 +54,7 @@ export function CampaignControls({ id, state, audienceCount, audienceSourceLabel
   const [result, action] = useActionState(transitionCampaignAction.bind(null, id), initialState);
   const [mode, setMode] = useState<"now" | "later">("now");
   const [localTime, setLocalTime] = useState("");
+  const [activePreset, setActivePreset] = useState<string | null>(null);
   const parsed = localTime ? new Date(localTime) : null;
   const scheduledForIso = parsed && Number.isFinite(parsed.valueOf()) ? parsed.toISOString() : "";
   const canSchedule = state === "draft" && audienceCount > 0;
@@ -73,11 +74,13 @@ export function CampaignControls({ id, state, audienceCount, audienceSourceLabel
         {mode === "later" && <div className={styles.whenBox}>
           <div className={styles.chips}>
             {presets.map((preset) => <button type="button" key={preset.label}
-              className={styles.chip} onClick={() => setLocalTime(toLocalInput(preset.at()))}>{preset.label}</button>)}
+              className={activePreset === preset.label ? `${styles.chip} ${styles.chipOn}` : styles.chip}
+              aria-pressed={activePreset === preset.label}
+              onClick={() => { setLocalTime(toLocalInput(preset.at())); setActivePreset(preset.label); }}>{preset.label}</button>)}
           </div>
           <label className={styles.field}>
             <span>Or pick a date and time</span>
-            <input type="datetime-local" value={localTime} onChange={(event) => setLocalTime(event.target.value)} />
+            <input type="datetime-local" value={localTime} onChange={(event) => { setLocalTime(event.target.value); setActivePreset(null); }} />
           </label>
           {summary && <p className={styles.whenSummary}>Sends {summary}</p>}
         </div>}

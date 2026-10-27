@@ -3,7 +3,8 @@ import Link from "next/link";
 import { BackLink } from "@/components/ui/back-link";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { getMetaConfigurationStatus } from "@/server/meta/client";
-import { syncMetaTemplates, type MetaTemplate } from "@/server/meta/templates";
+import { syncMetaTemplatesCached } from "@/server/meta/cached";
+import type { MetaTemplate } from "@/server/meta/templates";
 import styles from "../campaigns/campaigns.module.css";
 import { TemplateForm, type TemplateFormInitial } from "./template-form";
 
@@ -36,7 +37,7 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
   const configured = getMetaConfigurationStatus().configured;
   let templates: MetaTemplate[] | null = null;
   if (configured) {
-    try { templates = (await syncMetaTemplates()).templates; } catch { templates = null; }
+    try { templates = (await syncMetaTemplatesCached()).templates; } catch { templates = null; }
   }
   const editing = templates?.find((t) => t.id === editId && EDITABLE.has(t.status));
   const initial = editing ? initialFrom(editing) : null;

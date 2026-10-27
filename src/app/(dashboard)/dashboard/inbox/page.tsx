@@ -18,6 +18,7 @@ import {
 import { getThread, listConversations, type InboxMessage } from "@/server/inbox/store";
 import { AutoRefresh, MarkRead, MessageList } from "./live";
 import { ChatSearch } from "./chat-search";
+import { AutoSelectFirst } from "./auto-select";
 import { LinkPending } from "./link-pending";
 import { ReplyForm } from "./reply-form";
 import styles from "./inbox.module.css";
@@ -36,6 +37,14 @@ function MediaView({ id, media }: { id: string; media: NonNullable<InboxMessage[
   if (media.kind === "video") return <video className={styles.mediaImage} src={src} controls preload="metadata" />;
   if (media.kind === "audio") return <audio src={src} controls preload="none" />;
   return <a className={styles.mediaFile} href={src} target="_blank" rel="noreferrer">Download {media.filename ?? "file"}</a>;
+}
+
+/** Stable light colour per customer so chats are easy to tell apart. */
+function avatarStyle(seed: string): { background: string; color: string } {
+  let hash = 0;
+  for (const ch of seed) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  const hue = hash % 360;
+  return { background: `hsl(${hue} 70% 86%)`, color: `hsl(${hue} 45% 26%)` };
 }
 
 function Ticks({ status }: { status: string }) {
@@ -100,6 +109,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
 
   return <DashboardShell label="WhatsApp inbox" showMetaSetup>
     <AutoRefresh />
+    {!selectedId && list.ready && list.conversations[0] && <AutoSelectFirst conversationId={list.conversations[0].id} />}
     <div className={styles.content} data-inbox data-thread-open={selectedId ? "" : undefined}>
       {!list.ready && <section className={styles.notice}>
         <strong>{list.reason === "not-configured" ? "Meta sender configuration is incomplete." : "Inbox storage is unavailable."}</strong>
@@ -119,13 +129,20 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
               return <li key={item.id} data-search={`${conversationTitle(item.profile_name, item.wa_id)} ${item.wa_id} ${item.last_message_preview ?? ""}`.toLowerCase()}>
                 <Link href={`/dashboard/inbox?c=${item.id}`} aria-current={active ? "true" : undefined}
                   className={[styles.listItem, active ? styles.listItemActive : ""].filter(Boolean).join(" ")}>
-                  <span className={styles.avatar} aria-hidden="true">{conversationTitle(item.profile_name, item.wa_id).replace(/^\+/, "").charAt(0).toUpperCase()}</span>
+                  <span className={styles.avatar} style={avatarStyle(item.wa_id)} aria-hidden="true">{conversationTitle(item.profile_name, item.wa_id).replace(/^\+/, "").charAt(0).toUpperCase()}</span>
                   <span className={styles.listBody}>
                     <span className={styles.listTop}>
                       <strong>{conversationTitle(item.profile_name, item.wa_id)}</strong>
                       <time dateTime={item.last_message_at}>{formatListTime(item.last_message_at, timeZone)}</time>
                     </span>
                     <span className={styles.listPreview}>{item.last_message_preview ?? "—"}</span>
+                    {(() => {
+                      const win = replyWindow(item.last_inbound_at);
+                      const red = item.opted_out || !win.open;
+                      return <span className={[styles.winTag, red ? styles.winClosed : styles.winOpen].join(" ")}>
+                        {item.opted_out ? "Opted out" : win.open ? `Closes in ${win.remainingLabel}` : "Window closed"}
+                      </span>;
+                    })()}
                   </span>
                   <LinkPending />
                   {item.unread_count > 0 && <span className={styles.unread} aria-label={`${item.unread_count} unread`}>{item.unread_count > 99 ? "99+" : item.unread_count}</span>}
@@ -143,7 +160,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
             {thread.conversation.unread_count > 0 && <MarkRead conversationId={thread.conversation.id} seenThrough={thread.conversation.last_message_at} />}
             <header className={styles.threadHeader}>
               <Link href="/dashboard/inbox" className={styles.backToList} aria-label="Back to chats"><ArrowLeft size={24} strokeWidth={2.2} aria-hidden="true" /></Link>
-              <span className={[styles.avatar, styles.headerAvatar].join(" ")} aria-hidden="true">{conversationTitle(thread.conversation.profile_name, thread.conversation.wa_id).replace(/^\+/, "").charAt(0).toUpperCase()}</span>
+              <span className={[styles.avatar, styles.headerAvatar].join(" ")} style={avatarStyle(thread.conversation.wa_id)} aria-hidden="true">{conversationTitle(thread.conversation.profile_name, thread.conversation.wa_id).replace(/^\+/, "").charAt(0).toUpperCase()}</span>
               <div className={styles.threadTitle}>
                 <strong>{conversationTitle(thread.conversation.profile_name, thread.conversation.wa_id)}</strong>
                 <span>{formatPhone(thread.conversation.wa_id)}</span>

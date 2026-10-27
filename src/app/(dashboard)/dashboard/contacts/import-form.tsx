@@ -119,8 +119,23 @@ export function ContactImportForm() {
   const [error, setError] = useState("");
   const [result, setResult] = useState("");
   const [resultBatchId, setResultBatchId] = useState("");
+  const [inputKey, setInputKey] = useState(0);
 
   /** Inspect and, when the phone column is recognised, preview in one go. */
+  /** Throw away the chosen file and any preview, so nothing is imported. */
+  function cancel() {
+    setFile(null);
+    setSheetName("");
+    setRaw(null);
+    setMapped(null);
+    setMapping(emptyMapping);
+    setImportKey("");
+    setError("");
+    setResult("");
+    setResultBatchId("");
+    setInputKey((value) => value + 1);
+  }
+
   async function start(selected: File, selectedSheet = "") {
     setBusy(true);
     setError("");
@@ -210,7 +225,7 @@ export function ContactImportForm() {
     <div className={styles.stack}>
       <p className={styles.muted}>Choose a CSV, Excel (.xlsx) or Word (.docx) file, up to 5 MiB and 5,000 rows, with a header row. A column named Phone number (and optionally Name) is picked up automatically.</p>
       <Link className={styles.contactLink} href="/templates/whatsapp-contacts-template.docx" download>Download Word contact template (.docx) →</Link>
-      <label className={styles.field}><span>Contact file</span><input type="file" accept=".csv,.xlsx,.docx" onChange={(event) => {
+      <label className={styles.field}><span>Contact file</span><input key={inputKey} type="file" accept=".csv,.xlsx,.docx" onChange={(event) => {
         const chosen = event.target.files?.[0] ?? null;
         setFile(chosen);
         setSheetName("");
@@ -226,19 +241,27 @@ export function ContactImportForm() {
       {raw && mapping.phoneColumn === null && <>
         <p className={styles.muted}>Could not tell which column has the phone numbers. Choose it:</p>
         <div className={styles.fieldGrid}>{selectField("Phone number *", "phoneColumn")}{selectField("Name (optional)", "nameColumn")}</div>
-        <button type="button" className={styles.button} disabled={mapping.phoneColumn === null || busy} onClick={preview}>Continue</button>
+        <div className={styles.actions}><button type="button" className={styles.button} disabled={mapping.phoneColumn === null || busy} onClick={preview}>Continue</button><button type="button" className={styles.secondaryButton} disabled={busy} onClick={cancel}>Cancel</button></div>
       </>}
-      {raw && mapping.phoneColumn !== null && !mapped && !busy && <button type="button" className={styles.button} onClick={preview}>Preview</button>}
+      {raw && mapping.phoneColumn !== null && !mapped && !busy && <div className={styles.actions}><button type="button" className={styles.button} onClick={preview}>Preview</button><button type="button" className={styles.secondaryButton} onClick={cancel}>Cancel</button></div>}
       {mapped && <>
         <div className={styles.statGrid}>
           <span><strong>{mapped.stats.validRows}</strong> valid numbers</span>
           <span><strong>{mapped.stats.invalidRows}</strong> skipped</span>
         </div>
-        <details><summary className={styles.muted}>Show the rows</summary>
-          <div className={styles.tableWrap}><table><thead><tr><th>Row</th><th>Name</th><th>Phone</th><th>Status</th></tr></thead><tbody>{mapped.rows.map((row) => <tr key={row.rowNumber}><td>{row.rowNumber}</td><td>{row.displayName ?? ""}</td><td>{row.phoneE164 ?? row.rawPhone}</td><td>{[...row.errors, ...row.warnings].join(" ") || "Ready"}</td></tr>)}</tbody></table></div>
-        </details>
+        {(() => {
+          const skipped = mapped.rows.filter((row) => row.errors.length > 0);
+          return skipped.length > 0
+            ? <details open><summary className={styles.muted}>Show the skipped rows</summary>
+                <div className={styles.tableWrap}><table><thead><tr><th>Row</th><th>Name</th><th>Phone</th><th>Why skipped</th></tr></thead><tbody>{skipped.map((row) => <tr key={row.rowNumber}><td>{row.rowNumber}</td><td>{row.displayName ?? ""}</td><td>{row.phoneE164 ?? row.rawPhone}</td><td>{row.errors.join(" ")}</td></tr>)}</tbody></table></div>
+              </details>
+            : <p className={styles.muted}>No rows skipped. Every row is ready to import.</p>;
+        })()}
         {mapped.errors.length > 0 && <p className={styles.muted}>{mapped.errors.length} rows have problems and will be skipped.</p>}
-        <button type="button" className={styles.button} disabled={mapped.stats.validRows === 0 || busy} onClick={commit}>Import {mapped.stats.validRows} contacts</button>
+        <div className={styles.actions}>
+          <button type="button" className={styles.button} disabled={mapped.stats.validRows === 0 || busy} onClick={commit}>Import {mapped.stats.validRows} contacts</button>
+          <button type="button" className={styles.secondaryButton} disabled={busy} onClick={cancel}>Cancel</button>
+        </div>
       </>}
       {busy && <p className={styles.muted} role="status">Processing file…</p>}
       {error && <p className={styles.error} role="alert">{error}</p>}

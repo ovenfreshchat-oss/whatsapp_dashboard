@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
-import { getStaffAdminAccess } from "@/server/auth/staff-users/admin";
+import { getStaffReadAccess } from "@/server/auth/staff-users/admin";
 
 export default async function OptOutsLayout({ children }: { children: React.ReactNode }) {
-  const access = await getStaffAdminAccess();
+  const access = await getStaffReadAccess();
   if (access === "signed-out") redirect("/sign-in");
   if (access !== "allowed") redirect("/access-denied");
   return children;

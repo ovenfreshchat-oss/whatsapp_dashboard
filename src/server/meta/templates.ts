@@ -162,10 +162,10 @@ function validateTestSend(input: ApprovedTemplateTestSend): string[] {
     }
   }
   const parameters = input.bodyParameters ?? [];
-  if (parameters.length > 20) reject("Too many template body parameters were provided.");
+  if (parameters.length > 20) reject("Too many values. A message can have at most 20.");
   for (const parameter of parameters) {
     if (typeof parameter !== "string" || !parameter.trim() || parameter.length > 1024) {
-      reject("A template body parameter is invalid.");
+      reject("One of the values is empty or too long (the limit is 1,024 characters). Check each line.");
     }
   }
   return parameters;
@@ -180,21 +180,21 @@ export function parseTemplateBodyParameters(body: string): TemplateBodyParameter
   const rawKeys = [...body.matchAll(placeholder)].map((match) => match[1].trim());
   const residual = body.replace(placeholder, "");
   if (residual.includes("{{") || residual.includes("}}")) {
-    reject("This template uses unsupported body placeholders.");
+    reject("This template fills in its message in a way we cannot support yet. Please choose another template.");
   }
   if (rawKeys.length === 0) return { format: "positional", keys: [] };
 
   if (rawKeys.every((key) => /^[1-9]\d*$/.test(key))) {
     const keys = [...new Set(rawKeys)].sort((left, right) => Number(left) - Number(right));
     if (keys.some((value, index) => Number(value) !== index + 1)) {
-      reject("The template body has nonsequential placeholders.");
+      reject("This template fills in its message in a way we cannot support yet. Please choose another template.");
     }
     return { format: "positional", keys };
   }
   if (rawKeys.every((key) => /^[a-z][a-z_]{0,19}$/.test(key))) {
     return { format: "named", keys: [...new Set(rawKeys)] };
   }
-  reject("This template uses unsupported body placeholders.");
+  reject("This template fills in its message in a way we cannot support yet. Please choose another template.");
 }
 
 export function assertApprovedMarketingTemplate(
@@ -203,24 +203,24 @@ export function assertApprovedMarketingTemplate(
   headerMediaUrl?: string,
 ): ApprovedTemplateValidation {
   if (template.status !== "APPROVED" || template.category !== "MARKETING") {
-    reject("The selected marketing template is not currently approved.");
+    reject("This template is not approved by WhatsApp yet, so it cannot be used for a campaign.");
   }
 
   const supported = new Set(["HEADER", "BODY", "FOOTER", "BUTTONS"]);
   if (template.components.some((part) => !supported.has(part.type))) {
-    reject("This template type is not supported for test sends.");
+    reject("This template uses a format we cannot send yet. Please choose another template.");
   }
   const header = template.components.find((part) => part.type === "HEADER");
   const headerFormat = (header?.format ? header.format.toUpperCase() : null) as "IMAGE" | "TEXT" | null;
   if (header && headerFormat && headerFormat !== "TEXT" && headerFormat !== "IMAGE") {
-    reject("A media-header template needs a separate tested parameter mapper.");
+    reject("This template has a video or document header, which is not supported yet. Please choose a template with a text or image header.");
   }
   if (headerFormat === "TEXT" && header?.text?.includes("{{")) {
-    reject("Variable headers are not supported for test sends.");
+    reject("This template has a changing value in its title, which is not supported yet. Please choose another template.");
   }
   if (headerFormat === "IMAGE" && headerMediaUrl !== undefined) {
     if (!headerMediaUrl || !/^https:\/\/[^\s$.?#].[^\s]*$/i.test(headerMediaUrl.trim())) {
-      reject("Templates with an image header require a valid https:// image URL.");
+      reject("This template needs a header image. Please upload a JPG or PNG.");
     }
   }
   const buttons = template.components.find((part) => part.type === "BUTTONS");
@@ -230,17 +230,20 @@ export function assertApprovedMarketingTemplate(
     !button.text ||
     (button.type.toUpperCase() === "URL" && !button.url) ||
     (button.type.toUpperCase() === "PHONE_NUMBER" && !button.phoneNumber))) {
-    reject("This template has a button type that needs a separate reviewed sender.");
+    reject("This template has buttons we cannot send yet. Please choose another template.");
   }
   if (buttons?.buttons.some((button) => [button.text, button.url].some((value) => value?.includes("{{")))) {
-    reject("Variable buttons are not supported for test sends.");
+    reject("This template has buttons with changing links, which are not supported yet. Please choose another template.");
   }
 
   const body = template.components.find((part) => part.type === "BODY");
-  if (!body?.text) reject("The selected template has no supported text body.");
+  if (!body?.text) reject("This template has no message text. Please choose another template.");
   const spec = parseTemplateBodyParameters(body.text);
   if (spec.keys.length > 20 || parameters.length !== spec.keys.length) {
-    reject("The supplied values do not match the template body placeholders.");
+    const needed = spec.keys.length;
+    reject(needed === 0
+      ? "This message has nothing to fill in. Leave the values box empty."
+      : `This message needs ${needed} value${needed === 1 ? "" : "s"}, but you entered ${parameters.length}. Type one value per line, in the same order as the message.`);
   }
   return { ...spec, headerFormat };
 }

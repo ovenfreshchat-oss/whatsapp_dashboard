@@ -9,7 +9,7 @@
 .notice code { color: #00806a; }
 
 /* Two panes, full height, like WhatsApp Web. */
-.layout { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 0; height: calc(100dvh - 116px); min-height: 0; overflow: hidden; border: 1px solid #d1d7db; border-radius: 12px; background: #fff; box-shadow: 0 6px 24px rgba(11, 20, 26, .08); }
+.layout { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 0; height: calc(100dvh - 56px); min-height: 0; overflow: hidden; border: 1px solid #d1d7db; border-radius: 12px; background: #fff; box-shadow: 0 6px 24px rgba(11, 20, 26, .08); }
 .list, .thread { min-width: 0; min-height: 0; background: #fff; }
 .list { display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid #e9edef; }
 .list ul { flex: 1 1 auto; margin: 0; padding: 0; list-style: none; overflow-y: auto; }
@@ -110,7 +110,7 @@
   .layout:has([data-pending]) .list { display: none !important; }
   .layout:has([data-pending]) .thread { display: flex !important; }
   .content { padding: 0; }
-  .layout { grid-template-columns: 1fr; height: calc(100dvh - 112px); min-height: 0; border-radius: 12px; }
+  .layout { grid-template-columns: 1fr; height: calc(100dvh - 56px); min-height: 0; border-radius: 12px; }
   /* One pane at a time, like a chat app: the list, or the open conversation. */
   .layoutThreadOpen .list { display: none; }
   .layout:not(.layoutThreadOpen) .thread { display: none; }
@@ -150,3 +150,8 @@
   .layoutThreadOpen { height: 100dvh; border: 0; border-radius: 0; box-shadow: none; }
   .layoutThreadOpen .composer { padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
 }
+
+.winTag { justify-self: start; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; line-height: 1.5; }
+.listBody .winTag { display: inline-block; justify-self: start; width: fit-content; }
+.listBody .winOpen { background: #fff1b8; color: #8a6100; }
+.listBody .winClosed { background: #fde4e4; color: #c0262d; }

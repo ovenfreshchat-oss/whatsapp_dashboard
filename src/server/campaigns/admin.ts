@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient as createSessionClient } from "@/lib/supabase/server";
 import { isStaffAdminEmail } from "@/server/auth/staff-users/admin";
 import { getConfiguredMetaIdentifiers, getMetaAccountHealth } from "@/server/meta/client";
@@ -34,7 +35,8 @@ export class CampaignInputError extends Error {
   }
 }
 
-export async function requireAdminActor(): Promise<string> {
+// Cached per request: one page render calls this several times, but Supabase Auth is asked once.
+export const requireAdminActor = cache(async (): Promise<string> => {
   const session = await createSessionClient();
   const { data, error } = await session.auth.getUser();
   const user = data.user;
@@ -42,13 +44,13 @@ export async function requireAdminActor(): Promise<string> {
     throw new CampaignAccessError();
   }
   return user.id;
-}
+});
 
 function validateBodyParameters(value: string[] | undefined): string[] {
   const parameters = value ?? [];
   if (!Array.isArray(parameters) || parameters.length > 20 ||
       parameters.some((part) => typeof part !== "string" || !part.trim() || part.length > 1024)) {
-    throw new CampaignInputError("Template body values are invalid.");
+    throw new CampaignInputError("One of the values is empty or too long (the limit is 1,024 characters). Check each line.");
   }
   return parameters;
 }
@@ -63,15 +65,15 @@ async function approvedTemplate(
 ): Promise<MetaTemplate> {
   const [health, snapshot] = await Promise.all([getMetaAccountHealth(), syncMetaTemplates()]);
   if (!health.phoneBelongsToWaba) {
-    throw new CampaignInputError("The configured WhatsApp sender is not in the WABA.");
+    throw new CampaignInputError("The WhatsApp number is not connected to this business account. Check WhatsApp setup.");
   }
   const template = snapshot.templates.find(
     (item) => item.name === name && item.language === language,
   );
-  if (!template) throw new CampaignInputError("The selected template is unavailable.");
+  if (!template) throw new CampaignInputError("That template is not available any more. Refresh the page and choose another.");
   const validation = assertApprovedMarketingTemplate(template, parameters, headerMediaUrl);
   if (validation.headerFormat === "IMAGE" && !headerMediaUrl?.trim()) {
-    throw new CampaignInputError("An image header URL (https://...) is required for this template.");
+    throw new CampaignInputError("This template needs a header image. Please upload a JPG or PNG.");
   }
   return template;
 }
@@ -92,16 +94,16 @@ export async function createCampaignDraft(
 ): Promise<CampaignSummary> {
   const actorId = await requireAdminActor();
   const name = input.name?.trim();
-  if (!name || name.length > 120) throw new CampaignInputError("Campaign name is invalid.");
+  if (!name || name.length > 120) throw new CampaignInputError("Enter a campaign name (up to 120 characters).");
   if (!/^[a-z0-9_]{1,512}$/.test(input.templateName) ||
       !/^[A-Za-z]{2,8}(?:_[A-Za-z0-9]{2,8})?$/.test(input.languageCode)) {
-    throw new CampaignInputError("Template name or language is invalid.");
+    throw new CampaignInputError("Choose a template from the list.");
   }
   const parameters = validateBodyParameters(input.bodyParameters);
   const headerMediaUrl = input.headerMediaUrl?.trim() || undefined;
   if (headerMediaUrl !== undefined) {
     if (!/^https:\/\/[^\s$.?#].[^\s]*$/i.test(headerMediaUrl)) {
-      throw new CampaignInputError("Header image URL must be a valid https:// URL.");
+      throw new CampaignInputError("The header image could not be used. Please upload it again.");
     }
   }
   const audienceSource = input.audienceSource;
@@ -110,7 +112,7 @@ export async function createCampaignDraft(
       (audienceSource === "import_batch" &&
         (typeof importBatchId !== "string" || !uuidPattern.test(importBatchId))) ||
       (audienceSource === "all_eligible" && importBatchId !== undefined)) {
-    throw new CampaignInputError("Choose an import file or explicitly choose all eligible contacts.");
+    throw new CampaignInputError("Choose a contact list for this campaign.");
   }
   const { wabaId, phoneNumberId } = getConfiguredMetaIdentifiers();
   const template = await approvedTemplate(input.templateName, input.languageCode, parameters, headerMediaUrl);
@@ -128,7 +130,7 @@ export async function createCampaignDraft(
     p_import_batch_id: audienceSource === "import_batch" ? importBatchId : null,
     p_all_eligible: audienceSource === "all_eligible",
   });
-  if (error) throw new CampaignStoreError("Campaign draft could not be created.");
+  if (error) throw new CampaignStoreError("The campaign could not be saved. Please try again.");
   if (headerMediaUrl && data?.id) {
     await store.from("whatsapp_campaigns")
       .update({ header_media_url: headerMediaUrl })
@@ -140,11 +142,11 @@ export async function createCampaignDraft(
 function futureIso(value: string): string {
   if (typeof value !== "string" ||
       !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) {
-    throw new CampaignInputError("Enter a scheduled time with an explicit time zone.");
+    throw new CampaignInputError("Pick a date and time to send.");
   }
   const date = new Date(value);
   if (!Number.isFinite(date.valueOf()) || date.valueOf() <= Date.now()) {
-    throw new CampaignInputError("Scheduled time must be in the future.");
+    throw new CampaignInputError("Pick a time in the future.");
   }
   return date.toISOString();
 }
@@ -155,7 +157,7 @@ async function currentCampaignForTransition(id: string) {
   const { data, error } = await store.from("whatsapp_campaigns")
     .select("id,state,waba_id,phone_number_id,template_id,template_name,template_language,template_snapshot,body_parameters,header_media_url,audience_count,review_sha256")
     .eq("id", id).single();
-  if (error || !data) throw new CampaignStoreError("Campaign was not found.");
+  if (error || !data) throw new CampaignStoreError("This campaign could not be found. It may have been deleted.");
   return data;
 }
 
@@ -163,7 +165,7 @@ async function recheckCampaignTemplate(id: string): Promise<void> {
   const campaign = await currentCampaignForTransition(id);
   const { wabaId, phoneNumberId } = getConfiguredMetaIdentifiers();
   if (campaign.waba_id !== wabaId || campaign.phone_number_id !== phoneNumberId) {
-    throw new CampaignInputError("Campaign sender differs from the configured sender.");
+    throw new CampaignInputError("The WhatsApp number changed after this campaign was created. Please create a new campaign.");
   }
   const parameters = validateBodyParameters(campaign.body_parameters);
   const headerMediaUrl = typeof campaign.header_media_url === "string" && campaign.header_media_url
@@ -175,7 +177,7 @@ async function recheckCampaignTemplate(id: string): Promise<void> {
     headerMediaUrl,
   );
   if (template.id !== campaign.template_id) {
-    throw new CampaignInputError("The approved template changed since review.");
+    throw new CampaignInputError("The template was changed in WhatsApp after you created this campaign. Please create a new campaign to use the latest version.");
   }
   assertTemplateSnapshotUnchanged(template, campaign.template_snapshot);
 }
@@ -191,12 +193,12 @@ async function transition(
   if (action === "schedule") {
     if (!review?.acknowledged || !Number.isSafeInteger(review.audienceCount) ||
         review.audienceCount < 1 || !/^[0-9a-f]{64}$/.test(review.reviewSha256)) {
-      throw new CampaignInputError("Review the message and frozen audience before scheduling.");
+      throw new CampaignInputError("Please tick the box to confirm you checked the message and the recipients.");
     }
     const current = await currentCampaignForTransition(id);
     if (current.audience_count !== review.audienceCount ||
         current.review_sha256 !== review.reviewSha256) {
-      throw new CampaignInputError("The campaign changed since review. Refresh and review it again.");
+      throw new CampaignInputError("This campaign changed while you were looking at it. Refresh the page and check it again.");
     }
   }
   if (action === "schedule" || action === "resume") await recheckCampaignTemplate(id);
@@ -210,7 +212,7 @@ async function transition(
     p_expected_audience_count: action === "schedule" ? review?.audienceCount : null,
     p_expected_review_sha256: action === "schedule" ? review?.reviewSha256 : null,
   });
-  if (error) throw new CampaignStoreError("Campaign state could not be updated.");
+  if (error) throw new CampaignStoreError("That action could not be completed. Please try again.");
   return mapCampaign(data);
 }
 
@@ -240,6 +242,18 @@ export async function cancelCampaign(id: string) {
   return transition(id, "cancel");
 }
 
+/** Deletes a draft that was never scheduled. Any other state is refused by the database. */
+export async function deleteDraftCampaign(id: string): Promise<void> {
+  await requireAdminActor();
+  const store = getCampaignStore();
+  const { error } = await store.rpc("delete_draft_campaign", { p_campaign_id: id });
+  if (error) {
+    throw new CampaignStoreError(/draft/i.test(error.message ?? "")
+      ? "Only a draft campaign can be deleted."
+      : "The draft could not be deleted. Apply drizzle/0021_delete_draft_campaign.sql and try again.");
+  }
+}
+
 export const CAMPAIGNS_PAGE_SIZE = 10;
 
 export async function listCampaigns(page = 1): Promise<{ items: CampaignSummary[]; total: number }> {
@@ -250,7 +264,7 @@ export async function listCampaigns(page = 1): Promise<{ items: CampaignSummary[
     .select("id,name,state,audience_source,import_batch_id,audience_source_label,template_name,template_language,scheduled_for,audience_count,created_at", { count: "exact" })
     .order("created_at", { ascending: false }).order("id")
     .range(from, from + CAMPAIGNS_PAGE_SIZE - 1);
-  if (error) throw new CampaignStoreError("Campaigns could not be loaded.");
+  if (error) throw new CampaignStoreError("Campaigns could not be loaded. Please refresh the page.");
   return { items: (data ?? []).map(mapCampaign), total: count ?? 0 };
 }
 
@@ -268,7 +282,7 @@ export async function listCampaignImportBatches(): Promise<CampaignImportBatchOp
   const { data, error } = await store.from("contact_import_batches")
     .select("id,file_name,created_at,accepted_rows,pending_claims")
     .order("created_at", { ascending: false }).limit(50);
-  if (error) throw new CampaignStoreError("Import files could not be loaded.");
+  if (error) throw new CampaignStoreError("Your contact lists could not be loaded. Please refresh the page.");
   return (data ?? []).map((item) => ({
     id: item.id,
     fileName: item.file_name,
@@ -305,14 +319,14 @@ export async function getCampaignDetail(
   ]);
   if (campaignResult.error || !campaignResult.data || countsResult.error ||
       auditResult.error || recipientResult.error) {
-    throw new CampaignStoreError("Campaign detail could not be loaded.");
+    throw new CampaignStoreError("This campaign could not be loaded. Please refresh the page.");
   }
   const recipients = (recipientResult.data ?? []).map(mapCampaignRecipientPreview);
   const contactIds = recipients.map((recipient) => recipient.contactId);
   const contactsResult = contactIds.length
     ? await store.from("contacts").select("id,display_name").in("id", contactIds)
     : null;
-  if (contactsResult?.error) throw new CampaignStoreError("Campaign audience preview could not be loaded.");
+  if (contactsResult?.error) throw new CampaignStoreError("The recipient list could not be loaded. Please refresh the page.");
   const names = new Map<string, string | null>();
   for (const contact of contactsResult?.data ?? []) {
     if (typeof contact.id === "string") {
@@ -374,7 +388,7 @@ export async function listExcludedRecipients(id: string): Promise<{ phone: strin
   const { data, error } = await store.from("whatsapp_campaign_recipients")
     .select("contact_id,recipient_e164").eq("campaign_id", id)
     .eq("state", "canceled").eq("error_summary", EXCLUDED_MARKER).order("recipient_e164").limit(500);
-  if (error) throw new CampaignStoreError("Skipped numbers could not be loaded.");
+  if (error) throw new CampaignStoreError("The skipped numbers could not be loaded. Please refresh the page.");
   const ids = (data ?? []).map((row) => row.contact_id as string);
   const names = new Map<string, string | null>();
   if (ids.length) {

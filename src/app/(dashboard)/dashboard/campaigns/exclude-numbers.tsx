@@ -23,11 +23,10 @@ export function ExcludeNumbers({ campaignId, excluded }: {
     <form action={action} className={styles.form}>
       <label className={styles.field}>
         <span>Paste numbers not to message (one per line, any format, with country code)</span>
-        <textarea name="numbers" rows={3} placeholder={"+919746298851\n+1 647 575 3007"} />
+        <textarea name="numbers" rows={3} placeholder={"e.g. +91 98765 43210\n+1 416 555 0123"} />
       </label>
       <div className={styles.buttonRow}>
         <Submit intent="exclude" label="Skip these numbers" />
-        <Submit intent="restore" label="Put these back" plain />
       </div>
       {excluded.length > 0 && <div className={styles.excludedList}>
         <strong>Skipped ({excluded.length})</strong>
