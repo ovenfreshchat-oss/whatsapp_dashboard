@@ -12,7 +12,8 @@
     "meta:webhook-proxy": "node scripts/meta-webhook-proxy.mjs",
     "meta:subscribe-webhook": "node --env-file=.env scripts/meta-subscribe-webhook.mjs",
     "bootstrap:admin": "node --env-file=.env scripts/bootstrap-admin.mjs",
-    "reset:admin": "node --env-file=.env scripts/bootstrap-admin.mjs --reset"
+    "reset:admin": "node --env-file=.env scripts/bootstrap-admin.mjs --reset",
+    "check:meta": "node --env-file=.env scripts/check-meta-analytics.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

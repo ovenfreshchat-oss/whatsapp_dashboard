@@ -7,5 +7,8 @@
 .compact .text strong { font-size: 18px; }
 .dark { color: #fff; }
 .dark .text small { color: #94a3b8; }
-.text .powered { display: inline-flex; align-items: center; gap: 4px; font-size: 9px; font-weight: 500; letter-spacing: .02em; text-transform: none; opacity: .85; }
-.poweredMark { border-radius: 3px; }
+.text .powered { display: inline-flex; align-items: center; gap: 5px; font-size: 9px; font-weight: 500; letter-spacing: .02em; text-transform: none; }
+.wordmark { display: inline-flex; align-items: center; gap: 3px; color: var(--ink); line-height: 1; }
+.dark .wordmark { color: #fff; }
+.wordmarkText { font-size: 12px; font-weight: 800; letter-spacing: -.02em; }
+.wordmarkText em { font-style: normal; color: #F74932; }

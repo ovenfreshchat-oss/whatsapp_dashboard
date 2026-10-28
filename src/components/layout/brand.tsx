@@ -21,6 +21,20 @@ export function SolalynMark({ size = 40, className = "" }: { size?: number; clas
   );
 }
 
+/** The Solalyn logo: dot-and-curve mark plus wordmark. "Sol" follows the text colour, "alyn" is always coral. */
+export function SolalynWordmark({ className = "" }: { className?: string }) {
+  return (
+    <span className={[styles.wordmark, className].filter(Boolean).join(" ")} role="img" aria-label="Solalyn">
+      <svg viewBox="0 0 30 30" width="13" height="13" aria-hidden="true" focusable="false">
+        <circle cx="6" cy="23.5" r="4.4" fill="#F74932" />
+        <path d="M10 21.6c4.6-.8 7-3.6 4-6.6-2.4-2.4-.2-5.6 4.4-6.3" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+        <circle cx="23" cy="7.2" r="3" fill="none" stroke="currentColor" strokeWidth="1.9" />
+      </svg>
+      <span className={styles.wordmarkText} aria-hidden="true">Sol<em>alyn</em></span>
+    </span>
+  );
+}
+
 /** The Oven Fresh logo is the main brand; Solalyn appears only as a small credit line. */
 export function Brand({ compact = false, showPoweredBy = true, tone = "light", className = "" }: BrandProps) {
   const size = compact ? 36 : 44;
@@ -30,8 +44,8 @@ export function Brand({ compact = false, showPoweredBy = true, tone = "light", c
       <span className={styles.text}>
         <strong>The Oven Fresh</strong>
         {showPoweredBy && <small className={styles.powered}>
-          <SolalynMark size={9} className={styles.poweredMark} />
-          <span>Powered by Solalyn</span>
+          <span>Powered by</span>
+          <SolalynWordmark />
         </small>}
       </span>
     </div>
