@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BackLink } from "@/components/ui/back-link";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { CAMPAIGNS_PAGE_SIZE, listCampaigns, listCampaignImportBatches } from "@/server/campaigns/admin";
 import { getMetaConfigurationStatus } from "@/server/meta/client";
 import { assertApprovedMarketingTemplate, parseTemplateBodyParameters, type MetaTemplate } from "@/server/meta/templates";
@@ -11,10 +10,13 @@ import { AutoRefresh } from "./auto-refresh";
 import { DeleteDraftButton } from "./delete-draft";
 import { CreateCampaignForm, type CampaignTemplateOption } from "./create-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
+import { CampaignStateBadge, CategoryBadge } from "@/components/ui/badges";
+import { categoryForCampaign, getTemplateCategories } from "@/server/campaigns/categories";
+import { Plus } from "lucide-react";
 import styles from "./campaigns.module.css";
 
 export const metadata: Metadata = {
-  title: "WhatsApp campaigns | The Oven Fresh",
+  title: "Campaigns | Solalyn",
   description: "Review and schedule WhatsApp marketing campaigns.",
 };
 
@@ -64,7 +66,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
       .filter((value): value is CampaignTemplateOption => value !== null);
     const canCreate = Boolean(batches && options.length);
 
-    return <DashboardShell label="New WhatsApp campaign" showMetaSetup>
+    return <>
       <div className={styles.content}>
         <div className={styles.pageHead}>
           <BackLink href="/dashboard/campaigns" className={styles.headBack}>Campaigns</BackLink>
@@ -74,22 +76,23 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
           {canCreate ? <CreateCampaignForm options={options} batches={batches ?? []} /> : <p className={styles.empty}>Draft creation becomes available after import history, campaign storage, and a supported approved marketing template are ready.</p>}
         </section>
       </div>
-    </DashboardShell>;
+    </>;
   }
 
-  const [campaignResult] = await Promise.allSettled([listCampaigns(page)]);
+  const [campaignResult, categoryResult] = await Promise.allSettled([listCampaigns(page), getTemplateCategories()]);
+  const categories = categoryResult.status === "fulfilled" ? categoryResult.value : new Map();
   const campaignPage = campaignResult.status === "fulfilled" ? campaignResult.value : null;
   const campaigns = campaignPage?.items ?? null;
   const totalCampaigns = campaignPage?.total ?? 0;
 
-  return <DashboardShell label="WhatsApp campaigns" showMetaSetup>
+  return <>
     <div className={styles.content}>
       <div className={styles.pageHead}>
         <h1>Campaigns{campaigns ? <small>{totalCampaigns}</small> : null}</h1>
         <div className={styles.buttonRow}>
           {campaigns?.some((c) => c.state === "scheduled" || c.state === "running") && <AutoRefresh intervalMs={8000} />}
           <RefreshButton className={styles.refreshLink} />
-          <Link href="/dashboard/campaigns?view=new" className={styles.newButton}>+ New campaign</Link>
+          <Link href="/dashboard/campaigns?view=new" className={styles.newButton}><Plus size={18} aria-hidden="true" /> New campaign</Link>
         </div>
       </div>
 
@@ -99,17 +102,32 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
       </section>}
 
       <section className={styles.panel} aria-label="Campaigns">
-        {campaigns?.length ? <div className={styles.campaignList}>
-          {campaigns.map((campaign) => <div className={styles.rowWrap} key={campaign.id}>
-            <Link className={styles.campaignRow} href={`/dashboard/campaigns/${campaign.id}${campaign.state === "draft" ? "" : "/analytics"}`}>
-              <div><strong>{campaign.name}</strong><small>{campaign.audienceCount} recipients · {campaign.templateName}</small></div>
-              <div><span className={styles.statePill}>{campaign.state}</span><small>{campaign.scheduledFor ? dateLabel(campaign.scheduledFor) : "Not scheduled"}</small></div>
-            </Link>
-            {campaign.state === "draft" && <DeleteDraftButton id={campaign.id} name={campaign.name} />}
-          </div>)}
-        </div> : <p className={styles.empty}>{campaigns ? "No campaigns yet. Tap “+ New campaign” to create your first one." : "Apply the campaign migration to view campaigns."}</p>}
+        {campaigns?.length ? <>
+          <div className={styles.legend} aria-label="Category colours">
+            <span>Message category</span>
+            <CategoryBadge category="MARKETING" />
+            <CategoryBadge category="UTILITY" />
+            <CategoryBadge category="AUTHENTICATION" />
+          </div>
+          <div className={styles.campaignList}>
+            {campaigns.map((campaign) => {
+              const category = categoryForCampaign(categories, campaign);
+              return <div className={styles.rowWrap} key={campaign.id}>
+                <Link className={styles.campaignRow} data-category={category} href={`/dashboard/campaigns/${campaign.id}${campaign.state === "draft" ? "" : "/analytics"}`}>
+                  <div className={styles.campaignMain}>
+                    <strong>{campaign.name}</strong>
+                    <div className={styles.badges}><CategoryBadge category={category} /><CampaignStateBadge state={campaign.state} /></div>
+                    <small>{campaign.audienceCount} recipients · {campaign.templateName}</small>
+                  </div>
+                  <div className={styles.campaignSide}><small>{campaign.scheduledFor ? dateLabel(campaign.scheduledFor) : "Not scheduled"}</small></div>
+                </Link>
+                {campaign.state === "draft" && <DeleteDraftButton id={campaign.id} name={campaign.name} />}
+              </div>;
+            })}
+          </div>
+        </> : <p className={styles.empty}>{campaigns ? "No campaigns yet. Tap “New campaign” to create your first one." : "Apply the campaign migration to view campaigns."}</p>}
         {campaigns && <Pagination page={page} total={totalCampaigns} pageSize={CAMPAIGNS_PAGE_SIZE} path="/dashboard/campaigns" label="Campaign pages" />}
       </section>
     </div>
-  </DashboardShell>;
+  </>;
 }

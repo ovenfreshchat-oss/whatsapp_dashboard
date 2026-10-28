@@ -43,7 +43,7 @@ export default function SignInPage() {
       <div className={styles.haloOne} aria-hidden="true" />
       <div className={styles.haloTwo} aria-hidden="true" />
 
-      <section className={styles.shell} aria-label="The Oven Fresh staff sign-in">
+      <section className={styles.shell} aria-label="Solalyn staff sign-in">
         <div className={styles.storyPanel}>
           <div className={styles.storyGlow} aria-hidden="true" />
           <header className={styles.brand}>
@@ -102,7 +102,7 @@ export default function SignInPage() {
             </form>
           </div>
 
-          <footer className={styles.formFooter}><span>© 2026 The Oven Fresh</span><span>Staff access only <span aria-hidden="true">↗</span></span></footer>
+          <footer className={styles.formFooter}><span>© 2026 Solalyn</span><span>Staff access only <span aria-hidden="true">↗</span></span></footer>
         </div>
       </section>
     </main>

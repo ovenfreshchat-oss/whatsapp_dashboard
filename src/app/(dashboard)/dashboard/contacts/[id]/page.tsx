@@ -2,13 +2,12 @@ import { randomUUID } from "node:crypto";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BackLink } from "@/components/ui/back-link";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { getConfiguredMetaIdentifiers, getMetaConfigurationStatus } from "@/server/meta/client";
 import { ConsentRecordForm } from "../record-form";
 import styles from "../contacts.module.css";
 
-export const metadata: Metadata = { title: "Contact consent | The Oven Fresh" };
+export const metadata: Metadata = { title: "Contact consent | Solalyn" };
 
 type Contact = { id: string; phone_e164: string; display_name: string | null; created_at: string };
 type Event = {
@@ -51,12 +50,12 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
   }
   const suppressed = Boolean(suppressionResult.data?.length);
 
-  return <DashboardShell label="Contacts · consent" showMetaSetup><div className={styles.content}>
+  return <><div className={styles.content}>
     <BackLink href="/dashboard/contacts">Back to contacts</BackLink>
     <div className={styles.intro}><div><span className={styles.eyebrow}>CONTACT / CONSENT</span><h1>{contact.display_name || "Contact"}<span>.</span></h1><p>{contact.phone_e164} · Added {dateLabel(contact.created_at)}</p></div><span className={styles.countPill}>{suppressed ? "Suppressed" : eligible === true ? "Eligible for marketing" : eligible === false ? "Not eligible" : "Eligibility unavailable"}</span></div>
     <section className={styles.panel}><div className={styles.panelHeading}><div><span className={styles.eyebrow}>EVIDENCE</span><h2>Record consent or an opt-out</h2></div></div><ConsentRecordForm contactId={id} idempotencyKey={randomUUID()} /></section>
     <section className={styles.panel}><div className={styles.panelHeading}><div><span className={styles.eyebrow}>AUDIT TRAIL</span><h2>Consent history</h2></div></div>
       {eventsResult.error ? <p className={styles.empty}>Consent history is unavailable.</p> : events.length ? <div className={styles.eventList}>{events.map((event) => <article className={styles.eventRow} key={event.id}><div><strong>{event.decision === "grant" ? "Opt-in" : "Opt-out"} · {event.verification_status}</strong><small>{dateLabel(event.occurred_at)} · Recorded {dateLabel(event.recorded_at)}</small></div><p>Source: {event.source ?? "Imported claim"}<br />Evidence: {event.evidence_reference ?? "—"}<br />Notice: {event.notice_text ?? "—"}</p></article>)}</div> : <p className={styles.empty}>No consent records yet. This contact cannot enter a campaign.</p>}
     </section>
-  </div></DashboardShell>;
+  </div></>;
 }

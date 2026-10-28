@@ -3,13 +3,12 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { notFound } from "next/navigation";
 import { BackLink } from "@/components/ui/back-link";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { ActiveSwitch, BatchActiveButtons } from "../../number-switch";
 import styles from "../../contacts.module.css";
 
-export const metadata: Metadata = { title: "Upload | The Oven Fresh" };
+export const metadata: Metadata = { title: "Upload | Solalyn" };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type NumberRow = { id: string; phone_e164: string; display_name: string | null; campaign_active: boolean };
@@ -63,7 +62,7 @@ export default async function UploadNumbersPage({ params, searchParams }: {
   const optedOut = new Set((optOutResult?.data ?? []).map((row: { phone_e164: string }) => row.phone_e164));
   const path = `/dashboard/contacts/imports/${batchId}`;
 
-  return <DashboardShell label="Contacts · upload" showMetaSetup><div className={styles.content}>
+  return <><div className={styles.content}>
     <BackLink href="/dashboard/contacts">Uploads</BackLink>
     <div className={styles.pageHead}>
       <div><h1 className={styles.fileTitle}>{batch.file_name}</h1><p className={styles.muted}>Uploaded {dayLabel(batch.created_at)}</p></div>
@@ -91,5 +90,5 @@ export default async function UploadNumbersPage({ params, searchParams }: {
         <Pagination page={numbersPage} total={totalNumbers} pageSize={NUMBERS_SIZE} param="np" path={path} query={{ q: search || undefined }} label="Number pages" />
       </>}
     </section>
-  </div></DashboardShell>;
+  </div></>;
 }

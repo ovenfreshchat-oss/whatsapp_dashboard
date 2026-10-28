@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BackLink } from "@/components/ui/back-link";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { getMetaConfigurationStatus } from "@/server/meta/client";
 import { syncMetaTemplatesCached } from "@/server/meta/cached";
 import type { MetaTemplate } from "@/server/meta/templates";
@@ -9,7 +8,7 @@ import styles from "../campaigns/campaigns.module.css";
 import { TemplateForm, type TemplateFormInitial } from "./template-form";
 
 export const metadata: Metadata = {
-  title: "WhatsApp templates | The Oven Fresh",
+  title: "WhatsApp templates | Solalyn",
   description: "Create and edit WhatsApp message templates.",
 };
 
@@ -42,7 +41,7 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
   const editing = templates?.find((t) => t.id === editId && EDITABLE.has(t.status));
   const initial = editing ? initialFrom(editing) : null;
 
-  return <DashboardShell label="WhatsApp templates" showMetaSetup>
+  return <>
     <div className={styles.content}>
       <BackLink href="/dashboard">Back to dashboard</BackLink>
       <div className={styles.intro}>
@@ -76,5 +75,5 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
         </section>
       </div>
     </div>
-  </DashboardShell>;
+  </>;
 }

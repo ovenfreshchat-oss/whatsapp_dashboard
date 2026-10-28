@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Download, FileSpreadsheet, UploadCloud, X } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { useFeedback } from "@/components/ui/feedback";
 import styles from "./contacts.module.css";
 
 type RawPreview = {
@@ -13,38 +16,23 @@ type RawPreview = {
   sheetNames: string[];
   headers: string[];
   totalRows: number;
-  sample: { rowNumber: number; cells: string[] }[];
 };
+
+type SkippedRow = { rowNumber: number; name: string | null; phone: string; reasons: string[]; codes: string[] };
+type SkipReason = { code: string; label: string; count: number };
 
 type MappedPreview = {
   fileSha256: string;
-  stats: {
-    totalRows: number;
-    validRows: number;
-    invalidRows: number;
-    duplicateRows: number;
-    pendingConsentClaims: number;
-    claimsMissingEvidence: number;
-    claimsMissingTimestamp: number;
-    dateOnlyConsentClaims: number;
-    claimsAwaitingDateReview: number;
-    negativeConsentRows: number;
-  };
-  rows: {
-    rowNumber: number;
-    rawPhone: string;
-    phoneE164: string | null;
-    displayName: string | null;
-    consentClaimed: boolean;
-    consentExplicitNo: boolean;
-    evidenceReference: string | null;
-    consentOccurredAt: string | null;
-    consentOccurredOn: string | null;
-    errors: string[];
-    warnings: string[];
-  }[];
-  errors: { row_number: number; code: string; message: string }[];
-  remainingErrors: number;
+  stats: { totalRows: number; validRows: number; invalidRows: number; duplicateRows: number };
+  skipped: SkippedRow[];
+  skippedReasons: SkipReason[];
+};
+
+type CommitResult = {
+  result: { batch_id: string; inserted: number; existing: number; rejected_rows: number };
+  skipped?: SkippedRow[];
+  skippedReasons?: SkipReason[];
+  linkError?: string | null;
 };
 
 type Mapping = {
@@ -56,6 +44,15 @@ type Mapping = {
   defaultCountry: string;
 };
 
+type Report = {
+  fileName: string;
+  inserted: number;
+  existing: number;
+  skipped: SkippedRow[];
+  reasons: SkipReason[];
+  linkError: string | null;
+};
+
 const emptyMapping: Mapping = {
   phoneColumn: null,
   nameColumn: null,
@@ -64,6 +61,21 @@ const emptyMapping: Mapping = {
   consentOccurredAtColumn: null,
   defaultCountry: "",
 };
+
+const COUNTRIES: [string, string][] = [
+  ["", "Numbers include the country code"],
+  ["IN", "India (+91)"],
+  ["US", "United States (+1)"],
+  ["GB", "United Kingdom (+44)"],
+  ["AE", "United Arab Emirates (+971)"],
+  ["SA", "Saudi Arabia (+966)"],
+  ["QA", "Qatar (+974)"],
+  ["KW", "Kuwait (+965)"],
+  ["OM", "Oman (+968)"],
+  ["BH", "Bahrain (+973)"],
+  ["SG", "Singapore (+65)"],
+  ["AU", "Australia (+61)"],
+];
 
 function firstColumn(headers: string[], expression: RegExp): number | null {
   const index = headers.findIndex((heading) => expression.test(heading.trim()));
@@ -98,32 +110,125 @@ function makeForm(file: File, mapping?: Mapping, hash?: string, importKey?: stri
   return form;
 }
 
-async function postImport(path: string, body: FormData): Promise<unknown> {
-  const response = await fetch(path, { method: "POST", body, credentials: "same-origin" });
-  const value: unknown = await response.json();
-  if (!value || typeof value !== "object") throw new Error("The import service returned an invalid response.");
-  const object = value as Record<string, unknown>;
-  if (!response.ok) throw new Error(typeof object.error === "string" ? object.error : "The import failed.");
+async function postImport(path: string, body: FormData, signal?: AbortSignal): Promise<unknown> {
+  let response: Response;
+  try {
+    response = await fetch(path, { method: "POST", body, credentials: "same-origin", signal });
+  } catch (cause) {
+    if (cause instanceof DOMException && cause.name === "AbortError") throw cause;
+    throw new Error("Could not reach the server. Check your connection and try again.");
+  }
+  let value: unknown = null;
+  try { value = await response.json(); } catch { /* handled below */ }
+  const object = value && typeof value === "object" ? value as Record<string, unknown> : null;
+  if (!response.ok) throw new Error(object && typeof object.error === "string" ? object.error : "The import failed. Please try again.");
+  if (!object) throw new Error("The import service returned an invalid response.");
   return value;
+}
+
+function isAbort(cause: unknown): boolean {
+  return cause instanceof DOMException && cause.name === "AbortError";
+}
+
+function fileSize(bytes: number): string {
+  return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function csvCell(value: string | number | null): string {
+  const text = value === null ? "" : String(value);
+  // Leading = + - @ would be run as a formula by a spreadsheet; keep it as text.
+  const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
+  return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+}
+
+function downloadSkipped(rows: SkippedRow[], fileName: string) {
+  const lines = [["Row", "Name", "Number", "Reason"].join(",")];
+  for (const row of rows) lines.push([row.rowNumber, row.name, row.phone, row.reasons.join(" ")].map(csvCell).join(","));
+  const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `skipped-numbers-${fileName.replace(/\.[^.]+$/, "").replace(/[^\w.-]+/g, "_")}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function SkippedList({ rows, reasons, fileName }: { rows: SkippedRow[]; reasons: SkipReason[]; fileName: string }) {
+  const [open, setOpen] = useState(false);
+  if (rows.length === 0) return null;
+  return (
+    <div className={styles.skipBox}>
+      <div className={styles.skipHead}>
+        <strong>{rows.length} {rows.length === 1 ? "number" : "numbers"} skipped</strong>
+        <div className={styles.actions}>
+          <button type="button" className={styles.secondaryButton} aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+            {open ? "Hide skipped numbers" : `Show skipped numbers (${rows.length})`}
+          </button>
+          <button type="button" className={styles.secondaryButton} onClick={() => downloadSkipped(rows, fileName)}>
+            <Download size={16} aria-hidden="true" /> Download CSV
+          </button>
+        </div>
+      </div>
+      {reasons.length > 0 && <div className={styles.reasonChips}>{reasons.map((reason) => <span key={reason.code} className={styles.chip}>{reason.label}: {reason.count}</span>)}</div>}
+      {open && (
+        <div className={styles.skipTable} tabIndex={0} role="region" aria-label={`All ${rows.length} skipped numbers`}>
+          <table>
+            <thead><tr><th>Row</th><th>Name</th><th>Number</th><th>Why skipped</th></tr></thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.rowNumber}>
+                  <td>{row.rowNumber}</td>
+                  <td>{row.name ?? "—"}</td>
+                  <td>{row.phone || "—"}</td>
+                  <td className={styles.reasonText}>{row.reasons.join(" ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function ContactImportForm() {
   const router = useRouter();
+  const { toast } = useFeedback();
+  const abortRef = useRef<AbortController | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [sheetName, setSheetName] = useState("");
   const [raw, setRaw] = useState<RawPreview | null>(null);
   const [mapped, setMapped] = useState<MappedPreview | null>(null);
   const [mapping, setMapping] = useState<Mapping>(emptyMapping);
   const [importKey, setImportKey] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "reading" | "importing">("idle");
   const [error, setError] = useState("");
-  const [result, setResult] = useState("");
-  const [resultBatchId, setResultBatchId] = useState("");
+  const [report, setReport] = useState<Report | null>(null);
   const [inputKey, setInputKey] = useState(0);
+  const busy = phase !== "idle";
 
-  /** Inspect and, when the phone column is recognised, preview in one go. */
-  /** Throw away the chosen file and any preview, so nothing is imported. */
+  function begin(next: "reading" | "importing"): AbortSignal {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setPhase(next);
+    setError("");
+    return controller.signal;
+  }
+
+  function finish() {
+    abortRef.current = null;
+    setPhase("idle");
+  }
+
+  /** Discard the chosen file and any preview. Nothing is imported. Also stops a request in flight. */
   function cancel() {
+    const wasImporting = phase === "importing";
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setPhase("idle");
     setFile(null);
     setSheetName("");
     setRaw(null);
@@ -131,78 +236,99 @@ export function ContactImportForm() {
     setMapping(emptyMapping);
     setImportKey("");
     setError("");
-    setResult("");
-    setResultBatchId("");
     setInputKey((value) => value + 1);
+    toast({
+      tone: "info",
+      title: wasImporting ? "Import cancelled" : "Upload cancelled",
+      message: wasImporting ? "If the import had already finished on the server, the numbers appear under Uploads." : "Nothing was imported.",
+    });
+    if (wasImporting) router.refresh();
   }
 
-  async function start(selected: File, selectedSheet = "") {
-    setBusy(true);
-    setError("");
-    setResult("");
-    setResultBatchId("");
+  async function runPreview(selected: File, nextMapping: Mapping, sheet: string, expectedHash?: string) {
+    const signal = begin("reading");
     try {
-      const value = await postImport("/api/contacts/import/preview", makeForm(selected, undefined, undefined, undefined, selectedSheet)) as RawPreview;
+      const value = await postImport("/api/contacts/import/preview", makeForm(selected, nextMapping, undefined, undefined, sheet), signal) as MappedPreview;
+      if (expectedHash && value.fileSha256 !== expectedHash) throw new Error("The file changed. Choose it again.");
+      setMapped({ ...value, skipped: value.skipped ?? [], skippedReasons: value.skippedReasons ?? [] });
+      setImportKey(crypto.randomUUID());
+    } catch (cause) {
+      if (isAbort(cause)) return;
+      const message = cause instanceof Error ? cause.message : "Could not preview the contacts.";
+      setError(message);
+      toast({ tone: "error", title: "Could not check the file", message });
+    } finally {
+      if (!signal.aborted) finish();
+    }
+  }
+
+  /** Inspect and, when the phone column is recognised, preview in one go. */
+  async function start(selected: File, selectedSheet = "") {
+    const signal = begin("reading");
+    setReport(null);
+    setMapped(null);
+    try {
+      const value = await postImport("/api/contacts/import/preview", makeForm(selected, undefined, undefined, undefined, selectedSheet), signal) as RawPreview;
       const sheet = value.fileKind === "xlsx" ? value.sourceLabel : "";
       const guess = suggestedMapping(value.headers);
       setRaw(value);
       setSheetName(sheet);
       setMapping(guess);
-      setMapped(null);
       setImportKey("");
       if (guess.phoneColumn !== null) {
-        const previewValue = await postImport("/api/contacts/import/preview", makeForm(selected, guess, undefined, undefined, sheet)) as MappedPreview;
+        const previewValue = await postImport("/api/contacts/import/preview", makeForm(selected, guess, undefined, undefined, sheet), signal) as MappedPreview;
         if (previewValue.fileSha256 !== value.fileSha256) throw new Error("The file changed. Choose it again.");
-        setMapped(previewValue);
+        setMapped({ ...previewValue, skipped: previewValue.skipped ?? [], skippedReasons: previewValue.skippedReasons ?? [] });
         setImportKey(crypto.randomUUID());
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not read the file.");
+      if (isAbort(cause)) return;
+      const message = cause instanceof Error ? cause.message : "Could not read the file.";
+      setError(message);
+      setRaw(null);
+      toast({ tone: "error", title: "Could not read the file", message });
     } finally {
-      setBusy(false);
-    }
-  }
-
-  async function preview() {
-    if (!file || !raw || mapping.phoneColumn === null) return;
-    setBusy(true);
-    setError("");
-    setResult("");
-    setResultBatchId("");
-    try {
-      const value = await postImport("/api/contacts/import/preview", makeForm(file, mapping, undefined, undefined, sheetName)) as MappedPreview;
-      if (value.fileSha256 !== raw.fileSha256) throw new Error("The file changed. Choose it again.");
-      setMapped(value);
-      setImportKey(crypto.randomUUID());
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not preview the contacts.");
-    } finally {
-      setBusy(false);
+      if (!signal.aborted) finish();
     }
   }
 
   async function commit() {
-    if (!file || !raw || !mapped || !importKey) return;
-    setBusy(true);
-    setError("");
+    if (!file || !raw || !mapped || !importKey || busy) return;
+    const signal = begin("importing");
     try {
-      const form = makeForm(file, mapping, raw.fileSha256, importKey, sheetName);
-      const value = await postImport("/api/contacts/import/commit", form) as {
-        result: { batch_id: string; inserted: number; existing: number; consent_claims: number; negative_consent_rows: number; rejected_rows: number };
-        linked?: number | null;
-        linkError?: string | null;
-      };
-      const parts = [`Imported ${value.result.inserted} new contacts; ${value.result.existing} already existed; ${value.result.rejected_rows} rows were skipped.`];
-      if (value.linkError) parts.push(value.linkError);
-      parts[0] = `Done: ${value.result.inserted + value.result.existing} numbers saved (${value.result.inserted} new, ${value.result.existing} already in your list), ${value.result.rejected_rows} rows skipped. Every number in this file, new or existing, is in this upload's audience.`;
-      setResult(parts.join(" "));
-      setResultBatchId("done");
+      const value = await postImport("/api/contacts/import/commit", makeForm(file, mapping, raw.fileSha256, importKey, sheetName), signal) as CommitResult;
+      const inserted = value.result?.inserted ?? 0;
+      const existing = value.result?.existing ?? 0;
+      const skipped = value.skipped ?? mapped.skipped;
+      const reasons = value.skippedReasons ?? mapped.skippedReasons;
+      setReport({
+        fileName: raw.fileName,
+        inserted,
+        existing,
+        skipped,
+        reasons,
+        linkError: value.linkError ?? null,
+      });
+      toast({
+        tone: "success",
+        title: "Import complete",
+        message: `${inserted} new and ${existing} existing numbers saved${skipped.length ? `; ${skipped.length} skipped` : ""}.`,
+      });
+      setFile(null);
+      setRaw(null);
       setMapped(null);
+      setImportKey("");
+      setSheetName("");
+      setMapping(emptyMapping);
+      setInputKey((count) => count + 1);
       router.refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not import the contacts.");
+      if (isAbort(cause)) return;
+      const message = cause instanceof Error ? cause.message : "Could not import the contacts.";
+      setError(message);
+      toast({ tone: "error", title: "Import failed", message: `${message} Nothing was lost; you can try again.` });
     } finally {
-      setBusy(false);
+      if (!signal.aborted) finish();
     }
   }
 
@@ -210,7 +336,7 @@ export function ContactImportForm() {
     return (
       <label className={styles.field} key={key}>
         <span>{label}</span>
-        <select value={mapping[key] ?? ""} onChange={(event) => {
+        <select value={mapping[key] ?? ""} disabled={busy} onChange={(event) => {
           setMapping({ ...mapping, [key]: event.target.value === "" ? null : Number(event.target.value) });
           setMapped(null);
         }}>
@@ -221,52 +347,119 @@ export function ContactImportForm() {
     );
   }
 
+  const ready = Boolean(file && raw && mapped);
+
   return (
     <div className={styles.stack}>
-      <p className={styles.muted}>Choose a CSV, Excel (.xlsx) or Word (.docx) file, up to 5 MiB and 5,000 rows, with a header row. A column named Phone number (and optionally Name) is picked up automatically.</p>
-      <Link className={styles.contactLink} href="/templates/whatsapp-contacts-template.docx" download>Download Word contact template (.docx) →</Link>
-      <label className={styles.field}><span>Contact file</span><input key={inputKey} type="file" accept=".csv,.xlsx,.docx" onChange={(event) => {
-        const chosen = event.target.files?.[0] ?? null;
-        setFile(chosen);
-        setSheetName("");
-        setRaw(null);
-        setMapped(null);
-        setMapping(emptyMapping);
-        setResult("");
-        setResultBatchId("");
-        setError("");
-        if (chosen) void start(chosen);
-      }} /></label>
-      {raw && raw.sheetNames.length > 1 && <label className={styles.field}><span>Excel sheet</span><select value={sheetName} disabled={busy} onChange={(event) => file && void start(file, event.target.value)}>{raw.sheetNames.map((name) => <option key={name} value={name}>{name}</option>)}</select></label>}
-      {raw && mapping.phoneColumn === null && <>
-        <p className={styles.muted}>Could not tell which column has the phone numbers. Choose it:</p>
-        <div className={styles.fieldGrid}>{selectField("Phone number *", "phoneColumn")}{selectField("Name (optional)", "nameColumn")}</div>
-        <div className={styles.actions}><button type="button" className={styles.button} disabled={mapping.phoneColumn === null || busy} onClick={preview}>Continue</button><button type="button" className={styles.secondaryButton} disabled={busy} onClick={cancel}>Cancel</button></div>
-      </>}
-      {raw && mapping.phoneColumn !== null && !mapped && !busy && <div className={styles.actions}><button type="button" className={styles.button} onClick={preview}>Preview</button><button type="button" className={styles.secondaryButton} onClick={cancel}>Cancel</button></div>}
-      {mapped && <>
-        <div className={styles.statGrid}>
-          <span><strong>{mapped.stats.validRows}</strong> valid numbers</span>
-          <span><strong>{mapped.stats.invalidRows}</strong> skipped</span>
+      <div className={styles.dropIntro}>
+        <p className={styles.muted}>CSV, Excel (.xlsx) or Word (.docx), up to 5 MiB and 5,000 rows, with a header row. A column named Phone number (and optionally Name) is picked up automatically.</p>
+        <Link className={styles.contactLink} href="/templates/whatsapp-contacts-template.docx" download>Download Word template</Link>
+      </div>
+
+      {!file && (
+        <label className={styles.field}>
+          <span><UploadCloud size={16} aria-hidden="true" style={{ verticalAlign: "-3px", marginRight: 6 }} />Contact file</span>
+          <input key={inputKey} type="file" accept=".csv,.xlsx,.docx" disabled={busy} onChange={(event) => {
+            const chosen = event.target.files?.[0] ?? null;
+            setSheetName("");
+            setRaw(null);
+            setMapped(null);
+            setMapping(emptyMapping);
+            setReport(null);
+            setError("");
+            setFile(chosen);
+            if (chosen) void start(chosen);
+          }} />
+        </label>
+      )}
+
+      {file && (
+        <div className={styles.fileCard}>
+          <span className={styles.fileIcon}><FileSpreadsheet size={20} aria-hidden="true" /></span>
+          <span className={styles.fileMeta}>
+            <strong>{file.name}</strong>
+            <small>{fileSize(file.size)}{raw ? ` · ${raw.totalRows} rows` : ""}</small>
+          </span>
+          <button type="button" className={styles.secondaryButton} onClick={cancel} aria-label={`Cancel and remove ${file.name}`}>
+            <X size={16} aria-hidden="true" /> Cancel
+          </button>
         </div>
-        {(() => {
-          const skipped = mapped.rows.filter((row) => row.errors.length > 0);
-          return skipped.length > 0
-            ? <details open><summary className={styles.muted}>Show the skipped rows</summary>
-                <div className={styles.tableWrap}><table><thead><tr><th>Row</th><th>Name</th><th>Phone</th><th>Why skipped</th></tr></thead><tbody>{skipped.map((row) => <tr key={row.rowNumber}><td>{row.rowNumber}</td><td>{row.displayName ?? ""}</td><td>{row.phoneE164 ?? row.rawPhone}</td><td>{row.errors.join(" ")}</td></tr>)}</tbody></table></div>
-              </details>
-            : <p className={styles.muted}>No rows skipped. Every row is ready to import.</p>;
-        })()}
-        {mapped.errors.length > 0 && <p className={styles.muted}>{mapped.errors.length} rows have problems and will be skipped.</p>}
+      )}
+
+      {phase === "reading" && <p className={styles.progress} role="status"><Spinner /> Checking the file…</p>}
+
+      {raw && raw.sheetNames.length > 1 && (
+        <label className={styles.field}>
+          <span>Excel sheet</span>
+          <select value={sheetName} disabled={busy} onChange={(event) => file && void start(file, event.target.value)}>
+            {raw.sheetNames.map((name) => <option key={name} value={name}>{name}</option>)}
+          </select>
+        </label>
+      )}
+
+      {raw && mapping.phoneColumn === null && (
+        <>
+          <p className={styles.muted}>We could not tell which column holds the phone numbers. Choose it:</p>
+          <div className={styles.fieldGrid}>{selectField("Phone number *", "phoneColumn")}{selectField("Name (optional)", "nameColumn")}</div>
+          <div className={styles.actions}>
+            <button type="button" className={styles.button} disabled={busy} onClick={() => file && raw && mapping.phoneColumn !== null && void runPreview(file, mapping, sheetName, raw.fileSha256)}>Continue</button>
+            <button type="button" className={styles.secondaryButton} onClick={cancel}>Cancel</button>
+          </div>
+        </>
+      )}
+
+      {raw && mapping.phoneColumn !== null && !mapped && phase === "idle" && !error && (
         <div className={styles.actions}>
-          <button type="button" className={styles.button} disabled={mapped.stats.validRows === 0 || busy} onClick={commit}>Import {mapped.stats.validRows} contacts</button>
-          <button type="button" className={styles.secondaryButton} disabled={busy} onClick={cancel}>Cancel</button>
+          <button type="button" className={styles.button} onClick={() => file && void runPreview(file, mapping, sheetName, raw.fileSha256)}>Preview</button>
+          <button type="button" className={styles.secondaryButton} onClick={cancel}>Cancel</button>
         </div>
-      </>}
-      {busy && <p className={styles.muted} role="status">Processing file…</p>}
+      )}
+
+      {ready && mapped && (
+        <>
+          <label className={styles.field}>
+            <span>Numbers without a country code belong to</span>
+            <select value={mapping.defaultCountry} disabled={busy} onChange={(event) => {
+              const next = { ...mapping, defaultCountry: event.target.value };
+              setMapping(next);
+              if (file) void runPreview(file, next, sheetName, raw?.fileSha256);
+            }}>
+              {COUNTRIES.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+            </select>
+            <small>Changing this re-checks the file. Rows that were missing a country code may then become valid.</small>
+          </label>
+
+          <div className={styles.stats}>
+            <div className={`${styles.stat} ${styles.statOk}`}><strong>{mapped.stats.validRows}</strong><span>ready to import</span></div>
+            <div className={`${styles.stat} ${mapped.skipped.length ? styles.statSkip : ""}`}><strong>{mapped.skipped.length}</strong><span>skipped</span></div>
+            <div className={styles.stat}><strong>{mapped.stats.totalRows}</strong><span>rows in file</span></div>
+          </div>
+
+          <SkippedList rows={mapped.skipped} reasons={mapped.skippedReasons} fileName={file?.name ?? "upload"} />
+          {mapped.skipped.length === 0 && <p className={styles.muted}>No rows skipped. Every row is ready to import.</p>}
+
+          <div className={styles.sticky}>
+            <button type="button" className={styles.button} disabled={mapped.stats.validRows === 0 || busy} aria-busy={phase === "importing" || undefined} onClick={commit}>
+              {phase === "importing" ? <><Spinner /> Importing…</> : `Import ${mapped.stats.validRows} contacts`}
+            </button>
+            <button type="button" className={styles.secondaryButton} onClick={cancel}>Cancel</button>
+          </div>
+          {mapped.stats.validRows === 0 && <p className={styles.error} role="alert">No valid numbers were found, so there is nothing to import. Download the skipped list to see why.</p>}
+        </>
+      )}
+
       {error && <p className={styles.error} role="alert">{error}</p>}
-      {result && <p className={styles.success} role="status">{result}</p>}
-      {resultBatchId && <Link className={styles.contactLink} href="/dashboard/campaigns">Create a campaign from this upload →</Link>}
+
+      {report && (
+        <div className={styles.stack}>
+          <p className={styles.success} role="status">
+            {report.inserted + report.existing} numbers from {report.fileName} are saved ({report.inserted} new, {report.existing} already in your list). Every number in this file is in this upload&rsquo;s audience.
+          </p>
+          {report.linkError && <p className={styles.error} role="alert">{report.linkError}</p>}
+          <SkippedList rows={report.skipped} reasons={report.reasons} fileName={report.fileName} />
+          <Link className={styles.contactLink} href="/dashboard/campaigns">Create a campaign from this upload →</Link>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,13 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { ChevronRight } from "lucide-react";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { ContactImportForm } from "./import-form";
 import styles from "./contacts.module.css";
 
 export const metadata: Metadata = {
-  title: "Contacts | The Oven Fresh",
+  title: "Contacts | Solalyn",
   description: "Import WhatsApp contacts and review marketing consent evidence.",
 };
 
@@ -45,7 +44,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
   const batches = (storageReady ? batchResult?.data ?? [] : []) as Batch[];
 
   return (
-    <DashboardShell label="Contacts" showMetaSetup>
+    <>
       <div className={styles.content}>
         <div className={styles.pageHead}>
           <h1>Contacts{storageReady && <small>{contactCountResult?.count ?? 0}</small>}</h1>
@@ -72,6 +71,6 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
           {storageReady && <Pagination page={batchPage} total={batchResult?.count ?? 0} pageSize={BATCHES_SIZE} param="bp" path="/dashboard/contacts" label="Upload pages" />}
         </section>
       </div>
-    </DashboardShell>
+    </>
   );
 }

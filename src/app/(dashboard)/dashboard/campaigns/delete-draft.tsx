@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { useFeedback } from "@/components/ui/feedback";
 import { deleteDraftCampaignAction } from "./actions";
 import styles from "./campaigns.module.css";
 
-/** Delete a draft in two taps: the trash button, then "Delete" to confirm. */
+/** Deleting a draft always asks first, then reports success or the exact error. */
 export function DeleteDraftButton({ id, name, redirectTo, label = false }: {
   id: string;
   name: string;
@@ -14,29 +16,36 @@ export function DeleteDraftButton({ id, name, redirectTo, label = false }: {
   label?: boolean;
 }) {
   const router = useRouter();
-  const [confirming, setConfirming] = useState(false);
-  const [error, setError] = useState("");
+  const { confirm, toast } = useFeedback();
   const [pending, start] = useTransition();
 
-  function remove() {
-    setError("");
+  async function onDelete() {
+    const ok = await confirm({
+      title: "Delete this draft?",
+      description: <>The draft <strong>{name}</strong> and its recipient list will be permanently deleted. This cannot be undone. Contacts and uploads are not affected.</>,
+      confirmLabel: "Delete draft",
+      cancelLabel: "Keep draft",
+      tone: "danger",
+    });
+    if (!ok) return;
     start(async () => {
-      const result = await deleteDraftCampaignAction(id);
-      if (result.error) { setError(result.error); return; }
+      let message = "";
+      try {
+        message = (await deleteDraftCampaignAction(id)).error;
+      } catch {
+        message = "The draft could not be deleted. Check your connection and try again.";
+      }
+      if (message) {
+        toast({ tone: "error", title: "Draft not deleted", message });
+        return;
+      }
+      toast({ tone: "success", title: "Draft deleted", message: `“${name}” was removed.` });
       if (redirectTo) router.push(redirectTo); else router.refresh();
     });
   }
 
-  if (!confirming) {
-    return <button type="button" className={label ? styles.deleteText : styles.deleteIcon} onClick={() => setConfirming(true)}
-      aria-label={`Delete draft ${name}`} title="Delete draft">
-      <Trash2 size={18} aria-hidden="true" />{label && <span>Delete draft</span>}
-    </button>;
-  }
-  return <span className={styles.confirmBox} role="group" aria-label={`Confirm deleting ${name}`}>
-    <span>Delete this draft?</span>
-    <button type="button" className={styles.confirmYes} onClick={remove} disabled={pending}>{pending ? "Deleting…" : "Delete"}</button>
-    <button type="button" className={styles.confirmNo} onClick={() => setConfirming(false)} disabled={pending}>Keep</button>
-    {error && <small className={styles.switchErrorText} role="alert">{error}</small>}
-  </span>;
+  return <button type="button" className={label ? styles.deleteText : styles.deleteIcon} onClick={onDelete} disabled={pending}
+    aria-busy={pending || undefined} aria-label={`Delete draft ${name}`} title="Delete draft">
+    {pending ? <Spinner size={18} /> : <Trash2 size={18} aria-hidden="true" />}{label && <span>{pending ? "Deleting…" : "Delete draft"}</span>}
+  </button>;
 }

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { BackLink } from "@/components/ui/back-link";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { createStaffAdminClient, getStaffAdminAccess } from "@/server/auth/staff-users/admin";
 import { getConfiguredMetaIdentifiers, getMetaConfigurationStatus } from "@/server/meta/client";
 import { ReconcileConfirmedHoldForm, ReleaseHoldForm } from "./release-form";
@@ -9,7 +8,7 @@ import { RefreshButton } from "@/components/ui/refresh-button";
 import styles from "./review.module.css";
 
 export const metadata: Metadata = {
-  title: "Inbound WhatsApp review | The Oven Fresh",
+  title: "Inbound WhatsApp review | Solalyn",
   description: "Review inbound WhatsApp opt-outs before releasing sender holds.",
 };
 
@@ -145,7 +144,7 @@ export default async function MetaInboundReviewPage() {
       .map((item) => [item.dedupe_key, item]),
   );
 
-  return <DashboardShell label="WhatsApp integration" showMetaSetup>
+  return <>
     <div className={styles.content}>
       <BackLink href="/dashboard/meta">WhatsApp setup</BackLink>
       <div className={styles.intro}>
@@ -242,5 +241,5 @@ export default async function MetaInboundReviewPage() {
           : <p className={styles.empty}>{storageReady ? "No inbound messages have been reviewed." : "Review history will appear after setup."}</p>}
       </section>
     </div>
-  </DashboardShell>;
+  </>;
 }

@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { BackLink } from "@/components/ui/back-link";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { getCampaignAnalytics, getMetaTemplateStats, type CampaignAnalytics } from "@/server/campaigns/analytics";
 import { AutoRefresh } from "../../auto-refresh";
 import { estimateCost, getMetaBilledCost, getRateCard, listCampaignPhones } from "@/server/campaigns/pricing";
 import { RefreshButton } from "@/components/ui/refresh-button";
 import styles from "../../campaigns.module.css";
 
-export const metadata: Metadata = { title: "Campaign analytics | The Oven Fresh" };
+export const metadata: Metadata = { title: "Campaign analytics | Solalyn" };
 export const dynamic = "force-dynamic";
 
 const pct = (part: number, whole: number) => (whole > 0 ? `${((part / whole) * 100).toFixed(1)}%` : "—");
@@ -52,7 +51,7 @@ export default async function CampaignAnalyticsPage({ params }: { params: Promis
   const money = (value: number, currency: string) => `${currency} ${value.toFixed(value < 1 ? 4 : 2)}`;
   const peak = a ? Math.max(1, ...a.timeline.map((t) => t.accepted)) : 1;
 
-  return <DashboardShell label="Campaign analytics" showMetaSetup>
+  return <>
     <div className={styles.content}>
       <BackLink href={`/dashboard/campaigns/${campaignId}`}>Back to campaign</BackLink>
       {!a ? <section className={styles.notice}><strong>Analytics unavailable</strong><p>{loadError}</p></section> : <>
@@ -141,5 +140,5 @@ export default async function CampaignAnalyticsPage({ params }: { params: Promis
         </section>
       </>}
     </div>
-  </DashboardShell>;
+  </>;
 }

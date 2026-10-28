@@ -1,4 +1,4 @@
-import { previewContactImport } from "@/server/imports";
+import { countSkipReasons, listSkippedRows, previewContactImport } from "@/server/imports";
 import { authorizeImportRequest, importJson, readImportForm } from "../shared";
 import { importErrorResponse, importMapping, parsedImportFile } from "../input";
 
@@ -23,6 +23,8 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
     const preview = previewContactImport(parsed, mapping);
+    // Every skipped row is returned, not a sample: "27 skipped" must list all 27.
+    const skipped = listSkippedRows(preview);
     return importJson({
       fileName: preview.fileName,
       fileKind: preview.fileKind,
@@ -31,6 +33,9 @@ export async function POST(request: Request): Promise<Response> {
       headers: preview.headers,
       stats: preview.stats,
       rows: preview.rows.slice(0, 20),
+      sample: preview.validRows.slice(0, 8).map((row) => ({ rowNumber: row.row_number, name: row.display_name, phone: row.phone_e164 })),
+      skipped,
+      skippedReasons: countSkipReasons(skipped),
       errors: preview.errors.slice(0, 100),
       remainingErrors: Math.max(0, preview.errors.length - 100),
     });

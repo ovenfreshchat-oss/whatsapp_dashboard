@@ -6,7 +6,7 @@ import { signOut } from "@/server/auth/actions";
 import styles from "./access-denied.module.css";
 
 export const metadata: Metadata = {
-  title: "Access unavailable | The Oven Fresh",
+  title: "Access unavailable | Solalyn",
 };
 
 export default function AccessDeniedPage() {
@@ -31,7 +31,7 @@ export default function AccessDeniedPage() {
           </form>
         </div>
 
-        <footer className={styles.footer}>The Oven Fresh · Staff access</footer>
+        <footer className={styles.footer}>Solalyn · Staff access</footer>
       </section>
     </main>
   );

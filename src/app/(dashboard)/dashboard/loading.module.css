@@ -1,13 +1,11 @@
-.content { display: grid; gap: 14px; padding: 16px 12px 32px; }
-.bar, .block { display: block; background: linear-gradient(90deg, #e6ebf5 25%, #f4f7fc 50%, #e6ebf5 75%); background-size: 200% 100%; animation: shimmer 1.2s ease-in-out infinite; }
-.bar { height: 12px; border-radius: 6px; }
+.content { display: grid; gap: 20px; }
+.head { display: grid; gap: 10px; }
+.cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.card { height: 118px; border-radius: 16px; }
+.panel { height: 220px; border-radius: 16px; }
+.tall { height: 300px; }
+.bar { height: 12px; }
 .small { width: 90px; }
-.title { width: min(320px, 70%); height: 30px; border-radius: 8px; }
+.title { width: min(320px, 70%); height: 30px; }
 .line { width: min(480px, 90%); }
-.cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.card { height: 110px; border-radius: 16px; }
-.panel { height: 190px; border-radius: 18px; }
-.tall { height: 260px; }
-@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
-@media (max-width: 850px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (prefers-reduced-motion: reduce) { .bar, .block { animation: none; } }
+@media (max-width: 1000px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

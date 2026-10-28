@@ -15,3 +15,5 @@ export {
   type ContactFileKind,
   type ParsedContactFile,
 } from "./types";
+
+export { listSkippedRows, countSkipReasons, SKIP_REASON_LABELS, type SkippedRow } from "./skipped";

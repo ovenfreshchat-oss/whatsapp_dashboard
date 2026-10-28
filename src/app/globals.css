@@ -1,97 +1,134 @@
+/* Solalyn design tokens. Every screen reads from these, so the palette changes in one place. */
 :root {
   color-scheme: light;
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --page-bg: #f0f2f5;
-  --text: #1d2327;
-  --muted: #5b6470;
-  --line: #e3e6ea;
-  --accent: #0f9d78;
-  --accent-dark: #0b8564;
-  --accent-soft: #e6f6f0;
-  --accent-ring: rgba(15, 157, 120, .35);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Brand */
+  --white: #ffffff;
+  --sand: #f2eee4;
+  --sand-50: #f8f6f0;
+  --sand-100: #f2eee4;
+  --sand-200: #e6e0d0;
+  --sand-300: #d6cfbb;
+  --ink: #0f172a;
+  --ink-800: #1e293b;
+  --ink-700: #334155;
+  --muted: #475569;
+  --faint: #64748b;
+  --coral: #f74932;
+  --coral-600: #d93a25;
+  --coral-700: #c9301c;
+  --coral-50: #fdeae6;
+  --wa: #25d366;
+  --wa-600: #128c4a;
+  --wa-700: #0b7a3b;
+  --wa-50: #e3f8ea;
+  --wa-bubble: #d9fdd3;
+
+  /* Sparing accents */
+  --teal: #14a3a8;
+  --teal-700: #0f766e;
+  --teal-50: #ddf3f1;
+  --violet: #7c5cfc;
+  --violet-700: #5b3fd0;
+  --violet-50: #eee9ff;
+  --gold: #e5a50a;
+  --gold-700: #8a5a00;
+  --gold-50: #fbf0cf;
+  --indigo: #4f46e5;
+  --indigo-700: #3730a3;
+  --indigo-50: #e6e8ff;
+  --danger: #d92d20;
+  --danger-700: #b42318;
+  --danger-50: #fde8e6;
+
+  /* Semantic */
+  --page-bg: var(--sand);
+  --surface: var(--white);
+  --text: var(--ink);
+  --line: var(--sand-200);
+  --line-strong: var(--sand-300);
+  --accent: var(--coral-600);
+  --accent-dark: var(--coral-700);
+  --accent-soft: var(--coral-50);
+  --accent-ring: rgba(247, 73, 50, .38);
+  --focus: 0 0 0 3px rgba(247, 73, 50, .32);
+
+  /* Message categories: one colour each, everywhere */
+  --cat-marketing: var(--violet-700);
+  --cat-marketing-bg: var(--violet-50);
+  --cat-utility: var(--teal-700);
+  --cat-utility-bg: var(--teal-50);
+  --cat-authentication: var(--gold-700);
+  --cat-authentication-bg: var(--gold-50);
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);
+  --shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 6px 18px rgba(15, 23, 42, .06);
+  --shadow-lg: 0 18px 48px rgba(15, 23, 42, .22);
+
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-html,
-body {
-  min-height: 100%;
-  margin: 0;
-}
+html, body { min-height: 100%; margin: 0; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; scroll-behavior: auto; }
 
 body {
-  color: #060b0a;
-}
-
-button,
-input {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: not-allowed;
-}
-
-::selection {
-  color: #fff;
-  background: #11a97e;
-}
-
-/* ---- Phones and small tablets: applies to every screen ---- */
-html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-img,
-video,
-canvas,
-svg {
-  max-width: 100%;
-}
-
-body {
+  color: var(--text);
+  background: var(--page-bg);
+  font-size: 15px;
+  line-height: 1.5;
   overflow-wrap: break-word;
 }
 
+h1, h2, h3, p { margin-block: 0; }
+
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+
+/* Taps answer at once: no 300ms double-tap delay, and a pressed state on every button and link. */
+a, button, summary, select, input, label { touch-action: manipulation; }
+button:not(:disabled):active, a[class]:active { transform: translateY(1px); }
+button, a { -webkit-tap-highlight-color: rgba(247, 73, 50, .12); }
+
+:focus-visible { outline: 3px solid var(--accent-ring); outline-offset: 2px; }
+
+::selection { color: #fff; background: var(--coral-600); }
+
+img, video, canvas, svg { max-width: 100%; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
 @media (max-width: 700px) {
-  body {
-    overflow-x: hidden;
-  }
+  body { overflow-x: hidden; }
 
   /* 16px stops iPhones from zooming the page when a field is tapped. */
   input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
   select,
-  textarea {
-    font-size: 16px !important;
-  }
+  textarea { font-size: 16px !important; }
 
-  /* Finger-sized fields and main buttons. */
   input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
   select,
-  button[type="submit"] {
-    min-height: 44px;
-  }
+  button[type="submit"] { min-height: 44px; }
 
-  input[type="checkbox"],
-  input[type="radio"] {
-    width: 20px;
-    height: 20px;
-  }
+  input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; }
+}
 
-  a,
-  button {
-    -webkit-tap-highlight-color: rgba(39, 152, 120, 0.15);
-  }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
 
 /* Inbox: the page itself never scrolls; only the chat list and the open conversation do. */

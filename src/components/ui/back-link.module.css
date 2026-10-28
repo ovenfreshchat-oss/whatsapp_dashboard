@@ -4,7 +4,7 @@
   gap: 8px;
   width: fit-content;
   min-height: 36px;
-  color: var(--accent-dark, #0b8564);
+  color: var(--coral-700);
   font-size: 14px;
   font-weight: 700;
   text-decoration: none;
@@ -21,6 +21,6 @@
 
 .backLink:focus-visible {
   border-radius: 6px;
-  outline: 3px solid var(--accent-ring, rgba(15, 157, 120, .35));
+  outline: 3px solid rgba(247, 73, 50, .38);
   outline-offset: 3px;
 }

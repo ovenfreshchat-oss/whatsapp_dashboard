@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { BackLink } from "@/components/ui/back-link";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { AddOptOutForm, ReleaseOptOutButton } from "./opt-out-forms";
 import styles from "../contacts/contacts.module.css";
 
 export const metadata: Metadata = {
-  title: "Opt-out list | The Oven Fresh",
+  title: "Opt-out list | Solalyn",
   description: "Phone numbers that must never receive campaign messages.",
 };
 
@@ -34,11 +33,11 @@ export default async function OptOutsPage({ searchParams }: { searchParams: Prom
   const rows = (ready ? listResult?.data ?? [] : []) as OptOut[];
 
   return (
-    <DashboardShell label="Contacts opt-outs" showMetaSetup>
+    <>
       <div className={styles.content}>
         <BackLink href="/dashboard/contacts">Back to contacts</BackLink>
         <div className={styles.intro}>
-          <div><span className={styles.eyebrow}>AUDIENCE / OPT-OUTS</span><h1>Opt-out list<span>.</span></h1>
+          <div><span className={styles.eyebrow}>AUDIENCE / OPT-OUTS</span><h1>Opt-out list</h1>
             <p>Numbers here are removed from every campaign when it is created and checked again right before each message is sent.</p></div>
           <span className={styles.countPill}>{ready ? `${countResult?.count ?? 0} opted out` : "Database setup needed"}</span>
         </div>
@@ -53,11 +52,11 @@ export default async function OptOutsPage({ searchParams }: { searchParams: Prom
           <div className={styles.panelHeading}><div><span className={styles.eyebrow}>LIST</span><h2 id="list-heading">Opted-out numbers</h2></div><span>{phoneSearch ? `${listResult?.count ?? 0} found` : `${countResult?.count ?? 0} total`}</span></div>
           <form action="/dashboard/opt-outs" className={styles.searchForm}><label className={styles.field}><span>Search by phone number</span><input name="q" defaultValue={search} placeholder="+91…" maxLength={30} /></label><button className={styles.secondaryButton} type="submit">Search</button></form>
           {rows.length ? <div className={styles.tableWrap}><table><thead><tr><th>Number</th><th>Source</th><th>Added</th><th></th></tr></thead><tbody>
-            {rows.map((row) => <tr key={row.id}><td>{row.phone_e164}</td><td>{row.source}</td><td>{row.created_at.slice(0, 16).replace("T", " ")} UTC</td><td><ReleaseOptOutButton id={row.id} /></td></tr>)}
+            {rows.map((row) => <tr key={row.id}><td>{row.phone_e164}</td><td>{row.source}</td><td>{row.created_at.slice(0, 16).replace("T", " ")} UTC</td><td><ReleaseOptOutButton id={row.id} phone={row.phone_e164} /></td></tr>)}
           </tbody></table></div> : <p className={styles.empty}>{ready ? "No opted-out numbers." : "Apply the migration to view the list."}</p>}
           {ready && <Pagination page={page} total={listResult?.count ?? 0} pageSize={PAGE_SIZE} path="/dashboard/opt-outs" query={{ q: search || undefined }} label="Opt-out pages" />}
         </section>
       </div>
-    </DashboardShell>
+    </>
   );
 }

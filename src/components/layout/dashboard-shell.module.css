@@ -1,346 +1,94 @@
-/* App shell: flat gray page, white top bar with tabs, white cards. */
-.page {
-  min-height: 100svh;
-  background: var(--page-bg);
-  color: var(--text);
-}
+/* App frame. Desktop: Ink sidebar. Tablet: icon rail. Phone: slim top bar + bottom tabs. */
+.page { min-height: 100svh; color: var(--text); background: var(--page-bg); }
 
-.topNav {
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  border-bottom: 1px solid var(--line);
-  background: #fff;
-}
+.topNav { position: sticky; top: 0; z-index: 40; color: #fff; background: var(--ink); }
+.topNavInner { display: flex; align-items: center; gap: 24px; min-height: 60px; padding: 0 16px; }
+.navBrand { flex: 0 0 auto; }
 
-.topNavInner {
-  display: flex;
-  align-items: center;
-  gap: 28px;
-  max-width: 1400px;
-  min-height: 60px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-.navBrand {
-  flex: 0 0 auto;
-  gap: 10px;
-}
-
-.navBrand > span:first-child {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-}
-
-.navBrand strong {
-  font-size: 15px;
-  color: var(--text);
-}
-
-.navigation {
-  display: flex;
-  flex: 1 1 auto;
-  align-items: stretch;
-  align-self: stretch;
-  gap: 2px;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
+.navigation { display: flex; flex: 1 1 auto; align-items: stretch; align-self: stretch; gap: 4px; min-width: 0; }
 
 .navItem {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 14px;
-  border-bottom: 2px solid transparent;
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
+  position: relative; display: inline-flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px;
+  border-radius: 10px; color: #cbd5e1; font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap;
+  transition: background-color .12s ease, color .12s ease;
 }
+.navItem:hover { color: #fff; background: rgba(255, 255, 255, .07); }
+.navItem:focus-visible { outline: 3px solid rgba(247, 73, 50, .6); outline-offset: -2px; }
+.navItemActive, .navItemActive:hover { color: #fff; background: rgba(247, 73, 50, .16); }
+.navItemActive::before { content: ""; position: absolute; top: 10px; bottom: 10px; left: 0; width: 3px; border-radius: 0 3px 3px 0; background: var(--coral); }
+.navItemActive .navIcon { color: var(--coral); }
+.navIcon { display: inline-grid; flex: 0 0 auto; place-items: center; width: 22px; height: 22px; }
+.navSpin { animation: spin .8s linear infinite; }
+.labelShort { display: none; }
 
-.navItem:hover {
-  color: var(--accent);
-}
-
-.navItem:focus-visible {
-  outline: 3px solid var(--accent-ring);
-  outline-offset: -3px;
-}
-
-.navItemActive {
-  border-bottom-color: var(--accent);
-  color: var(--accent);
-}
-
-.navIcon {
-  display: inline-grid;
-  place-items: center;
-}
-
-.navIcon svg {
-  width: 18px;
-  height: 18px;
-}
-
-.labelShort {
-  display: none;
-}
-
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-
-.headerActions form {
-  margin: 0;
-}
+.headerActions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.headerActions form { margin: 0; }
+.account { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.avatar { display: grid; flex: 0 0 auto; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--ink); background: var(--sand); font-size: 14px; font-weight: 800; }
+.accountText { display: grid; min-width: 0; line-height: 1.25; }
+.accountText strong { color: #fff; font-size: 13px; font-weight: 700; }
+.accountText small { overflow: hidden; color: #94a3b8; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 
 .signOut {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  color: var(--muted);
-  background: #fff;
-  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 38px; height: 38px; padding: 0;
+  border: 0; border-radius: 10px; color: #cbd5e1; background: transparent; font-size: 14px; font-weight: 600;
 }
+.signOut:hover:not(:disabled) { color: #fff; background: rgba(255, 255, 255, .08); }
+.signOut:focus-visible { outline: 3px solid rgba(247, 73, 50, .6); outline-offset: 2px; }
+.signOutLabel { display: none; }
 
-.signOut:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
+.workspace { min-width: 0; padding: 14px 12px calc(88px + env(safe-area-inset-bottom)); }
+.workspace > * { max-width: 1280px; margin-inline: auto; }
 
-.signOut:focus-visible {
-  outline: 3px solid var(--accent-ring);
-  outline-offset: 2px;
-}
-
-.workspace {
-  min-width: 0;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-@media (max-width: 900px) {
-  .topNavInner {
-    gap: 14px;
-    padding: 0 14px;
-  }
-
-  .navItem {
-    padding: 0 10px;
-  }
-}
-
-/* Phone: slim top bar (logo + logout), thumb-friendly bottom tab bar. */
+/* ---------- Phone ---------- */
 @media (max-width: 700px) {
-  .topNavInner {
-    min-height: 56px;
-    padding: 0 12px;
-  }
-
+  .account { display: none; }
   .navigation {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 50;
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
-    gap: 2px;
-    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
-    border-top: 1px solid var(--line);
-    background: rgba(255, 255, 255, .97);
-    box-shadow: 0 -6px 20px rgba(16, 24, 40, .08);
-    overflow: visible;
+    position: fixed; right: 0; bottom: 0; left: 0; z-index: 50; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+    gap: 2px; padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: #fff;
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, .1);
   }
-
-  .navItem {
-    flex-direction: column;
-    justify-content: center;
-    gap: 4px;
-    min-height: 58px;
-    padding: 0 2px;
-    border-bottom: 0;
-    border-radius: 12px;
-    font-size: 11px;
-    line-height: 1.1;
-    text-align: center;
-  }
-
-  .navItemActive {
-    background: var(--accent-soft);
-  }
-
-  .navIcon svg {
-    width: 24px;
-    height: 24px;
-  }
-
-  .labelFull {
-    display: none;
-  }
-
-  .labelShort {
-    display: inline;
-  }
-
-  .workspace {
-    padding: 10px 10px calc(84px + env(safe-area-inset-bottom));
-  }
+  .navItem { flex-direction: column; justify-content: center; gap: 3px; min-height: 56px; padding: 0 2px; color: var(--muted); font-size: 11px; line-height: 1.1; text-align: center; }
+  .navItem:hover { color: var(--ink); background: transparent; }
+  .navItemActive, .navItemActive:hover { color: var(--coral-700); background: var(--coral-50); }
+  .navItemActive::before { display: none; }
+  .navItemActive .navIcon { color: var(--coral-600); }
+  .labelFull { display: none; }
+  .labelShort { display: inline; }
 
   /* An open conversation takes the whole screen. */
-  .page:has([data-thread-open]) .topNav {
-    display: none;
-  }
-
-  .page:has([data-thread-open]) .workspace {
-    padding: 0;
-  }
+  .page:has([data-thread-open]) .topNav { display: none; }
+  .page:has([data-thread-open]) .workspace { padding: 0; }
+  .page:has([data-thread-open]) .navigation { display: none; }
 }
 
-.signOutLabel {
-  display: none;
-}
-
-/* Desktop and tablet: left side panel instead of a top bar. */
+/* ---------- Tablet and desktop ---------- */
 @media (min-width: 701px) {
-  .page {
-    display: grid;
-    grid-template-columns: 232px minmax(0, 1fr);
-    align-items: start;
-  }
-
-  .topNav {
-    position: sticky;
-    top: 0;
-    height: 100svh;
-    border-right: 1px solid var(--line);
-    border-bottom: 0;
-  }
-
-  .topNavInner {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 18px;
-    max-width: none;
-    height: 100%;
-    min-height: 0;
-    margin: 0;
-    padding: 16px 12px;
-  }
-
-  .navBrand {
-    padding: 4px 6px 14px;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .navigation {
-    flex: 1 1 auto;
-    flex-direction: column;
-    align-self: stretch;
-    gap: 4px;
-    overflow-x: visible;
-    overflow-y: auto;
-  }
-
-  .navItem {
-    gap: 12px;
-    min-height: 44px;
-    padding: 0 12px;
-    border-bottom: 0;
-    border-radius: 10px;
-  }
-
-  .navItem:hover {
-    background: #f4f6f8;
-  }
-
-  .navItem:focus-visible {
-    outline-offset: -3px;
-  }
-
-  .navItemActive,
-  .navItemActive:hover {
-    background: var(--accent-soft);
-    color: var(--accent-dark);
-  }
-
-  .navIcon svg {
-    width: 20px;
-    height: 20px;
-  }
-
-  .headerActions {
-    margin: 0;
-    padding-top: 12px;
-    border-top: 1px solid var(--line);
-  }
-
-  .headerActions form {
-    width: 100%;
-  }
-
-  .signOut {
-    width: 100%;
-    justify-content: flex-start;
-    gap: 12px;
-    height: 44px;
-    padding: 0 12px;
-    border: 0;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .signOut:hover {
-    background: #f4f6f8;
-  }
-
-  .signOutLabel {
-    display: inline;
-  }
-
-  .workspace {
-    max-width: 1400px;
-    width: 100%;
-    margin: 0;
-  }
+  .page { display: grid; grid-template-columns: 76px minmax(0, 1fr); align-items: start; }
+  .topNav { top: 0; height: 100svh; }
+  .topNavInner { flex-direction: column; align-items: stretch; gap: 18px; height: 100%; padding: 16px 12px; }
+  .navBrand { justify-content: center; padding: 4px 0 14px; border-bottom: 1px solid rgba(255, 255, 255, .1); }
+  .navBrand > span:last-child { display: none; }
+  .navigation { flex: 1 1 auto; flex-direction: column; align-self: stretch; gap: 4px; overflow-y: auto; }
+  .navItem { justify-content: center; padding: 0; }
+  .navItemActive::before { left: 0; }
+  .label, .labelFull { display: none; }
+  .headerActions { flex-direction: column; margin: 0; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, .1); }
+  .account { display: none; }
+  .signOut { width: 100%; }
+  .workspace { padding: 24px 24px 40px; }
 }
 
-/* Narrow tablets: icon-only side rail. */
-@media (min-width: 701px) and (max-width: 900px) {
-  .page {
-    grid-template-columns: 68px minmax(0, 1fr);
-  }
-
-  .navBrand > span:last-child,
-  .labelFull,
-  .signOutLabel {
-    display: none;
-  }
-
-  .navBrand {
-    justify-content: center;
-    padding: 4px 0 14px;
-  }
-
-  .navItem,
-  .signOut {
-    justify-content: center;
-    padding: 0;
-  }
+@media (min-width: 1024px) {
+  .page { grid-template-columns: 252px minmax(0, 1fr); }
+  .topNavInner { padding: 18px 14px 14px; }
+  .navBrand { justify-content: flex-start; padding: 4px 8px 16px; }
+  .navBrand > span:last-child { display: flex; }
+  .navItem { justify-content: flex-start; padding: 0 14px; }
+  .label, .labelFull { display: inline; }
+  .headerActions { flex-direction: column; align-items: stretch; gap: 6px; }
+  .account { display: flex; padding: 8px; border-radius: 12px; background: rgba(255, 255, 255, .06); }
+  .signOut { justify-content: flex-start; width: 100%; padding: 0 14px; height: 42px; }
+  .signOutLabel { display: inline; }
+  .workspace { padding: 32px 36px 56px; }
 }

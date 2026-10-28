@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
+import { Spinner } from "@/components/ui/spinner";
+import { useActionToast } from "@/components/ui/feedback";
 import { excludeRecipientsAction, type CampaignActionState } from "./actions";
 import styles from "./campaigns.module.css";
 
@@ -10,7 +12,8 @@ const initialState: CampaignActionState = { error: "", success: "" };
 function Submit({ intent, label, plain = false }: { intent: string; label: string; plain?: boolean }) {
   const { pending } = useFormStatus();
   return <button type="submit" name="intent" value={intent} disabled={pending}
-    className={plain ? styles.chip : styles.primaryButton}>{pending ? "Updating…" : label}</button>;
+    aria-busy={pending || undefined}
+    className={plain ? styles.chip : styles.primaryButton}>{pending ? <><Spinner /> Updating…</> : label}</button>;
 }
 
 export function ExcludeNumbers({ campaignId, excluded }: {
@@ -18,6 +21,7 @@ export function ExcludeNumbers({ campaignId, excluded }: {
   excluded: { phone: string; name: string | null }[];
 }) {
   const [result, action] = useActionState(excludeRecipientsAction.bind(null, campaignId), initialState);
+  useActionToast(result, { success: "Recipient list updated", error: "Recipient list not updated" });
   return <details className={styles.excludeBox} open={excluded.length > 0 || undefined}>
     <summary>Skip some numbers{excluded.length ? ` (${excluded.length} skipped)` : ""}</summary>
     <form action={action} className={styles.form}>

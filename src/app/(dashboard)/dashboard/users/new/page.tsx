@@ -1,18 +1,17 @@
 import type { Metadata } from "next";
 import { BackLink } from "@/components/ui/back-link";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { StaffUserForm } from "./staff-user-form";
 import styles from "./new-user.module.css";
 
 export const metadata: Metadata = {
-  title: "Add staff user | The Oven Fresh",
+  title: "Add staff user | Solalyn",
 };
 
 export default function NewStaffUserPage() {
   const isConfigured = Boolean(process.env.SUPABASE_SECRET_KEY);
 
   return (
-    <DashboardShell label="Add a staff user" showMetaSetup>
+    <>
         <div className={styles.content}>
           <BackLink href="/dashboard">Back to dashboard</BackLink>
 
@@ -51,10 +50,10 @@ export default function NewStaffUserPage() {
                 <li><span>02</span><div><strong>Share credentials privately</strong><small>No invitation email is sent from this form.</small></div></li>
                 <li><span>03</span><div><strong>Sign in</strong><small>They can open the staff login page.</small></div></li>
               </ul>
-              <div className={styles.infoFooter}><span aria-hidden="true">✦</span> The Oven Fresh workspace</div>
+              <div className={styles.infoFooter}><span aria-hidden="true">✦</span> Solalyn workspace</div>
             </aside>
           </div>
         </div>
-    </DashboardShell>
+    </>
   );
 }

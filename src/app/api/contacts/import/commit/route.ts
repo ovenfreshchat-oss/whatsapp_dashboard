@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
-import { previewContactImport } from "@/server/imports";
+import { countSkipReasons, listSkippedRows, previewContactImport } from "@/server/imports";
 import { authorizeImportRequest, ImportRequestError, importJson, readImportForm } from "../shared";
 import { importErrorResponse, importMapping, parsedImportFile } from "../input";
 
@@ -81,7 +81,8 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
     revalidatePath("/dashboard/contacts");
-    return importJson({ result: data, stats: preview.stats, linked, linkError });
+    const skipped = listSkippedRows(preview);
+    return importJson({ result: data, stats: preview.stats, linked, linkError, skipped, skippedReasons: countSkipReasons(skipped) });
   } catch (error) {
     return importErrorResponse(error);
   }

@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import { BackLink } from "@/components/ui/back-link";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { getMetaConfigurationStatus } from "@/server/meta/client";
 import { getMetaAccountHealthCached, listMetaWebhookSubscriptionsCached, syncMetaTemplatesCached } from "@/server/meta/cached";
 import { assertApprovedMarketingTemplate, parseTemplateBodyParameters, type MetaTemplate } from "@/server/meta/templates";
 import type { TestTemplateOption } from "./test-send-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
+import { CategoryBadge, toCategory } from "@/components/ui/badges";
+import { CheckCircle2, FileText, Radio, TriangleAlert } from "lucide-react";
 import styles from "./meta.module.css";
 
 export const metadata: Metadata = {
-  title: "WhatsApp setup | The Oven Fresh",
+  title: "WhatsApp setup | Solalyn",
   description: "Check the official Meta WhatsApp connection and approved marketing templates.",
 };
 
@@ -103,13 +104,12 @@ export default async function MetaSetupPage() {
   );
 
   return (
-    <DashboardShell label="WhatsApp integration" showMetaSetup>
+    <>
       <div className={styles.content}>
         <BackLink href="/dashboard">Back to dashboard</BackLink>
         <div className={styles.intro}>
           <div>
-            <span className={styles.eyebrow}>INTEGRATIONS / META WHATSAPP</span>
-            <h1>WhatsApp setup<span>.</span></h1>
+            <h1>WhatsApp setup</h1>
             <p>Check the live Cloud API account, approved marketing templates, and webhook delivery.</p>
           </div>
           <div className={styles.introLinks}>
@@ -126,29 +126,9 @@ export default async function MetaSetupPage() {
           </section>
         )}
 
-        <div className={styles.sectionGrid}>
-          <section className={styles.panel} aria-labelledby="templates-heading">
-            <div className={styles.panelHeading}>
-              <div><span className={styles.eyebrow}>ACCOUNT CONTENT</span><h2 id="templates-heading">Marketing templates</h2></div>
-              <span>{templateSync ? `${templates.length} found` : "Unavailable"}</span>
-            </div>
-            {templateSync ? templates.length > 0 ? (
-              <div className={styles.templateList}>
-                {templates.map((template) => (
-                  <article className={styles.templateItem} key={`${template.id}-${template.language}`}>
-                    <div><strong>{template.name}</strong><small>{template.language} · {template.category}</small></div>
-                    <span className={template.status === "APPROVED" ? styles.approved : styles.otherStatus}>{template.status}</span>
-                    <p>{template.components.find((part) => part.type === "BODY")?.text ?? "No text body preview"}</p>
-                  </article>
-                ))}
-              </div>
-            ) : <p className={styles.empty}>Meta returned no templates for this WABA.</p> : <p className={styles.empty}>Templates will appear after the account and token are configured and reachable.</p>}
-          </section>
-        </div>
-
         <section className={styles.statusGrid} aria-label="Meta connection checks">
           <article className={styles.statusCard}>
-            <div className={styles.cardTop}><span className={styles.cardIcon}>◎</span><span className={configuration.configured && health?.phoneBelongsToWaba ? styles.good : styles.waiting}>{health?.phoneBelongsToWaba ? "Verified live" : "Action needed"}</span></div>
+            <div className={styles.cardTop}><span className={styles.cardIcon}><Radio size={20} aria-hidden="true" /></span><span className={configuration.configured && health?.phoneBelongsToWaba ? styles.good : styles.waiting}>{health?.phoneBelongsToWaba ? <CheckCircle2 size={14} aria-hidden="true" /> : <TriangleAlert size={14} aria-hidden="true" />}{health?.phoneBelongsToWaba ? "Verified live" : "Action needed"}</span></div>
             <h2>Meta account</h2>
             <p>{health?.phoneBelongsToWaba ? "The configured sender belongs to this WhatsApp Business Account." : configuration.configured ? "The account could not be verified with Meta yet." : "Add the server-side Meta settings to begin."}</p>
             <dl>
@@ -159,14 +139,34 @@ export default async function MetaSetupPage() {
           </article>
 
           <article className={styles.statusCard}>
-            <div className={styles.cardTop}><span className={styles.cardIcon}>▤</span><span className={templateSync ? styles.good : styles.waiting}>{templateSync ? "Live list" : "Action needed"}</span></div>
+            <div className={styles.cardTop}><span className={styles.cardIcon}><FileText size={20} aria-hidden="true" /></span><span className={templateSync ? styles.good : styles.waiting}>{templateSync ? <CheckCircle2 size={14} aria-hidden="true" /> : <TriangleAlert size={14} aria-hidden="true" />}{templateSync ? "Live list" : "Action needed"}</span></div>
             <h2>Templates</h2>
             <p>{templateSync ? "Templates were fetched directly from Meta for this account." : "Template access has not been verified."}</p>
             <div className={styles.templateCount}><strong>{templateSync ? approvedCount : "—"}</strong><span>approved of {templateSync ? templates.length : "—"} total</span></div>
             <small>Checked {dateLabel(templateSync?.syncedAt)}</small>
           </article>
         </section>
+
+        <div className={styles.sectionGrid}>
+          <section className={styles.panel} aria-labelledby="templates-heading">
+            <div className={styles.panelHeading}>
+              <div><span className={styles.eyebrow}>ACCOUNT CONTENT</span><h2 id="templates-heading">Marketing templates</h2></div>
+              <span>{templateSync ? `${templates.length} found` : "Unavailable"}</span>
+            </div>
+            {templateSync ? templates.length > 0 ? (
+              <div className={styles.templateList}>
+                {templates.map((template) => (
+                  <article className={styles.templateItem} key={`${template.id}-${template.language}`} data-category={toCategory(template.category) ?? undefined}>
+                    <div><strong>{template.name}</strong><small>{template.language} <CategoryBadge category={template.category} /></small></div>
+                    <span className={template.status === "APPROVED" ? styles.approved : styles.otherStatus}>{template.status}</span>
+                    <p>{template.components.find((part) => part.type === "BODY")?.text ?? "No text body preview"}</p>
+                  </article>
+                ))}
+              </div>
+            ) : <p className={styles.empty}>Meta returned no templates for this WABA.</p> : <p className={styles.empty}>Templates will appear after the account and token are configured and reachable.</p>}
+          </section>
+        </div>
       </div>
-    </DashboardShell>
+    </>
   );
 }

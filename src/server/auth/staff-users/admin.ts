@@ -35,14 +35,20 @@ export async function getStaffAdminAccess(): Promise<StaffAdminAccess> {
  * much faster than getStaffAdminAccess(). Anything that sends, writes or changes data must
  * keep using getStaffAdminAccess(), which asks Supabase Auth and honours revoked sessions.
  */
-export const getStaffReadAccess = cache(async (): Promise<StaffAdminAccess> => {
+export type StaffReadSession = { access: StaffAdminAccess; email: string | null; isStaff: boolean };
+
+/** Same local check as getStaffReadAccess, but also returns the signed-in email for display. */
+export const getStaffReadSession = cache(async (): Promise<StaffReadSession> => {
   const supabase = await createSessionClient();
   const { data, error } = await supabase.auth.getClaims();
   const claims = data?.claims;
-  if (error || !claims) return "signed-out";
+  if (error || !claims) return { access: "signed-out", email: null, isStaff: false };
   const email = typeof claims.email === "string" ? claims.email : undefined;
-  return isStaffAdminEmail(email) ? "allowed" : "forbidden";
+  const isStaff = (claims.app_metadata as { role?: unknown } | undefined)?.role === "staff";
+  return { access: isStaffAdminEmail(email) ? "allowed" : "forbidden", email: email ?? null, isStaff };
 });
+
+export const getStaffReadAccess = cache(async (): Promise<StaffAdminAccess> => (await getStaffReadSession()).access);
 
 export function createStaffAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

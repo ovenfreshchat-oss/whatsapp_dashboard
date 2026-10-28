@@ -1,0 +1,57 @@
+.toastRegion {
+  position: fixed; z-index: 100; right: 20px; bottom: 20px; display: grid; gap: 10px;
+  width: min(380px, calc(100vw - 32px)); margin: 0; padding: 0; list-style: none; pointer-events: none;
+}
+.toast {
+  display: flex; align-items: flex-start; gap: 12px; padding: 13px 12px 13px 14px; border: 1px solid var(--line);
+  border-left-width: 4px; border-radius: 12px; color: var(--ink); background: #fff; box-shadow: var(--shadow-lg);
+  pointer-events: auto; animation: toastIn .18s ease-out;
+}
+.success { border-left-color: var(--wa); }
+.success .toastIcon { color: var(--wa-600); }
+.error { border-left-color: var(--danger); }
+.error .toastIcon { color: var(--danger-700); }
+.info { border-left-color: var(--indigo); }
+.info .toastIcon { color: var(--indigo-700); }
+.toastIcon { flex: 0 0 auto; margin-top: 1px; }
+.toastBody { display: grid; flex: 1 1 auto; gap: 2px; min-width: 0; }
+.toastBody strong { font-size: 14px; font-weight: 700; }
+.toastBody p { color: var(--muted); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+.toastClose { display: grid; flex: 0 0 auto; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 8px; color: var(--faint); background: none; }
+.toastClose:hover { color: var(--ink); background: rgba(15, 23, 42, .07); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.dialog {
+  width: min(440px, calc(100vw - 32px)); padding: 0; border: 0; border-radius: 18px; color: var(--ink);
+  background: #fff; box-shadow: var(--shadow-lg);
+}
+.dialog::backdrop { background: rgba(15, 23, 42, .55); backdrop-filter: blur(2px); }
+.dialog[open] { animation: dialogIn .16s ease-out; }
+@keyframes dialogIn { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
+.dialogBody { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px 16px; padding: 24px; }
+.dialogIcon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; color: var(--gold-700); background: var(--gold-50); }
+.dialogIconDanger { color: var(--danger-700); background: var(--danger-50); }
+.dialogText { display: grid; gap: 6px; min-width: 0; }
+.dialogText h2 { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+.dialogDesc { color: var(--muted); font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
+.dialogActions { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+.dialogCancel, .dialogPrimary, .dialogDanger {
+  min-height: 42px; padding: 0 18px; border: 1px solid transparent; border-radius: 10px; font-size: 14px; font-weight: 600;
+}
+.dialogCancel { color: var(--ink); background: #fff; border-color: var(--line-strong); }
+.dialogCancel:hover { background: var(--sand-50); }
+.dialogPrimary { color: #fff; background: var(--coral-600); }
+.dialogPrimary:hover { background: var(--coral-700); }
+.dialogDanger { color: #fff; background: var(--danger-700); }
+.dialogDanger:hover { background: #912018; }
+.dialogCancel:focus-visible, .dialogPrimary:focus-visible, .dialogDanger:focus-visible { outline: none; box-shadow: var(--focus); }
+
+.working { display: inline-flex; align-items: center; gap: 8px; margin: 0; color: var(--muted); font-size: 14px; }
+
+@media (max-width: 700px) {
+  /* Sit above the bottom tab bar. */
+  .toastRegion { right: 16px; bottom: calc(80px + env(safe-area-inset-bottom)); left: 16px; width: auto; }
+  .dialog { margin-bottom: 16px; }
+  .dialogActions { flex-direction: column-reverse; }
+  .dialogCancel, .dialogPrimary, .dialogDanger { width: 100%; min-height: 46px; }
+}

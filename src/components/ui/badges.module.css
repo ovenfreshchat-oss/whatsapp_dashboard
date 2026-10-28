@@ -1,0 +1,19 @@
+.badge {
+  display: inline-flex; align-items: center; gap: 6px; width: fit-content; max-width: 100%;
+  padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1.5; white-space: nowrap;
+}
+.badge i { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+.marketing { color: var(--cat-marketing); background: var(--cat-marketing-bg); }
+.utility { color: var(--cat-utility); background: var(--cat-utility-bg); }
+.authentication { color: var(--cat-authentication); background: var(--cat-authentication-bg); }
+
+.neutral { color: var(--ink-700); background: #ece7d9; }
+.success { color: var(--wa-700); background: var(--wa-50); }
+.danger { color: var(--danger-700); background: var(--danger-50); }
+.warning { color: var(--gold-700); background: var(--gold-50); }
+.info { color: var(--indigo-700); background: var(--indigo-50); }
+.live { color: var(--wa-700); background: var(--wa-50); }
+.live i { animation: livePulse 1.4s ease-in-out infinite; background: var(--wa); }
+
+@keyframes livePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, .55); } 50% { box-shadow: 0 0 0 5px rgba(37, 211, 102, 0); } }

@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { randomUUID } from "node:crypto";
 import { ArrowLeft } from "lucide-react";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import {
   conversationTitle,
   formatClock,
@@ -24,7 +23,7 @@ import { ReplyForm } from "./reply-form";
 import styles from "./inbox.module.css";
 
 export const metadata: Metadata = {
-  title: "WhatsApp inbox | The Oven Fresh",
+  title: "WhatsApp inbox | Solalyn",
   description: "Read customer WhatsApp messages and reply within the 24-hour window.",
 };
 
@@ -107,7 +106,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
     else if (!replyWin.open) lockReason = "The 24-hour reply window has closed. WhatsApp only allows an approved template until the customer writes again.";
   }
 
-  return <DashboardShell label="WhatsApp inbox" showMetaSetup>
+  return <>
     <AutoRefresh />
     {!selectedId && list.ready && list.conversations[0] && <AutoSelectFirst conversationId={list.conversations[0].id} />}
     <div className={styles.content} data-inbox data-thread-open={selectedId ? "" : undefined}>
@@ -193,5 +192,5 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
         </section>
       </section>}
     </div>
-  </DashboardShell>;
+  </>;
 }

@@ -12,7 +12,7 @@
 }
 
 .button:focus-visible {
-  outline: 3px solid rgba(15, 170, 126, .3);
+  outline: 3px solid rgba(247, 73, 50, .38);
   outline-offset: 3px;
 }
 
@@ -21,16 +21,16 @@
   height: 53px;
   margin-top: 8px;
   padding: 0 19px 0 20px;
-  border: 1px solid #138c69;
+  border: 1px solid var(--coral-700);
   border-radius: 12px;
   color: #fff;
-  background: linear-gradient(120deg, #10c28f, #0c8e69);
-  box-shadow: 0 12px 26px rgba(12, 147, 109, .21), inset 0 1px rgba(255, 255, 255, .23);
-  font-size: 13px;
+  background: var(--coral-600);
+  box-shadow: 0 1px 2px rgba(201, 48, 28, .35);
+  font-size: 15px;
 }
 
 .primary:hover:not(:disabled) {
-  filter: brightness(1.06);
+  background: var(--coral-700);
 }
 
 .primary svg {
@@ -40,11 +40,11 @@
 
 .secondary {
   padding: 10px 15px;
-  border: 1px solid #d9e1ee;
+  border: 1px solid var(--line-strong);
   border-radius: 10px;
-  color: #505c7c;
-  background: rgba(255, 255, 255, .8);
-  font-size: 12px;
+  color: var(--ink);
+  background: #fff;
+  font-size: 14px;
   font-weight: 700;
 }
 

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BackLink } from "@/components/ui/back-link";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { AUDIT_PAGE_SIZE, getCampaignDetail, listExcludedRecipients, RECIPIENTS_PAGE_SIZE } from "@/server/campaigns/admin";
 import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { getCampaignWorkerReadiness } from "@/server/campaigns/worker";
@@ -11,9 +10,11 @@ import { DeleteDraftButton } from "../delete-draft";
 import { ExcludeNumbers } from "../exclude-numbers";
 import { AutoRefresh } from "../auto-refresh";
 import { RefreshButton } from "@/components/ui/refresh-button";
+import { CampaignStateBadge, CategoryBadge } from "@/components/ui/badges";
+import { categoryForCampaign, getTemplateCategories } from "@/server/campaigns/categories";
 import styles from "../campaigns.module.css";
 
-export const metadata: Metadata = { title: "Campaign review | The Oven Fresh" };
+export const metadata: Metadata = { title: "Campaign | Solalyn" };
 
 type PageProps = {
   params: Promise<{ campaignId: string }>;
@@ -67,6 +68,7 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
   const detailResult = await Promise.allSettled([getCampaignDetail(campaignId, { recipientPage, auditPage })]);
   const campaign = detailResult[0].status === "fulfilled" ? detailResult[0].value : null;
   const readiness = getCampaignWorkerReadiness();
+  const category = campaign ? categoryForCampaign(await getTemplateCategories(), campaign) : "MARKETING";
   const requestedTab = Array.isArray(query.tab) ? query.tab[0] : query.tab;
   const isDraft = campaign?.state === "draft";
   const visibleTabs = TABS.filter(([key]) => !(isDraft && key === "overview"));
@@ -79,12 +81,12 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
   const footer = campaign?.templateComponents.find((part) => part.type === "FOOTER");
   const buttons = campaign?.templateComponents.find((part) => part.type === "BUTTONS")?.buttons ?? [];
 
-  return <DashboardShell label="Campaign review" showMetaSetup>
+  return <>
     <div className={styles.content}>
       <BackLink href="/dashboard/campaigns">All campaigns</BackLink>
       {campaign ? <>
         <div className={styles.intro}>
-          <div><span className={styles.eyebrow}>CAMPAIGN / {campaign.state.toUpperCase()}</span><h1>{campaign.name}<span>.</span></h1><p>{isDraft ? "Check the message and audience, then send or schedule." : "Progress updates on its own while sending."}</p></div>
+          <div><div className={styles.badges}><CategoryBadge category={category} /><CampaignStateBadge state={campaign.state} /></div><h1>{campaign.name}</h1><p>{isDraft ? "Check the message and audience, then send or schedule." : "Progress updates on its own while sending."}</p></div>
           <div className={styles.buttonRow}>
             {isDraft && <DeleteDraftButton id={campaign.id} name={campaign.name} redirectTo="/dashboard/campaigns" label />}
             {(campaign.state === "scheduled" || campaign.state === "running") && <AutoRefresh intervalMs={5000} />}
@@ -93,7 +95,7 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
           </div>
         </div>
         {campaign.state === "draft" && <section className={`${styles.panel} ${styles.readyPanel}`} aria-labelledby="ready-heading">
-          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>LAST STEP</span><h2 id="ready-heading">Send or schedule</h2></div><span className={styles.statePill}>draft</span></div>
+          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>LAST STEP</span><h2 id="ready-heading">Send or schedule</h2></div><CampaignStateBadge state="draft" /></div>
           <div className={styles.readySummary}>
             <div><strong>{campaign.audienceCount}</strong><small>recipients</small></div>
             <div><strong>{campaign.templateName}</strong><small>{campaign.templateLanguage}</small></div>
@@ -196,5 +198,5 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
         </section>}
       </> : <section className={styles.notice}><strong>Campaign details unavailable</strong><p>Check the campaign ID and database setup, then return to the campaign list.</p></section>}
     </div>
-  </DashboardShell>;
+  </>;
 }

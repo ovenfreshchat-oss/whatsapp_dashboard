@@ -4,7 +4,7 @@
 }
 
 .field label {
-  color: #1d312b;
+  color: var(--ink);
   font-size: 12px;
   font-weight: 700;
 }
@@ -15,15 +15,15 @@
   gap: 11px;
   height: 53px;
   padding: 0 16px;
-  border: 1px solid #dce4ef;
+  border: 1px solid var(--line-strong);
   border-radius: 12px;
-  background: rgba(248, 251, 255, .9);
+  background: #fff;
   box-shadow: 0 2px 2px rgba(105, 125, 167, .02), inset 0 1px rgba(255, 255, 255, .9);
 }
 
 .inputShell:focus-within {
-  border-color: #89d4bf;
-  box-shadow: 0 0 0 4px rgba(16, 192, 142, .11), inset 0 1px rgba(255, 255, 255, .9);
+  border-color: var(--coral);
+  box-shadow: var(--focus);
 }
 
 .inputShell svg {
@@ -38,9 +38,9 @@
   min-width: 0;
   border: 0;
   outline: 0;
-  color: #162c25;
+  color: var(--ink);
   background: transparent;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .inputShell input::placeholder {
