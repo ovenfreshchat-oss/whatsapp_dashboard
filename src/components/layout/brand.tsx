@@ -30,7 +30,7 @@ export function Brand({ compact = false, showPoweredBy = true, tone = "light", c
       <span className={styles.text}>
         <strong>The Oven Fresh</strong>
         {showPoweredBy && <small className={styles.powered}>
-          <SolalynMark size={12} className={styles.poweredMark} />
+          <SolalynMark size={9} className={styles.poweredMark} />
           <span>Powered by Solalyn</span>
         </small>}
       </span>

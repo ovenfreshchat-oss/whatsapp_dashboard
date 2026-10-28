@@ -19,7 +19,7 @@ function MetricsSkeleton() {
 }
 
 export default async function DashboardPage() {
-  const { workspaceAccess } = await getStaffReadSession();
+  const { access, workspaceAccess } = await getStaffReadSession();
   if (workspaceAccess === "signed-out") redirect("/sign-in");
   const isAdmin = workspaceAccess === "allowed"; // admin or staff: may see metrics and start campaigns
   if (!isAdmin) redirect("/access-denied");
@@ -32,6 +32,7 @@ export default async function DashboardPage() {
           <p>Your WhatsApp contacts, campaigns and delivery at a glance.</p>
         </div>
         {isAdmin && <div className={styles.headerActions}>
+          {access === "allowed" && <Link href="/dashboard/metrics/adjust" className={`${ui.btn} ${ui.btnSecondary}`}>Adjust totals</Link>}
           <Link href="/dashboard/inbox" className={`${ui.btn} ${ui.btnSecondary}`}><Inbox size={16} aria-hidden="true" />Open inbox</Link>
           <Link href="/dashboard/campaigns?view=new" className={`${ui.btn} ${ui.btnPrimary}`}><Plus size={16} aria-hidden="true" />New campaign</Link>
         </div>}

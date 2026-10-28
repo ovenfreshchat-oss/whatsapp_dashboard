@@ -1,0 +1,11 @@
+.content { display: grid; gap: 16px; padding: 15px 12px 28px; max-width: 760px; }
+.intro h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: -.03em; }
+.intro p { margin: 0; color: #61708b; font-size: 14px; line-height: 1.6; max-width: 62ch; }
+.card { padding: 20px; border: 1px solid rgba(15, 23, 42, .08); border-radius: 16px; background: #fff; }
+.form { display: grid; gap: 14px; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 16px; align-items: end; padding-bottom: 14px; border-bottom: 1px solid rgba(15, 23, 42, .06); }
+.rowText { display: grid; gap: 3px; }
+.rowText small { color: #61708b; font-size: 12px; }
+.error { margin: 0; color: #b42318; font-size: 13px; font-weight: 600; }
+.success { margin: 0; color: #067647; font-size: 13px; font-weight: 600; }
+@media (max-width: 600px) { .row { grid-template-columns: 1fr; } }

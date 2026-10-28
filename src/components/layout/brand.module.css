@@ -7,5 +7,5 @@
 .compact .text strong { font-size: 18px; }
 .dark { color: #fff; }
 .dark .text small { color: #94a3b8; }
-.powered { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; letter-spacing: .02em; text-transform: none; }
-.poweredMark { border-radius: 4px; }
+.text .powered { display: inline-flex; align-items: center; gap: 4px; font-size: 9px; font-weight: 500; letter-spacing: .02em; text-transform: none; opacity: .85; }
+.poweredMark { border-radius: 3px; }
