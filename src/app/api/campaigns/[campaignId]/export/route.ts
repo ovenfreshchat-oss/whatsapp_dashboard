@@ -1,4 +1,4 @@
-import { getStaffAdminAccess } from "@/server/auth/staff-users/admin";
+import { getWorkspaceAccess } from "@/server/auth/staff-users/admin";
 import { assertCampaignId, getCampaignStore } from "@/server/campaigns/store";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ function cell(value: unknown): string {
 }
 
 export async function GET(_request: Request, context: { params: Promise<{ campaignId: string }> }) {
-  if (await getStaffAdminAccess() !== "allowed") return new Response("Forbidden", { status: 403 });
+  if (await getWorkspaceAccess() !== "allowed") return new Response("Forbidden", { status: 403 });
   const { campaignId } = await context.params;
   try { assertCampaignId(campaignId); } catch { return new Response("Not found", { status: 404 }); }
   const store = getCampaignStore();

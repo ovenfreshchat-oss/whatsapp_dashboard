@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createStaffAdminClient, getStaffAdminAccess } from "@/server/auth/staff-users/admin";
+import { createStaffAdminClient, getWorkspaceAccess } from "@/server/auth/staff-users/admin";
 
 export type ConsentReviewState = { error: string; success: string };
 
@@ -10,7 +10,7 @@ export async function reviewImportedConsentClaim(
   _previous: ConsentReviewState,
   form: FormData,
 ): Promise<ConsentReviewState> {
-  if (await getStaffAdminAccess() !== "allowed") {
+  if (await getWorkspaceAccess() !== "allowed") {
     return { error: "Only a workspace admin can review consent.", success: "" };
   }
   const eventId = form.get("eventId");

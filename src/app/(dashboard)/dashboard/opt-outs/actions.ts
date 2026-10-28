@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createStaffAdminClient, getStaffAdminAccess } from "@/server/auth/staff-users/admin";
+import { createStaffAdminClient, getWorkspaceAccess } from "@/server/auth/staff-users/admin";
 import { parseOptOutInput } from "@/server/opt-outs/parse";
 
 export type OptOutState = { error: string; success: string };
@@ -11,7 +11,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_INPUT_CHARS = 200_000;
 
 async function adminActor() {
-  if (await getStaffAdminAccess() !== "allowed") return null;
+  if (await getWorkspaceAccess() !== "allowed") return null;
   const session = await createClient();
   const { data, error } = await session.auth.getUser();
   const admin = createStaffAdminClient();

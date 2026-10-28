@@ -1,4 +1,4 @@
-import { getStaffAdminAccess } from "@/server/auth/staff-users/admin";
+import { getWorkspaceAccess } from "@/server/auth/staff-users/admin";
 
 const MAX_IMPORT_REQUEST_BYTES = 6 * 1024 * 1024;
 
@@ -23,7 +23,7 @@ export async function authorizeImportRequest(request: Request): Promise<void> {
     if (error instanceof ImportRequestError) throw error;
     throw new ImportRequestError("Request origin is invalid.", 403);
   }
-  if (await getStaffAdminAccess() !== "allowed") {
+  if (await getWorkspaceAccess() !== "allowed") {
     throw new ImportRequestError("Only a workspace admin can import contacts.", 403);
   }
 }

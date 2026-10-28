@@ -81,6 +81,28 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
   const footer = campaign?.templateComponents.find((part) => part.type === "FOOTER");
   const buttons = campaign?.templateComponents.find((part) => part.type === "BUTTONS")?.buttons ?? [];
 
+  // The one and only preview of the message: header, rendered body, footer and buttons.
+  // Drafts show it in the "Send or schedule" card; sent campaigns show it in the Message tab.
+  const messagePreview = campaign ? <div className={styles.messagePreview}>
+    {header && <div className={styles.componentReview}>
+      <strong>Header {header.format ? `(${header.format})` : ""}</strong>
+      {header.format === "IMAGE" ? (
+        campaign.headerMediaUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={campaign.headerMediaUrl} alt="Header preview" className={styles.headerImagePreview} />
+        ) : <p>No header image provided</p>
+      ) : <p>{header.text || "No header text"}</p>}
+    </div>}
+    <div className={styles.renderedPreview}><strong>Message preview</strong><p>{review?.rendered}</p></div>
+    {footer && <div className={styles.componentReview}><strong>Footer</strong><p>{footer.text || "No footer text"}</p></div>}
+    {buttons.length > 0 && <div className={styles.componentReview}>
+      <strong>Buttons</strong>
+      <ul>{buttons.map((button, index) => <li key={index}>
+        {button.text || button.type || "Button"}{button.url ? ` · ${button.url}` : ""}{button.phoneNumber ? ` · ${button.phoneNumber}` : ""}
+      </li>)}</ul>
+    </div>}
+  </div> : null;
+
   return <>
     <div className={styles.content}>
       <BackLink href="/dashboard/campaigns">All campaigns</BackLink>
@@ -100,7 +122,7 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
             <div><strong>{campaign.audienceCount}</strong><small>recipients</small></div>
             <div><strong>{campaign.templateName}</strong><small>{campaign.templateLanguage}</small></div>
           </div>
-          <div className={styles.renderedPreview}><strong>Message preview</strong><p>{review?.rendered}</p></div>
+          {messagePreview}
           <ExcludeNumbers campaignId={campaign.id} excluded={excluded} />
           <CampaignControls id={campaign.id} state={campaign.state} audienceCount={campaign.audienceCount} audienceSourceLabel={campaign.audienceSourceLabel} reviewSha256={campaign.reviewSha256} />
           {!readiness.enabled && <div className={styles.formNote}><strong>Worker readiness</strong><p>{readiness.reason}</p></div>}
@@ -137,44 +159,12 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
         </>}
 
         {tab === "message" && <section className={styles.panel} aria-labelledby="message-review-heading">
-          <div className={styles.panelHeading}><div><h2 id="message-review-heading">Message to send</h2></div><span>{campaign.templateLanguage}</span></div>
-          <div className={styles.messageGrid}>
-            <div>
-              {header && <div className={styles.componentReview}>
-                <strong>Header {header.format ? `(${header.format})` : ""}</strong>
-                {header.format === "IMAGE" ? (
-                  <div>
-                    {campaign.headerMediaUrl ? (
-                      <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={campaign.headerMediaUrl} alt="Header Preview" className={styles.headerImagePreview} />
-                      </>
-                    ) : (
-                      <p>No header image provided</p>
-                    )}
-                  </div>
-                ) : (
-                  <p>{header.text || "No header text"}</p>
-                )}
-              </div>}
-              <div className={styles.renderedPreview}><strong>Rendered message</strong><p>{review?.rendered}</p></div>
-              {footer && <div className={styles.componentReview}><strong>Footer</strong><p>{footer.text || "No footer text"}</p></div>}
-              {buttons.length > 0 && <div className={styles.componentReview}>
-                <strong>Buttons</strong>
-                <ul>{buttons.map((button, index) => <li key={index}>
-                  {button.text || button.type || "Button"}{button.url ? ` · ${button.url}` : ""}{button.phoneNumber ? ` · ${button.phoneNumber}` : ""}
-                </li>)}</ul>
-              </div>}
-            </div>
-            <div>
-              <p className={styles.helper}>Stored approved template body</p>
-              <div className={styles.templatePreview}><p>{campaign.templateBody}</p></div>
-              {campaign.bodyParameters.length ? <dl className={styles.parameterList}>
-                {campaign.bodyParameters.map((value, index) => <div key={index}><dt>{`{{${review?.keys[index] ?? index + 1}}}`}</dt><dd>{value}</dd></div>)}
-              </dl> : <p className={styles.helper}>This body has no variables.</p>}
-              <p className={styles.helper}>All recipients receive the same values.</p>
-            </div>
-          </div>
+          <div className={styles.panelHeading}><div><h2 id="message-review-heading">{isDraft ? "Message values" : "Message to send"}</h2></div><span>{campaign.templateLanguage}</span></div>
+          {!isDraft && messagePreview}
+          {campaign.bodyParameters.length ? <dl className={styles.parameterList}>
+            {campaign.bodyParameters.map((value, index) => <div key={index}><dt>{`{{${review?.keys[index] ?? index + 1}}}`}</dt><dd>{value}</dd></div>)}
+          </dl> : <p className={styles.helper}>This body has no variables.</p>}
+          <p className={styles.helper}>All recipients receive the same values.</p>
         </section>}
 
         {tab === "audience" && <section className={styles.panel} aria-labelledby="audience-review-heading">

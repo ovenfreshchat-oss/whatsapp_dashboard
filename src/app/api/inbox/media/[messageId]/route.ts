@@ -1,4 +1,4 @@
-import { createStaffAdminClient, getStaffAdminAccess } from "@/server/auth/staff-users/admin";
+import { createStaffAdminClient, getWorkspaceAccess } from "@/server/auth/staff-users/admin";
 import { MEDIA_KINDS } from "@/server/inbox/store";
 import { getConfiguredMetaIdentifiers, getMetaConfigurationStatus } from "@/server/meta/client";
 import { fetchMetaMedia } from "@/server/meta/media";
@@ -12,7 +12,7 @@ function fail(status: number, message: string): Response {
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ messageId: string }> }): Promise<Response> {
-  if (await getStaffAdminAccess() !== "allowed") return fail(403, "Not allowed");
+  if (await getWorkspaceAccess() !== "allowed") return fail(403, "Not allowed");
   const { messageId } = await params;
   if (!UUID.test(messageId)) return fail(404, "Not found");
   const admin = createStaffAdminClient();

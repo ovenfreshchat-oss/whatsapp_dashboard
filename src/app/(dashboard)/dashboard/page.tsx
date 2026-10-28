@@ -19,10 +19,10 @@ function MetricsSkeleton() {
 }
 
 export default async function DashboardPage() {
-  const { access, isStaff } = await getStaffReadSession();
-  if (access === "signed-out") redirect("/sign-in");
-  const isAdmin = access === "allowed";
-  if (!isStaff && !isAdmin) redirect("/access-denied");
+  const { workspaceAccess } = await getStaffReadSession();
+  if (workspaceAccess === "signed-out") redirect("/sign-in");
+  const isAdmin = workspaceAccess === "allowed"; // admin or staff: may see metrics and start campaigns
+  if (!isAdmin) redirect("/access-denied");
 
   return (
     <div className={styles.content}>
@@ -40,7 +40,7 @@ export default async function DashboardPage() {
       {isAdmin && <Suspense fallback={null}><QualityBanner /></Suspense>}
 
       {isAdmin ? <Suspense fallback={<MetricsSkeleton />}><MetricsSection /></Suspense>
-        : <p className={ui.notice}>Metrics are available to workspace admins.</p>}
+        : <p className={ui.notice}>Metrics are available to workspace members.</p>}
 
       {isAdmin && <Suspense fallback={<div className={`${ui.skeleton} ${styles.lastSkeleton}`} aria-busy="true" aria-label="Loading last campaign" />}>
         <LastCampaignSection />

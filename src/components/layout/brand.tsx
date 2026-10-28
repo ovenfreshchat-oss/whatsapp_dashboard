@@ -1,8 +1,10 @@
+import Image from "next/image";
 import styles from "./brand.module.css";
 
 type BrandProps = {
   compact?: boolean;
-  showTagline?: boolean;
+  /** Small "Powered by Solalyn" line under the name. */
+  showPoweredBy?: boolean;
   /** "dark" is for the Ink sidebar; "light" for white and sand surfaces. */
   tone?: "dark" | "light";
   className?: string;
@@ -19,13 +21,18 @@ export function SolalynMark({ size = 40, className = "" }: { size?: number; clas
   );
 }
 
-export function Brand({ compact = false, showTagline = true, tone = "light", className = "" }: BrandProps) {
+/** The Oven Fresh logo is the main brand; Solalyn appears only as a small credit line. */
+export function Brand({ compact = false, showPoweredBy = true, tone = "light", className = "" }: BrandProps) {
+  const size = compact ? 36 : 44;
   return (
     <div className={[styles.brand, compact ? styles.compact : "", tone === "dark" ? styles.dark : "", className].filter(Boolean).join(" ")}>
-      <SolalynMark size={compact ? 36 : 44} className={styles.mark} />
+      <Image src="/icons/oven-fresh-logo.png" alt="The Oven Fresh" width={size} height={size} priority className={styles.logo} />
       <span className={styles.text}>
-        <strong>Solalyn</strong>
-        {showTagline && <small>WhatsApp Business</small>}
+        <strong>The Oven Fresh</strong>
+        {showPoweredBy && <small className={styles.powered}>
+          <SolalynMark size={12} className={styles.poweredMark} />
+          <span>Powered by Solalyn</span>
+        </small>}
       </span>
     </div>
   );

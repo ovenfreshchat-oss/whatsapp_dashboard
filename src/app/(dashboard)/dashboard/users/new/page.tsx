@@ -43,7 +43,7 @@ export default function NewStaffUserPage() {
               <div className={styles.infoGlow} aria-hidden="true" />
               <span className={styles.infoLabel}>DIRECT ACCESS</span>
               <h2>Ready when<br /><em>they are.</em></h2>
-              <p>The account is created here. Your teammate can sign in with the email and password you set.</p>
+              <p>Staff can send campaigns, add and import contacts, manage opt-outs and reply in the inbox. Team, WhatsApp setup and templates stay admin-only.</p>
               <div className={styles.infoDivider} />
               <ul className={styles.infoList}>
                 <li><span>01</span><div><strong>Create the account</strong><small>Use their work email address.</small></div></li>

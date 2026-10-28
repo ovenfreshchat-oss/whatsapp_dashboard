@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createStaffAdminClient, getStaffAdminAccess } from "@/server/auth/staff-users/admin";
+import { createStaffAdminClient, getWorkspaceAccess } from "@/server/auth/staff-users/admin";
 
 export type BatchReviewState = { error: string; success: string };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -11,7 +11,7 @@ export async function reviewImportedConsentBatch(
   _previous: BatchReviewState,
   form: FormData,
 ): Promise<BatchReviewState> {
-  if (await getStaffAdminAccess() !== "allowed") {
+  if (await getWorkspaceAccess() !== "allowed") {
     return { error: "Only a workspace admin can review consent.", success: "" };
   }
   const batchId = form.get("batchId");

@@ -1,5 +1,5 @@
 import { getConfiguredMetaIdentifiers, metaGraphGet } from "@/server/meta/client";
-import { requireAdminActor } from "./admin";
+import { requireWorkspaceActor } from "./admin";
 import { assertCampaignId, CampaignStoreError, getCampaignStore } from "./store";
 
 export type CampaignAnalytics = {
@@ -27,7 +27,7 @@ const str = (value: unknown) => (typeof value === "string" ? value : null);
 const rows = (value: unknown): Row[] => (Array.isArray(value) ? value.filter((v): v is Row => !!v && typeof v === "object") : []);
 
 export async function getCampaignAnalytics(id: string): Promise<CampaignAnalytics> {
-  await requireAdminActor();
+  await requireWorkspaceActor();
   assertCampaignId(id);
   const store = getCampaignStore();
   const [campaignResult, analyticsResult] = await Promise.all([

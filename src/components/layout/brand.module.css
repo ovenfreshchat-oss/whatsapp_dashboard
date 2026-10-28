@@ -1,5 +1,5 @@
 .brand { display: flex; align-items: center; gap: 12px; color: var(--ink); }
-.mark { flex: 0 0 auto; border-radius: 12px; box-shadow: 0 6px 14px rgba(247, 73, 50, .28); }
+.logo { flex: 0 0 auto; border-radius: 12px; background: #000; object-fit: cover; box-shadow: 0 6px 14px rgba(15, 23, 42, .22); }
 .text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .text strong { font-size: 19px; font-weight: 800; letter-spacing: -.035em; line-height: 1.1; }
 .text small { color: var(--faint); font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
@@ -7,3 +7,5 @@
 .compact .text strong { font-size: 18px; }
 .dark { color: #fff; }
 .dark .text small { color: #94a3b8; }
+.powered { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; letter-spacing: .02em; text-transform: none; }
+.poweredMark { border-radius: 4px; }

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getStaffAdminAccess } from "@/server/auth/staff-users/admin";
+import { getWorkspaceAccess } from "@/server/auth/staff-users/admin";
 import {
   CampaignAccessError,
   CampaignInputError,
@@ -26,7 +26,7 @@ export type CampaignActionState = { error: string; success: string };
 const SEND_NOW_DELAY_MS = 20_000;
 
 function safeError(error: unknown): string {
-  if (error instanceof CampaignAccessError) return "Only an admin can do this.";
+  if (error instanceof CampaignAccessError) return "You don't have permission to do this.";
   if (error instanceof CampaignInputError || error instanceof CampaignStoreError ||
       error instanceof MetaApiError) return error.message;
   return "Something went wrong. Please try again, and contact support if it keeps happening.";
@@ -36,8 +36,8 @@ export async function createCampaignDraftAction(
   _previous: CampaignActionState,
   formData: FormData,
 ): Promise<CampaignActionState> {
-  if (await getStaffAdminAccess() !== "allowed") {
-    return { error: "Only an admin can do this.", success: "" };
+  if (await getWorkspaceAccess() !== "allowed") {
+    return { error: "You don't have permission to do this.", success: "" };
   }
   const name = formData.get("name");
   const templateKey = formData.get("templateKey");
@@ -88,7 +88,7 @@ export async function createCampaignDraftAction(
 }
 
 export async function deleteDraftCampaignAction(campaignId: string): Promise<{ error: string }> {
-  if (await getStaffAdminAccess() !== "allowed") return { error: "Only an admin can do this." };
+  if (await getWorkspaceAccess() !== "allowed") return { error: "You don't have permission to do this." };
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(campaignId)) return { error: "Invalid campaign." };
   try {
     await deleteDraftCampaign(campaignId);
@@ -105,8 +105,8 @@ export async function transitionCampaignAction(
   _previous: CampaignActionState,
   formData: FormData,
 ): Promise<CampaignActionState> {
-  if (await getStaffAdminAccess() !== "allowed") {
-    return { error: "Only an admin can do this.", success: "" };
+  if (await getWorkspaceAccess() !== "allowed") {
+    return { error: "You don't have permission to do this.", success: "" };
   }
   const intent = formData.get("intent");
   try {
@@ -169,8 +169,8 @@ export async function excludeRecipientsAction(
   _previous: CampaignActionState,
   formData: FormData,
 ): Promise<CampaignActionState> {
-  if (await getStaffAdminAccess() !== "allowed") {
-    return { error: "Only an admin can do this.", success: "" };
+  if (await getWorkspaceAccess() !== "allowed") {
+    return { error: "You don't have permission to do this.", success: "" };
   }
   const intent = formData.get("intent");
   try {

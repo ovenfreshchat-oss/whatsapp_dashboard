@@ -140,7 +140,7 @@
 .storyCopy h1 {
   margin: 23px 0 18px;
   color: #101f1b;
-  font-size: clamp(43px, 4.3vw, 61px);
+  font-size: clamp(36px, 3.6vw, 52px);
   font-weight: 760;
   letter-spacing: -0.075em;
   line-height: 1.04;
@@ -153,8 +153,10 @@
   -webkit-text-fill-color: transparent;
 }
 
+.storyCopy p + p { margin-top: 12px; }
+
 .storyCopy p {
-  max-width: 390px;
+  max-width: 430px;
   margin: 0;
   color: #61708b;
   font-size: 14px;

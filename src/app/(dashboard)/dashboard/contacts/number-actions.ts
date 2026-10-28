@@ -1,13 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createStaffAdminClient, getStaffAdminAccess } from "@/server/auth/staff-users/admin";
+import { createStaffAdminClient, getWorkspaceAccess } from "@/server/auth/staff-users/admin";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export type ActiveResult = { error: string; changed: number };
 
 async function admin() {
-  if (await getStaffAdminAccess() !== "allowed") return null;
+  if (await getWorkspaceAccess() !== "allowed") return null;
   return createStaffAdminClient();
 }
 

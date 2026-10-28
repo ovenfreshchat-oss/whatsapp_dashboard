@@ -3,17 +3,18 @@
 import { useEffect, useState } from "react";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Megaphone, MessageSquare, PlugZap, Loader2, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Users, Megaphone, MessageSquare, PlugZap, UserPlus, Loader2, type LucideIcon } from "lucide-react";
 import styles from "./dashboard-shell.module.css";
 
-type Item = { href: string; icon: LucideIcon; label: string; short?: string; match: string[]; adminOnly?: boolean };
+type Item = { href: string; icon: LucideIcon; label: string; short?: string; match: string[]; access?: "work" | "admin" };
 
 const ITEMS: Item[] = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", match: [] },
-  { href: "/dashboard/contacts", icon: Users, label: "Contacts", match: ["/dashboard/contacts", "/dashboard/opt-outs"], adminOnly: true },
-  { href: "/dashboard/campaigns", icon: Megaphone, label: "Campaigns", match: ["/dashboard/campaigns", "/dashboard/templates"], adminOnly: true },
-  { href: "/dashboard/inbox", icon: MessageSquare, label: "Inbox", match: ["/dashboard/inbox"], adminOnly: true },
-  { href: "/dashboard/meta", icon: PlugZap, label: "WhatsApp setup", short: "Setup", match: ["/dashboard/meta"], adminOnly: true },
+  { href: "/dashboard/contacts", icon: Users, label: "Contacts", match: ["/dashboard/contacts", "/dashboard/opt-outs"], access: "work" },
+  { href: "/dashboard/campaigns", icon: Megaphone, label: "Campaigns", match: ["/dashboard/campaigns", "/dashboard/templates"], access: "work" },
+  { href: "/dashboard/inbox", icon: MessageSquare, label: "Inbox", match: ["/dashboard/inbox"], access: "work" },
+  { href: "/dashboard/meta", icon: PlugZap, label: "WhatsApp setup", short: "Setup", match: ["/dashboard/meta"], access: "admin" },
+  { href: "/dashboard/users/new", icon: UserPlus, label: "Team", match: ["/dashboard/users"], access: "admin" },
 ];
 
 function isActive(item: Item, pathname: string) {
@@ -33,14 +34,14 @@ function NavIcon({ icon: Icon }: { icon: LucideIcon }) {
  * Highlights the tapped item immediately, before the next page has loaded, so a click always
  * feels instant. The highlight follows the real URL once navigation finishes.
  */
-export function NavLinks({ showAdminLinks }: { showAdminLinks: boolean }) {
+export function NavLinks({ isAdmin, canWork }: { isAdmin: boolean; canWork: boolean }) {
   const pathname = usePathname();
   const [clicked, setClicked] = useState<string | null>(null);
   useEffect(() => setClicked(null), [pathname]);
   const current = clicked ?? pathname;
 
   return <>
-    {ITEMS.filter((item) => showAdminLinks || !item.adminOnly).map((item) => {
+    {ITEMS.filter((item) => !item.access || (item.access === "admin" ? isAdmin : canWork)).map((item) => {
       const active = isActive(item, current);
       return <Link
         key={item.href}

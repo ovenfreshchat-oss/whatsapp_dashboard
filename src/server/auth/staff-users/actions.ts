@@ -25,7 +25,7 @@ export async function createStaffUser(
     return { error: "Enter an email address and matching passwords.", success: "" };
   }
 
-  const email = rawEmail.trim();
+  const email = rawEmail.trim().toLowerCase();
   if (
     email.length > 320 ||
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||

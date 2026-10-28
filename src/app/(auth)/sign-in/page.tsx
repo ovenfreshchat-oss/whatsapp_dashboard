@@ -52,8 +52,9 @@ export default function SignInPage() {
 
           <div className={styles.storyCopy}>
             <span className={styles.eyebrow}><span className={styles.eyebrowDot} /> A NEW WAY TO STAY CONNECTED</span>
-            <h1>Good moments<br />are meant to<br /><em>be shared.</em></h1>
-            <p>A calm home for thoughtful customer conversations, from your first idea to every message that matters.</p>
+            <h1>Every conversation.<br /><em>One connected workspace.</em></h1>
+            <p>A smarter way to manage customer conversations, automate communication, and build stronger business relationships through WhatsApp.</p>
+            <p>From everyday messages to automated workflows, bring your customer communication together in one place.</p>
           </div>
 
           <div className={styles.previewStage} aria-hidden="true">
@@ -89,7 +90,7 @@ export default function SignInPage() {
           </header>
 
           <div className={styles.formContent}>
-            <div className={styles.mobileBrand}><Brand compact showTagline={false} /></div>
+            <div className={styles.mobileBrand}><Brand compact /></div>
             <span className={styles.sectionLabel}>STAFF PORTAL</span>
             <h2>Welcome<br /><span>back.</span></h2>
             <p className={styles.formIntro}>Sign in to continue to your campaign workspace.</p>

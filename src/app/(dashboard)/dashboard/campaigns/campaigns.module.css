@@ -209,3 +209,5 @@
   .campaignSide { justify-items: start; text-align: left; }
 }
 @media (prefers-reduced-motion: reduce) { .liveDotBusy { animation: none; } }
+
+.messagePreview { display: grid; gap: 12px; max-width: 480px; }

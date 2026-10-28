@@ -7,7 +7,7 @@ import { getStaffReadSession } from "@/server/auth/staff-users/admin";
  * moving between sections no longer rebuilds the sidebar or flashes a page-wide skeleton.
  */
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { access, email } = await getStaffReadSession();
-  if (access === "signed-out") redirect("/sign-in");
-  return <DashboardShell showMetaSetup={access === "allowed"} email={email}>{children}</DashboardShell>;
+  const { access, workspaceAccess, email } = await getStaffReadSession();
+  if (workspaceAccess === "signed-out") redirect("/sign-in");
+  return <DashboardShell isAdmin={access === "allowed"} canWork={workspaceAccess === "allowed"} email={email}>{children}</DashboardShell>;
 }

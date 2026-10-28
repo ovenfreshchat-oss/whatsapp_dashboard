@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { createClient as createSessionClient } from "@/lib/supabase/server";
-import { isStaffAdminEmail } from "@/server/auth/staff-users/admin";
+import { getWorkspaceRole } from "@/server/auth/staff-users/admin";
 import { getConfiguredMetaIdentifiers, getMetaAccountHealth } from "@/server/meta/client";
 import {
   assertApprovedMarketingTemplate,
@@ -35,12 +35,13 @@ export class CampaignInputError extends Error {
   }
 }
 
-// Cached per request: one page render calls this several times, but Supabase Auth is asked once.
-export const requireAdminActor = cache(async (): Promise<string> => {
+// Admin or staff may work with campaigns. Cached per request: one page render calls this several
+// times, but Supabase Auth is asked once.
+export const requireWorkspaceActor = cache(async (): Promise<string> => {
   const session = await createSessionClient();
   const { data, error } = await session.auth.getUser();
   const user = data.user;
-  if (error || !user?.email_confirmed_at || !isStaffAdminEmail(user.email)) {
+  if (error || !user?.email_confirmed_at || !getWorkspaceRole(user)) {
     throw new CampaignAccessError();
   }
   return user.id;
@@ -92,7 +93,7 @@ export type CreateCampaignDraftInput = {
 export async function createCampaignDraft(
   input: CreateCampaignDraftInput,
 ): Promise<CampaignSummary> {
-  const actorId = await requireAdminActor();
+  const actorId = await requireWorkspaceActor();
   const name = input.name?.trim();
   if (!name || name.length > 120) throw new CampaignInputError("Enter a campaign name (up to 120 characters).");
   if (!/^[a-z0-9_]{1,512}$/.test(input.templateName) ||
@@ -188,7 +189,7 @@ async function transition(
   scheduledFor: string | null = null,
   review: CampaignReviewAcknowledgment | null = null,
 ): Promise<CampaignSummary> {
-  const actorId = await requireAdminActor();
+  const actorId = await requireWorkspaceActor();
   assertCampaignId(id);
   if (action === "schedule") {
     if (!review?.acknowledged || !Number.isSafeInteger(review.audienceCount) ||
@@ -244,7 +245,7 @@ export async function cancelCampaign(id: string) {
 
 /** Deletes a draft that was never scheduled. Any other state is refused by the database. */
 export async function deleteDraftCampaign(id: string): Promise<void> {
-  await requireAdminActor();
+  await requireWorkspaceActor();
   const store = getCampaignStore();
   const { error } = await store.rpc("delete_draft_campaign", { p_campaign_id: id });
   if (error) {
@@ -257,7 +258,7 @@ export async function deleteDraftCampaign(id: string): Promise<void> {
 export const CAMPAIGNS_PAGE_SIZE = 10;
 
 export async function listCampaigns(page = 1): Promise<{ items: CampaignSummary[]; total: number }> {
-  await requireAdminActor();
+  await requireWorkspaceActor();
   const store = getCampaignStore();
   const from = (Math.max(1, page) - 1) * CAMPAIGNS_PAGE_SIZE;
   const { data, error, count } = await store.from("whatsapp_campaigns")
@@ -277,7 +278,7 @@ export type CampaignImportBatchOption = {
 };
 
 export async function listCampaignImportBatches(): Promise<CampaignImportBatchOption[]> {
-  await requireAdminActor();
+  await requireWorkspaceActor();
   const store = getCampaignStore();
   const { data, error } = await store.from("contact_import_batches")
     .select("id,file_name,created_at,accepted_rows,pending_claims")
@@ -299,7 +300,7 @@ export async function getCampaignDetail(
   id: string,
   pages: { recipientPage?: number; auditPage?: number } = {},
 ): Promise<CampaignDetail & { recipientTotal: number; auditTotal: number }> {
-  await requireAdminActor();
+  await requireWorkspaceActor();
   assertCampaignId(id);
   const store = getCampaignStore();
   const recipientFrom = (Math.max(1, pages.recipientPage ?? 1) - 1) * RECIPIENTS_PAGE_SIZE;
@@ -367,7 +368,7 @@ export function parsePastedPhones(text: string): { phones: string[]; invalid: st
 export async function setCampaignExclusions(
   id: string, phones: string[] | null, restore: boolean,
 ): Promise<{ changed: number; audienceCount: number }> {
-  await requireAdminActor();
+  await requireWorkspaceActor();
   assertCampaignId(id);
   const { data, error } = await getCampaignStore().rpc("set_campaign_recipient_exclusions", {
     p_campaign_id: id, p_phones: phones, p_restore: restore,
@@ -382,7 +383,7 @@ export async function setCampaignExclusions(
 }
 
 export async function listExcludedRecipients(id: string): Promise<{ phone: string; name: string | null }[]> {
-  await requireAdminActor();
+  await requireWorkspaceActor();
   assertCampaignId(id);
   const store = getCampaignStore();
   const { data, error } = await store.from("whatsapp_campaign_recipients")

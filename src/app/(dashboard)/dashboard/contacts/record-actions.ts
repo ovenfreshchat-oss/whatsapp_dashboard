@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createStaffAdminClient, getStaffAdminAccess } from "@/server/auth/staff-users/admin";
+import { createStaffAdminClient, getWorkspaceAccess } from "@/server/auth/staff-users/admin";
 
 export type RecordConsentState = { error: string; success: string };
 
@@ -13,7 +13,7 @@ export async function recordContactConsent(
   _previous: RecordConsentState,
   form: FormData,
 ): Promise<RecordConsentState> {
-  if (await getStaffAdminAccess() !== "allowed") {
+  if (await getWorkspaceAccess() !== "allowed") {
     return { error: "Only a workspace admin can record consent.", success: "" };
   }
   const id = form.get("contactId");

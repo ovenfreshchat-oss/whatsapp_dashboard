@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createStaffAdminClient, isStaffAdminEmail } from "@/server/auth/staff-users/admin";
+import { createStaffAdminClient, getWorkspaceRole } from "@/server/auth/staff-users/admin";
 import { isUuid, replyErrorMessage } from "@/server/inbox/format";
 import { getMetaConfigurationStatus, MetaApiError } from "@/server/meta/client";
 import {
@@ -49,8 +49,8 @@ export async function POST(request: Request): Promise<Response> {
   const session = await createClient();
   const { data: userData, error: authError } = await session.auth.getUser();
   const staff = userData?.user ?? null;
-  if (authError || !staff || !staff.email_confirmed_at || !isStaffAdminEmail(staff.email)) {
-    return keep("Only a workspace admin can reply.", 403);
+  if (authError || !staff || !staff.email_confirmed_at || !getWorkspaceRole(staff)) {
+    return keep("You don't have permission to reply.", 403);
   }
   if (!getMetaConfigurationStatus().configured) return keep("Complete the Meta server configuration before replying.", 503);
   if (!isUuid(conversationId) || !isUuid(clientToken)) return rotated("The reply form was invalid. Refresh and try again.");
