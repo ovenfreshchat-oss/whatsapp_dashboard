@@ -48,7 +48,4 @@ async function fetchMetrics(): Promise<WorkspaceMetrics | null> {
  * Eight count queries plus a Meta lookup ran on every dashboard visit. The numbers are the same
  * for every admin, so they are shared and refreshed every 30 seconds instead.
  */
-/** Uncached counts, for saving manual adjustments against the exact current numbers. */
-export const getLiveMetrics = fetchMetrics;
-
 export const getWorkspaceMetrics = unstable_cache(fetchMetrics, ["workspace-metrics"], { revalidate: 30 });

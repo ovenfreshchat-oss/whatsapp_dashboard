@@ -6,7 +6,6 @@ import {
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { getCampaignAnalytics } from "@/server/campaigns/analytics";
 import { estimateCost, getMetaBilledCost, getRateCard, listCampaignPhones } from "@/server/campaigns/pricing";
-import { getMetricAdjustments } from "@/server/dashboard/adjustments";
 import { getWorkspaceMetrics } from "@/server/dashboard/metrics";
 import { getMetaAccountHealthCached } from "@/server/meta/cached";
 import { CampaignStateBadge, CategoryBadge } from "@/components/ui/badges";
@@ -46,20 +45,19 @@ function MetricCard({ label, value, detail, icon: Icon, tone }: { label: string;
 const show = (value: number | null) => (value === null ? "—" : value.toLocaleString("en-US"));
 
 export async function MetricsSection() {
-  const [metrics, adjustments] = await Promise.all([getWorkspaceMetrics(), getMetricAdjustments()]);
-  // Database count + the admin's manual baseline for messages sent outside the dashboard.
-  const totalSent = metrics?.campaignSent == null ? null : metrics.campaignSent + (metrics.replySent ?? 0) + adjustments.messages_sent;
-  const totalDelivered = metrics?.campaignDelivered == null ? null : metrics.campaignDelivered + (metrics.replyDelivered ?? 0) + adjustments.messages_delivered;
+  const metrics = await getWorkspaceMetrics();
+  const totalSent = metrics?.campaignSent == null ? null : metrics.campaignSent + (metrics.replySent ?? 0);
+  const totalDelivered = metrics?.campaignDelivered == null ? null : metrics.campaignDelivered + (metrics.replyDelivered ?? 0);
   const deliveredShare = totalSent && totalDelivered !== null ? `${Math.round((totalDelivered / totalSent) * 100)}% of sent` : "Campaigns and inbox replies";
   const categories = metrics?.categories ?? null;
-  const metaNote = categories ? "Delivered, per Meta (12 months)" : "Not available from Meta yet";
+  const metaNote = categories ? "Delivered, per Meta (12 months)" : null;
 
   return (
     <>
       <section aria-label="Workspace metrics" className={styles.metricGrid}>
         <MetricCard tone="indigo" icon={Users} label="Contacts" value={show(metrics?.contacts ?? null)}
           detail={metrics?.contacts == null ? "Database setup needed" : "Saved numbers"} />
-        <MetricCard tone="ink" icon={Send} label="Messages sent" value={show(totalSent)} detail={adjustments.messages_sent ? "Includes manual baseline" : "Campaigns and inbox replies"} />
+        <MetricCard tone="ink" icon={Send} label="Messages sent" value={show(totalSent)} detail="Campaigns and inbox replies" />
         <MetricCard tone="green" icon={CheckCheck} label="Delivered" value={show(totalDelivered)} detail={deliveredShare} />
         <MetricCard tone="red" icon={UserMinus} label="Opted out" value={show(metrics?.optedOut ?? null)} detail="Never messaged" />
         <MetricCard tone="coral" icon={Megaphone} label="Campaigns" value={show(metrics?.campaigns ?? null)}
@@ -69,13 +67,13 @@ export async function MetricsSection() {
       <section aria-labelledby="category-heading" className={styles.categorySection}>
         <div className={styles.sectionHead}>
           <h2 id="category-heading">Messages by category</h2>
-          <span>{metaNote}</span>
+          {metaNote && <span>{metaNote}</span>}
         </div>
         <div className={styles.categoryGrid}>
-          <MetricCard tone="violet" icon={Sparkles} label="Marketing" value={show(categories ? categories.marketing : (metrics?.campaignSent == null ? null : metrics.campaignSent + adjustments.marketing))}
+          <MetricCard tone="violet" icon={Sparkles} label="Marketing" value={show(categories ? categories.marketing : (metrics?.campaignSent == null ? null : metrics.campaignSent))}
             detail={categories ? "Promotions and offers" : "Sent from campaigns"} />
-          <MetricCard tone="teal" icon={BellRing} label="Utility" value={show(categories ? categories.utility : adjustments.utility || null)} detail="Order and account updates" />
-          <MetricCard tone="gold" icon={ShieldCheck} label="Authentication" value={show(categories ? categories.authentication : adjustments.authentication || null)} detail="One-time passcodes" />
+          <MetricCard tone="teal" icon={BellRing} label="Utility" value={show(categories ? categories.utility : null)} detail="Order and account updates" />
+          <MetricCard tone="gold" icon={ShieldCheck} label="Authentication" value={show(categories ? categories.authentication : null)} detail="One-time passcodes" />
         </div>
       </section>
     </>
