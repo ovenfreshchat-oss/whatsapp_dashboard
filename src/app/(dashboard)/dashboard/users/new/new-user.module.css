@@ -62,6 +62,110 @@
   line-height: 1.6;
 }
 
+.listCard {
+  padding: 22px 28px 14px;
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 21px;
+  background: rgba(255, 255, 255, .7);
+  box-shadow: 0 10px 34px rgba(96, 112, 158, .08);
+}
+
+.listHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e6ebf4;
+}
+
+.listHeader h2 {
+  margin: 4px 0 0;
+  color: #111f1b;
+  font-size: 18px;
+  letter-spacing: -.035em;
+}
+
+.countPill {
+  padding: 5px 11px;
+  border-radius: 999px;
+  color: #196f60;
+  background: #ecfaf5;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.memberList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memberRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid #eef1f7;
+}
+
+.memberRow:last-child {
+  border-bottom: 0;
+}
+
+.memberInfo {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.memberInfo strong {
+  overflow: hidden;
+  color: #26463d;
+  font-size: 13px;
+  text-overflow: ellipsis;
+}
+
+.memberInfo small {
+  color: #8794a9;
+  font-size: 11px;
+}
+
+.deleteButton {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #f0cbd5;
+  border-radius: 10px;
+  color: #a92e50;
+  background: #fff1f5;
+  cursor: pointer;
+}
+
+.deleteButton:hover:not(:disabled) {
+  background: #ffe3eb;
+}
+
+.deleteButton:disabled {
+  cursor: progress;
+  opacity: .6;
+}
+
+.deleteButton:focus-visible {
+  outline: 3px solid rgba(169, 46, 80, .3);
+  outline-offset: 2px;
+}
+
+.emptyList {
+  margin: 0;
+  padding: 16px 0;
+  color: #8794a9;
+  font-size: 12px;
+}
+
 .columns {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(290px, .8fr);
