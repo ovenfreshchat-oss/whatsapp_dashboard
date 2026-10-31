@@ -169,6 +169,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
               </span>
             </header>
             {thread.truncated && <p className={styles.more}>Showing the latest 200 messages.</p>}
+            {thread.messages.length === 0 && <p className={styles.placeholder}>No messages to show. Chat history is kept for 3 months, then cleared automatically. The customer stays in your chats list.</p>}
             <MessageList conversationId={thread.conversation.id} className={styles.messages}>
               {thread.messages.map((message, index) => {
                 const previous = thread.messages[index - 1];
