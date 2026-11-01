@@ -279,6 +279,13 @@ export function assertTemplateSnapshotUnchanged(
  * The caller must record an in-flight attempt before invoking this method and must not
  * blindly retry when a thrown MetaApiError has definitiveRejection === false.
  */
+/**
+ * Marketing templates are sent through Meta's Marketing Messages API (same body and phone number as
+ * the Cloud API, different endpoint). Utility, authentication and inbox replies stay on the Cloud
+ * API `/messages` endpoint (see src/server/meta/messages.ts).
+ */
+export const MARKETING_SEND_PATH = "marketing_messages";
+
 export async function sendApprovedTemplateTest(
   input: ApprovedTemplateTestSend,
 ): Promise<MetaAcceptedTestSend> {
@@ -358,7 +365,7 @@ export async function sendApprovedTemplateTest(
       reject("The final eligibility check did not pass.");
     }
   }
-  const response = await metaGraphPost(`${phoneNumberId}/messages`, body);
+  const response = await metaGraphPost(`${phoneNumberId}/${MARKETING_SEND_PATH}`, body);
   const messages = response.messages;
   const messageId = Array.isArray(messages) ? optionalString(record(messages[0])?.id) : null;
   if (!messageId || !messageId.startsWith("wamid.")) {

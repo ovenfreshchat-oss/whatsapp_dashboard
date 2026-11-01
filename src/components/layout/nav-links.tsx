@@ -3,17 +3,17 @@
 import { useEffect, useState } from "react";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Megaphone, MessageSquare, PlugZap, UserPlus, MailWarning, Loader2, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Users, Megaphone, MessageSquare, PlugZap, UserPlus, MailWarning, Loader2, Ellipsis, type LucideIcon } from "lucide-react";
 import styles from "./dashboard-shell.module.css";
 
-type Item = { href: string; icon: LucideIcon; label: string; short?: string; match: string[]; access?: "work" | "admin" };
+type Item = { href: string; icon: LucideIcon; label: string; short?: string; match: string[]; access?: "work" | "admin"; /** Stays in the phone tab bar; the rest move under "More". */ primary?: boolean };
 
 const ITEMS: Item[] = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", match: [] },
-  { href: "/dashboard/contacts", icon: Users, label: "Contacts", match: ["/dashboard/contacts", "/dashboard/opt-outs"], access: "work" },
-  { href: "/dashboard/campaigns", icon: Megaphone, label: "Campaigns", match: ["/dashboard/campaigns", "/dashboard/templates"], access: "work" },
+  { primary: true, href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", match: [] },
+  { primary: true, href: "/dashboard/contacts", icon: Users, label: "Contacts", match: ["/dashboard/contacts", "/dashboard/opt-outs"], access: "work" },
+  { primary: true, href: "/dashboard/campaigns", icon: Megaphone, label: "Campaigns", match: ["/dashboard/campaigns", "/dashboard/templates"], access: "work" },
   { href: "/dashboard/failed-messages", icon: MailWarning, label: "Failed messages", short: "Failed", match: ["/dashboard/failed-messages"], access: "work" },
-  { href: "/dashboard/inbox", icon: MessageSquare, label: "Inbox", match: ["/dashboard/inbox"], access: "work" },
+  { primary: true, href: "/dashboard/inbox", icon: MessageSquare, label: "Inbox", match: ["/dashboard/inbox"], access: "work" },
   { href: "/dashboard/meta", icon: PlugZap, label: "WhatsApp setup", short: "Setup", match: ["/dashboard/meta"], access: "admin" },
   { href: "/dashboard/users/new", icon: UserPlus, label: "Team", match: ["/dashboard/users"], access: "admin" },
 ];
@@ -35,28 +35,68 @@ function NavIcon({ icon: Icon }: { icon: LucideIcon }) {
  * Highlights the tapped item immediately, before the next page has loaded, so a click always
  * feels instant. The highlight follows the real URL once navigation finishes.
  */
+/** On a phone the bar holds this many tabs; anything beyond it goes under "More". */
+const PHONE_TAB_LIMIT = 5;
+
 export function NavLinks({ isAdmin, canWork }: { isAdmin: boolean; canWork: boolean }) {
   const pathname = usePathname();
   const [clicked, setClicked] = useState<string | null>(null);
-  useEffect(() => setClicked(null), [pathname]);
+  const [moreOpen, setMoreOpen] = useState(false);
+  useEffect(() => { setClicked(null); setMoreOpen(false); }, [pathname]);
+  useEffect(() => {
+    if (!moreOpen) return;
+    const close = (event: Event) => {
+      if (event instanceof KeyboardEvent && event.key !== "Escape") return;
+      if (event instanceof MouseEvent && (event.target as Element | null)?.closest("[data-more-root]")) return;
+      setMoreOpen(false);
+    };
+    document.addEventListener("keydown", close);
+    document.addEventListener("mousedown", close);
+    return () => { document.removeEventListener("keydown", close); document.removeEventListener("mousedown", close); };
+  }, [moreOpen]);
   const current = clicked ?? pathname;
 
+  const items = ITEMS.filter((item) => !item.access || (item.access === "admin" ? isAdmin : canWork));
+  const useMore = items.length > PHONE_TAB_LIMIT;
+  const overflow = useMore ? items.filter((item) => !item.primary) : [];
+  const overflowActive = overflow.some((item) => isActive(item, current));
+  const linkProps = (item: Item) => {
+    const active = isActive(item, current);
+    return {
+      href: item.href,
+      "aria-current": active ? ("page" as const) : undefined,
+      title: item.label,
+      onClick: () => setClicked(item.href),
+      className: [styles.navItem, active ? styles.navItemActive : ""].filter(Boolean).join(" "),
+    };
+  };
+
   return <>
-    {ITEMS.filter((item) => !item.access || (item.access === "admin" ? isAdmin : canWork)).map((item) => {
-      const active = isActive(item, current);
-      return <Link
-        key={item.href}
-        href={item.href}
-        className={[styles.navItem, active ? styles.navItemActive : ""].filter(Boolean).join(" ")}
-        aria-current={active ? "page" : undefined}
-        title={item.label}
-        onClick={() => setClicked(item.href)}
-      >
+    {items.map((item) => {
+      const props = linkProps(item);
+      if (useMore && !item.primary) props.className = `${props.className} ${styles.navOverflow}`;
+      return <Link key={item.href} {...props}>
         <NavIcon icon={item.icon} />
         {item.short
           ? <><span className={styles.labelFull}>{item.label}</span><span className={styles.labelShort}>{item.short}</span></>
           : <span className={styles.label}>{item.label}</span>}
       </Link>;
     })}
+    {useMore && <div className={styles.moreRoot} data-more-root>
+      <button type="button" className={[styles.navItem, styles.moreButton, overflowActive || moreOpen ? styles.navItemActive : ""].filter(Boolean).join(" ")}
+        aria-expanded={moreOpen} aria-haspopup="menu" onClick={() => setMoreOpen((open) => !open)}>
+        <span className={styles.navIcon} aria-hidden="true"><Ellipsis size={20} strokeWidth={1.9} /></span>
+        <span className={styles.labelShort}>More</span>
+      </button>
+      {moreOpen && <div className={styles.moreMenu} role="menu" aria-label="More sections">
+        {overflow.map((item) => {
+          const props = linkProps(item);
+          const Icon = item.icon;
+          return <Link key={item.href} {...props} role="menuitem" className={[styles.moreItem, isActive(item, current) ? styles.moreItemActive : ""].filter(Boolean).join(" ")}>
+            <Icon size={20} strokeWidth={1.9} aria-hidden="true" />{item.label}
+          </Link>;
+        })}
+      </div>}
+    </div>}
   </>;
 }

@@ -20,6 +20,7 @@
 .navIcon { display: inline-grid; flex: 0 0 auto; place-items: center; width: 22px; height: 22px; }
 .navSpin { animation: spin .8s linear infinite; }
 .labelShort { display: none; }
+.moreRoot { display: none; }
 
 .headerActions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .headerActions form { margin: 0; }
@@ -55,6 +56,21 @@
   .navItemActive .navIcon { color: var(--coral-600); }
   .labelFull { display: none; }
   .labelShort { display: inline; }
+
+  /* Tabs beyond the fifth live under "More" so the bar stays easy to tap. */
+  .navOverflow { display: none; }
+  .moreRoot { display: block; position: relative; min-width: 0; }
+  .moreButton { width: 100%; border: 0; background: transparent; font-family: inherit; cursor: pointer; }
+  .moreMenu {
+    position: absolute; right: 0; bottom: calc(100% + 14px); display: grid; min-width: 210px; padding: 6px;
+    border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: 0 12px 32px rgba(15, 23, 42, .18);
+  }
+  .moreItem {
+    display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 12px; border-radius: 10px;
+    color: var(--ink); font-size: 15px; font-weight: 600; text-decoration: none;
+  }
+  .moreItem:hover { background: var(--sand-50); }
+  .moreItemActive, .moreItemActive:hover { color: var(--coral-700); background: var(--coral-50); }
 
   /* An open conversation takes the whole screen. */
   .page:has([data-thread-open]) .topNav { display: none; }

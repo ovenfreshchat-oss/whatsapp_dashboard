@@ -80,7 +80,7 @@ function graphFixture({ templateStatus = "APPROVED", templateOverride, sendRespo
     if (parsed.pathname === "/v25.0/111111/message_templates") {
       return json({ data: [templateOverride ?? template(templateStatus)] });
     }
-    if (parsed.pathname === "/v25.0/222222/messages") {
+    if (parsed.pathname === "/v25.0/222222/marketing_messages") {
       if (sendError) throw sendError;
       return sendResponse ?? json({ messages: [{ id: "wamid.test-123" }] });
     }
@@ -468,3 +468,19 @@ test("templates with IMAGE header require a valid https URL and include header p
   }
 });
 
+
+test("campaign sends use the Marketing Messages API endpoint", async () => {
+  try {
+    configure();
+    const calls = graphFixture();
+    const synced = (await templates.syncMetaTemplates()).templates[0];
+    const accepted = await templates.sendApprovedMarketingTemplate({
+      recipientE164: "+14165550124", templateName: "autumn_offer", languageCode: "en_US",
+      expectedTemplateId: "333333", expectedTemplateSnapshot: synced, bodyParameters: ["Alex"],
+    });
+    assert.equal(accepted.messageId, "wamid.test-123");
+    assert.deepEqual(calls.filter((c) => c.options.method === "POST").map((c) => c.url.pathname), ["/v25.0/222222/marketing_messages"]);
+  } finally {
+    restore();
+  }
+});
