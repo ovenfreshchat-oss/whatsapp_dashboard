@@ -55,19 +55,23 @@ const enabledEnvironment = {
 };
 
 class MetaApiError extends Error {
-  constructor(message, definitiveRejection = false) {
+  constructor(message, definitiveRejection = false, providerCode = undefined) {
     super(message);
     this.definitiveRejection = definitiveRejection;
+    this.providerCode = providerCode;
   }
 }
 
 class CampaignStoreError extends Error {}
 
-function workerFixture({ gateSequence = ["allowed", "allowed"], subscribed = true, send, throttle } = {}) {
+function workerFixture({ gateSequence = ["allowed", "allowed"], subscribed = true, send, throttle, retries = [], retryGate = "allowed" } = {}) {
   const records = [];
   const calls = [];
   const claimArgs = [];
   const throttleCalls = [];
+  const retryClaimArgs = [];
+  const retryRecords = [];
+  const alerts = [];
   const recipient = {
     id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
     campaign_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
@@ -97,6 +101,19 @@ function workerFixture({ gateSequence = ["allowed", "allowed"], subscribed = tru
       if (name === "claim_whatsapp_campaign_recipients") {
         claimArgs.push(args);
         return { data: [recipient], error: null };
+      }
+      if (name === "claim_campaign_retries") {
+        retryClaimArgs.push(args);
+        return { data: retries, error: null };
+      }
+      if (name === "campaign_retry_send_gate") return { data: retryGate, error: null };
+      if (name === "record_campaign_retry_result") {
+        retryRecords.push(args);
+        return { data: true, error: null };
+      }
+      if (name === "raise_sender_alert") {
+        alerts.push(args);
+        return { data: null, error: null };
       }
       if (name === "whatsapp_campaign_send_gate") {
         const gate = gateSequence[Math.min(gateIndex, gateSequence.length - 1)];
@@ -135,6 +152,10 @@ function workerFixture({ gateSequence = ["allowed", "allowed"], subscribed = tru
         contactId: value.contact_id, recipientE164: value.recipient_e164,
         state: value.state,
       }),
+      mapClaimedRetry: (value) => ({
+        id: value.id, campaignId: value.campaign_id, recipientId: value.recipient_id,
+        phoneE164: value.phone_e164, attemptNumber: value.attempt_number,
+      }),
       mapWorkerCampaign: (value) => ({
         id: value.id, state: value.state, wabaId: value.waba_id,
         phoneNumberId: value.phone_number_id, templateId: value.template_id,
@@ -145,7 +166,7 @@ function workerFixture({ gateSequence = ["allowed", "allowed"], subscribed = tru
       }),
     },
   });
-  return { worker, records, calls, claimArgs, throttleCalls };
+  return { worker, records, calls, claimArgs, throttleCalls, retryClaimArgs, retryRecords, alerts };
 }
 
 test("worker refuses to claim without an explicit send policy", async () => {
@@ -322,5 +343,101 @@ test("a malformed throttle response fails the tick without claiming", async () =
     const fixture = workerFixture({ throttle: { allowed: "lots" } });
     await assert.rejects(() => fixture.worker.runCampaignWorkerTick(), /throttle/i);
     assert.equal(fixture.claimArgs.length, 0);
+  });
+});
+
+const retryRow = {
+  id: "dddddddd-dddd-dddd-dddd-dddddddddddd",
+  campaign_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+  recipient_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  phone_e164: "+14165550999",
+  attempt_number: 1,
+};
+
+test("retries only use the allowance left after first sends", async () => {
+  await withEnvironment({ ...enabledEnvironment, WHATSAPP_WORKER_BATCH_SIZE: "5" }, async () => {
+    const fixture = workerFixture();
+    await fixture.worker.runCampaignWorkerTick();
+    assert.equal(fixture.claimArgs[0].p_limit, 5);
+    assert.equal(fixture.retryClaimArgs[0].p_limit, 4);
+    assert.equal(fixture.calls.includes("mark_stale_campaign_retries"), true);
+  });
+});
+
+test("no retries are claimed when first sends use the whole allowance", async () => {
+  await withEnvironment(enabledEnvironment, async () => {
+    const fixture = workerFixture();
+    await fixture.worker.runCampaignWorkerTick();
+    assert.equal(fixture.retryClaimArgs.length, 0);
+  });
+});
+
+test("a retry is sent as a new message to the failed number and its wamid is recorded", async () => {
+  await withEnvironment({ ...enabledEnvironment, WHATSAPP_WORKER_BATCH_SIZE: "5" }, async () => {
+    const sentTo = [];
+    const fixture = workerFixture({
+      retries: [retryRow],
+      send: async (input) => {
+        sentTo.push(input.recipientE164);
+        await input.beforeSend();
+        return { messageId: `wamid.${input.recipientE164}` };
+      },
+    });
+    const tick = await fixture.worker.runCampaignWorkerTick();
+    assert.deepEqual(sentTo, ["+14165550124", "+14165550999"]);
+    assert.equal(tick.retries.outcomes.accepted, 1);
+    assert.equal(fixture.retryRecords[0].p_state, "accepted");
+    assert.equal(fixture.retryRecords[0].p_wamid, "wamid.+14165550999");
+  });
+});
+
+test("a retry that is no longer allowed is skipped without sending", async () => {
+  await withEnvironment({ ...enabledEnvironment, WHATSAPP_WORKER_BATCH_SIZE: "5" }, async () => {
+    let sends = 0;
+    const fixture = workerFixture({
+      retries: [retryRow], retryGate: "suppressed",
+      send: async (input) => { sends += 1; await input.beforeSend(); return { messageId: "wamid.x" }; },
+    });
+    const tick = await fixture.worker.runCampaignWorkerTick();
+    assert.equal(sends, 1); // only the first send; the retry never reached Meta
+    assert.equal(tick.retries.outcomes.skipped, 1);
+    assert.equal(fixture.retryRecords[0].p_state, "skipped");
+  });
+});
+
+test("a retry waiting for a restricted sender is deferred, not failed", async () => {
+  await withEnvironment({ ...enabledEnvironment, WHATSAPP_WORKER_BATCH_SIZE: "5" }, async () => {
+    const fixture = workerFixture({ retries: [retryRow], retryGate: "deferred" });
+    const tick = await fixture.worker.runCampaignWorkerTick();
+    assert.equal(tick.retries.outcomes.deferred, 1);
+    assert.equal(fixture.retryRecords[0].p_state, "deferred");
+  });
+});
+
+test("Meta 131048 on a retry raises the sender alert and stops the retry as rejected", async () => {
+  await withEnvironment({ ...enabledEnvironment, WHATSAPP_WORKER_BATCH_SIZE: "5" }, async () => {
+    const fixture = workerFixture({
+      retries: [retryRow],
+      send: async (input) => {
+        await input.beforeSend();
+        if (input.recipientE164 === "+14165550999") throw new MetaApiError("limited", true, 131048);
+        return { messageId: "wamid.first" };
+      },
+    });
+    const tick = await fixture.worker.runCampaignWorkerTick();
+    assert.equal(tick.retries.outcomes.rejected, 1);
+    assert.equal(fixture.alerts[0].p_code, "131048");
+    assert.equal(fixture.alerts[0].p_phone_number_id, "222222");
+  });
+});
+
+test("Meta 131048 on a first send also raises the sender alert", async () => {
+  await withEnvironment(enabledEnvironment, async () => {
+    const fixture = workerFixture({
+      send: async (input) => { await input.beforeSend(); throw new MetaApiError("limited", true, 131048); },
+    });
+    await fixture.worker.runCampaignWorkerTick();
+    assert.equal(fixture.alerts.length, 1);
+    assert.equal(fixture.records[0].p_state, "rejected");
   });
 });

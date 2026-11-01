@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SenderAlertBanner } from "@/components/ui/sender-alert-banner";
 import Link from "next/link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
@@ -26,6 +27,7 @@ export default async function DashboardPage() {
 
   return (
     <div className={styles.content}>
+      <SenderAlertBanner />
       <div className={styles.header}>
         <div>
           <h1>Dashboard</h1>

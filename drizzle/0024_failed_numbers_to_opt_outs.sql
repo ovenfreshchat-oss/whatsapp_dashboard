@@ -1,20 +1,20 @@
--- Automatically keep numbers that Meta could not deliver to out of future campaigns.
--- Apply after 0010, 0013 and 0016. Safe to rerun.
+-- Automatically add numbers that told WhatsApp they no longer want marketing from you to the
+-- do-not-contact list. Apply after 0010, 0013 and 0016. Safe to rerun.
 --
--- When Meta reports a failed delivery for a campaign message with one of these error codes, the
--- recipient's number is added to the do-not-contact list (opt_out_numbers). Campaign audiences and
--- the send-time check already skip every number on that list, so the next campaign leaves them out.
---   131026  Message undeliverable (not on WhatsApp, or cannot receive it)
---   131050  Recipient chose to stop receiving marketing messages from your business
---   131049  Not delivered to maintain healthy ecosystem engagement (Meta limited this user)
---   130472  User's number is part of a Meta experiment
--- Other failure codes (media, template or temporary errors) are NOT added, because a retry may work.
--- The error code is written into the list's "source" so you can filter or release them later.
--- A number you released stays released: nothing here re-activates it.
+-- When Meta reports a failed delivery for a campaign message with error 131050 ("recipient chose to
+-- stop receiving marketing messages from your business"), the recipient's number is added to the
+-- opt-out list (opt_out_numbers). Campaign audiences and the send-time check already skip every
+-- number on that list.
+--
+-- Deliberately NOT added here:
+--   131049  Meta marketing limit for that user. Temporary: keep the contact, retry later (never opt out).
+--   131026  Undeliverable. Needs manual review, not a permanent block.
+--   130472, 131056, 131048, 131047 and all other codes: handled by the retry/cooldown rules.
+-- The error code is written into the list's "source". A number you released stays released.
 
 create or replace function public.failed_delivery_opt_out_codes()
 returns text[] language sql immutable
-as $$ select array['131026', '131050', '131049', '130472']::text[] $$;
+as $$ select array['131050']::text[] $$;
 
 -- Backfill: every campaign recipient that already has one of those failures.
 insert into public.opt_out_numbers (phone_e164, source)

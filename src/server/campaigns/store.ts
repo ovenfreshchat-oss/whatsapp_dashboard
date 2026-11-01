@@ -239,6 +239,29 @@ export function mapClaimedRecipient(value: unknown): ClaimedRecipient {
   };
 }
 
+export type ClaimedRetry = {
+  id: string;
+  campaignId: string;
+  recipientId: string;
+  phoneE164: string;
+  attemptNumber: number;
+};
+
+export function mapClaimedRetry(value: unknown): ClaimedRetry {
+  const item = row(value);
+  const attempt = Number(item.attempt_number);
+  if (!Number.isInteger(attempt) || attempt < 1 || attempt > 3) {
+    throw new CampaignStoreError("Retry attempt number is invalid.");
+  }
+  return {
+    id: string(item.id),
+    campaignId: string(item.campaign_id),
+    recipientId: string(item.recipient_id),
+    phoneE164: string(item.phone_e164),
+    attemptNumber: attempt,
+  };
+}
+
 export type WorkerCampaign = {
   id: string;
   state: CampaignState;

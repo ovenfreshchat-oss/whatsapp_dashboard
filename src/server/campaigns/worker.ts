@@ -9,8 +9,10 @@ import {
   CampaignStoreError,
   getCampaignStore,
   mapClaimedRecipient,
+  mapClaimedRetry,
   mapWorkerCampaign,
   type ClaimedRecipient,
+  type ClaimedRetry,
 } from "./store";
 
 type SendGate = "allowed" | "suppressed" | "deferred" | "canceled" | "inactive";
@@ -240,6 +242,7 @@ async function processRecipient(
       await pauseForReview(campaign.id, "Meta template preflight failed");
       return "deferred";
     }
+    await raiseRestrictionIfNeeded(error, campaign);
     const state: SendResult =
       error instanceof MetaApiError && error.definitiveRejection ? "rejected" : "uncertain";
     await recordResult(recipient.id, state, null, nonemptyErrorSummary(error));
@@ -251,6 +254,138 @@ async function processRecipient(
   return "accepted";
 }
 
+/** Meta 131048 means the business number itself is restricted: stop the sender and warn the team. */
+async function raiseRestrictionIfNeeded(
+  error: unknown,
+  campaign: { wabaId: string; phoneNumberId: string },
+): Promise<void> {
+  if (!(error instanceof MetaApiError) || error.providerCode !== 131048) return;
+  await rpc("raise_sender_alert", {
+    p_waba_id: campaign.wabaId,
+    p_phone_number_id: campaign.phoneNumberId,
+    p_code: "131048",
+    p_title: "Meta limited this business number (spam rate limit)",
+  });
+}
+
+type RetryGate = "allowed" | "suppressed" | "skipped" | "canceled" | "deferred" | "inactive";
+type RetryResult = "accepted" | "rejected" | "uncertain" | "skipped" | "canceled" | "deferred";
+
+async function recordRetryResult(
+  retryId: string,
+  state: RetryResult,
+  messageId: string | null,
+  summary: string | null,
+): Promise<void> {
+  await rpc("record_campaign_retry_result", {
+    p_retry_id: retryId,
+    p_state: state,
+    p_wamid: messageId,
+    p_error_summary: summary,
+  });
+}
+
+async function retryGate(retryId: string): Promise<RetryGate> {
+  const gate = String(await rpc<unknown>("campaign_retry_send_gate", { p_retry_id: retryId }));
+  if (!["allowed", "suppressed", "skipped", "canceled", "deferred", "inactive"].includes(gate)) {
+    throw new CampaignStoreError("Retry send gate returned an invalid result.");
+  }
+  return gate as RetryGate;
+}
+
+/** Maps a gate that is not "allowed" to the state recorded for the retry. */
+function retryStateForGate(gate: Exclude<RetryGate, "allowed">): RetryResult {
+  if (gate === "suppressed") return "skipped";
+  if (gate === "inactive") return "deferred";
+  return gate;
+}
+
+/**
+ * Sends one retry of a 131049 failure. It is a brand new message with its own message id; the
+ * original attempt and every earlier retry stay in the history. The database decides eligibility
+ * (not opted out, not Do Not Send, not already delivered, sender not restricted) both before and
+ * right at send time.
+ */
+async function processRetry(
+  retry: ClaimedRetry,
+  policy: Extract<WorkerReadiness, { enabled: true }>,
+): Promise<RetryResult> {
+  const { data, error } = await getCampaignStore().from("whatsapp_campaigns")
+    .select("id,state,waba_id,phone_number_id,template_id,template_name,template_language,template_snapshot,body_parameters,header_media_url")
+    .eq("id", retry.campaignId).single();
+  if (error || !data) throw new CampaignStoreError("Retry campaign could not be loaded.");
+  const campaign = mapWorkerCampaign(data);
+  const configured = getConfiguredMetaIdentifiers();
+  if (campaign.wabaId !== configured.wabaId || campaign.phoneNumberId !== configured.phoneNumberId) {
+    await recordRetryResult(retry.id, "deferred", null, "Configured sender changed.");
+    return "deferred";
+  }
+
+  const initial = await retryGate(retry.id);
+  if (initial !== "allowed") {
+    await recordRetryResult(retry.id, retryStateForGate(initial), null,
+      initial === "deferred" ? "Waiting for the campaign or sender to be ready." : "Retry no longer needed.");
+    return retryStateForGate(initial);
+  }
+
+  const waitMs = await rpc<number>("reserve_whatsapp_sender_slot", {
+    p_waba_id: campaign.wabaId,
+    p_phone_number_id: campaign.phoneNumberId,
+    p_interval_ms: policy.intervalMs,
+  });
+  if (!Number.isSafeInteger(waitMs) || waitMs < 0) {
+    throw new CampaignStoreError("Sender rate reservation was invalid.");
+  }
+  if (waitMs > 60_000) {
+    await recordRetryResult(retry.id, "deferred", null, "Sender rate backlog is high.");
+    return "deferred";
+  }
+  if (waitMs > 0) await new Promise<void>((resolve) => setTimeout(resolve, waitMs));
+
+  let finalGate: RetryGate = "allowed";
+  let postReady = false;
+  let messageId: string;
+  try {
+    const result = await sendApprovedMarketingTemplate({
+      recipientE164: retry.phoneE164,
+      templateName: campaign.templateName,
+      languageCode: campaign.templateLanguage,
+      expectedTemplateId: campaign.templateId,
+      expectedTemplateSnapshot: campaign.templateSnapshot,
+      bodyParameters: campaign.bodyParameters,
+      headerMediaUrl: campaign.headerMediaUrl ?? undefined,
+      beforeSend: async () => {
+        if (process.env.WHATSAPP_SENDS_ENABLED !== "true" || !isWithinCampaignSendWindow(policy)) {
+          finalGate = "deferred";
+          throw new Error("Sending window is closed.");
+        }
+        finalGate = await retryGate(retry.id);
+        if (finalGate !== "allowed") throw new Error("Retry is no longer sendable.");
+        postReady = true;
+      },
+    });
+    messageId = result.messageId;
+  } catch (caught) {
+    if (finalGate !== "allowed") {
+      const state = retryStateForGate(finalGate);
+      await recordRetryResult(retry.id, state, null, "Final eligibility check stopped the retry.");
+      return state;
+    }
+    if (!postReady) {
+      await recordRetryResult(retry.id, "deferred", null, nonemptyErrorSummary(caught));
+      return "deferred";
+    }
+    await raiseRestrictionIfNeeded(caught, campaign);
+    const state: RetryResult =
+      caught instanceof MetaApiError && caught.definitiveRejection ? "rejected" : "uncertain";
+    await recordRetryResult(retry.id, state, null, nonemptyErrorSummary(caught));
+    return state;
+  }
+  // Recording is outside the send catch, exactly like first sends: never resend after Meta accepted.
+  await recordRetryResult(retry.id, "accepted", messageId, null);
+  return "accepted";
+}
+
 export type CampaignWorkerTick = {
   enabled: boolean;
   reason?: string;
@@ -258,6 +393,8 @@ export type CampaignWorkerTick = {
   throttledUntil?: string;
   claimed: number;
   outcomes: Record<SendResult, number>;
+  /** Retries of 131049 failures handled in this tick. */
+  retries?: { claimed: number; outcomes: Record<RetryResult, number> };
 };
 
 export async function runCampaignWorkerTick(): Promise<CampaignWorkerTick> {
@@ -276,6 +413,7 @@ export async function runCampaignWorkerTick(): Promise<CampaignWorkerTick> {
   }
 
   await rpc("mark_stale_whatsapp_campaign_claims", {});
+  await rpc("mark_stale_campaign_retries", {});
   let claimLimit = policy.batchSize;
   if (policy.throttle) {
     const allowance = await rpc<{ allowed?: unknown; wait_until?: unknown }>("campaign_send_throttle", {
@@ -303,6 +441,24 @@ export async function runCampaignWorkerTick(): Promise<CampaignWorkerTick> {
     const result = await processRecipient(recipient, policy);
     outcomes[result] += 1;
   }
+  // Retries only use whatever is left of this tick's allowance, so first sends always go first.
+  const retryOutcomes: Record<RetryResult, number> = {
+    accepted: 0, rejected: 0, uncertain: 0, skipped: 0, canceled: 0, deferred: 0,
+  };
+  let retriesClaimed = 0;
+  const retryLimit = claimLimit - claimed.length;
+  if (retryLimit > 0) {
+    const retryData = await rpc<unknown[]>("claim_campaign_retries", { p_limit: retryLimit });
+    if (!Array.isArray(retryData)) throw new CampaignStoreError("Retry claim returned invalid data.");
+    const retries = retryData.map(mapClaimedRetry);
+    retriesClaimed = retries.length;
+    for (const retry of retries) retryOutcomes[await processRetry(retry, policy)] += 1;
+  }
   await rpc("finish_whatsapp_campaigns", {});
-  return { enabled: true, claimed: claimed.length, outcomes };
+  return {
+    enabled: true,
+    claimed: claimed.length,
+    outcomes,
+    retries: { claimed: retriesClaimed, outcomes: retryOutcomes },
+  };
 }

@@ -32,15 +32,18 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
   const BATCHES_SIZE = 8;
   const first = (batchPage - 1) * BATCHES_SIZE;
   const admin = createStaffAdminClient();
-  const [contactCountResult, batchResult] = admin
+  const [contactCountResult, batchResult, statusResult] = admin
     ? await Promise.all([
         admin.from("contacts").select("id", { count: "exact", head: true }),
         admin.from("contact_import_batches")
           .select("id,file_name,created_at,total_rows,accepted_rows,rejected_rows,pending_claims", { count: "exact" })
           .order("created_at", { ascending: false }).order("id").range(first, first + BATCHES_SIZE - 1),
+        admin.rpc("contact_status_counts"),
       ])
-    : [null, null];
+    : [null, null, null];
   const storageReady = Boolean(contactCountResult && !contactCountResult.error && batchResult && !batchResult.error);
+  const counts = statusResult && !statusResult.error && statusResult.data && typeof statusResult.data === "object"
+    ? statusResult.data as Partial<Record<"total" | "active" | "at_risk" | "do_not_send" | "opt_out", number>> : null;
   const batches = (storageReady ? batchResult?.data ?? [] : []) as Batch[];
 
   return (
@@ -54,6 +57,20 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
         </div>
 
         {!storageReady && <section className={styles.notice}><strong>Database setup needed</strong><p>Apply <code>drizzle/0002_contacts.sql</code> in Supabase to save contacts.</p></section>}
+
+        {counts && <section aria-label="Contact status">
+          <div className={styles.stats}>
+            <div className={styles.stat}><strong>{counts.total ?? 0}</strong><span>Total contacts</span></div>
+            <div className={`${styles.stat} ${styles.statOk}`}><strong>{counts.active ?? 0}</strong><span>Active</span></div>
+            <div className={`${styles.stat} ${styles.statSkip}`}><strong>{counts.at_risk ?? 0}</strong><span>At Risk</span></div>
+            <div className={`${styles.stat} ${styles.statDanger}`}><strong>{counts.do_not_send ?? 0}</strong><span>Do Not Send</span></div>
+            <div className={`${styles.stat} ${styles.statMuted}`}><strong>{counts.opt_out ?? 0}</strong><span>Opt Out</span></div>
+          </div>
+          {((counts.at_risk ?? 0) > 0 || (counts.do_not_send ?? 0) > 0) && <p className={styles.muted}>
+            {(counts.at_risk ?? 0) > 0 && <>{counts.at_risk} At Risk {counts.at_risk === 1 ? "contact has" : "contacts have"} had WhatsApp frequency-limit failures (131049) and still {counts.at_risk === 1 ? "gets" : "get"} messages. </>}
+            {(counts.do_not_send ?? 0) > 0 && <>{counts.do_not_send} Do Not Send {counts.do_not_send === 1 ? "contact is" : "contacts are"} paused, not opted out. </>}
+            <Link href="/dashboard/failed-messages" className={styles.contactLink}>Review failed messages</Link></p>}
+        </section>}
 
         <section className={styles.panel} aria-labelledby="import-heading">
           <div className={styles.panelHeading}><h2 id="import-heading">Upload a file</h2><span>CSV · Excel · Word</span></div>

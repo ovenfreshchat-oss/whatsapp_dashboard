@@ -13,6 +13,7 @@ import { RefreshButton } from "@/components/ui/refresh-button";
 import { CampaignStateBadge, CategoryBadge } from "@/components/ui/badges";
 import { categoryForCampaign, getTemplateCategories } from "@/server/campaigns/categories";
 import { Plus } from "lucide-react";
+import { SenderAlertBanner } from "@/components/ui/sender-alert-banner";
 import styles from "./campaigns.module.css";
 
 export const metadata: Metadata = {
@@ -95,6 +96,8 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
           <Link href="/dashboard/campaigns?view=new" className={styles.newButton}><Plus size={18} aria-hidden="true" /> New campaign</Link>
         </div>
       </div>
+
+      <SenderAlertBanner />
 
       {!campaigns && <section className={styles.notice}>
         <strong>Campaign storage needs setup</strong>

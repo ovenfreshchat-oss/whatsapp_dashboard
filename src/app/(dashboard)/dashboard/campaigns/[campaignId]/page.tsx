@@ -4,6 +4,7 @@ import { BackLink } from "@/components/ui/back-link";
 import { AUDIT_PAGE_SIZE, getCampaignDetail, listExcludedRecipients, RECIPIENTS_PAGE_SIZE } from "@/server/campaigns/admin";
 import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { getCampaignWorkerReadiness } from "@/server/campaigns/worker";
+import { loadAudienceReview } from "@/server/campaigns/retries";
 import { parseTemplateBodyParameters } from "@/server/meta/templates";
 import { CampaignControls } from "../campaign-controls";
 import { DeleteDraftButton } from "../delete-draft";
@@ -71,6 +72,8 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
   const category = campaign ? categoryForCampaign(await getTemplateCategories(), campaign) : "MARKETING";
   const requestedTab = Array.isArray(query.tab) ? query.tab[0] : query.tab;
   const isDraft = campaign?.state === "draft";
+  const audienceReview = campaign && ["draft", "scheduled", "running", "paused"].includes(campaign.state)
+    ? await loadAudienceReview(campaign.id) : null;
   const visibleTabs = TABS.filter(([key]) => !(isDraft && key === "overview"));
   const tab: Tab = visibleTabs.some(([key]) => key === requestedTab)
     ? (requestedTab as Tab) : (isDraft ? "message" : "overview");
@@ -135,6 +138,19 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
 
         {(campaign.state === "scheduled" || campaign.state === "running" || campaign.state === "paused") && <section className={`${styles.panel} ${styles.actionPanel}`} aria-label="Campaign actions">
           <CampaignControls id={campaign.id} state={campaign.state} audienceCount={campaign.audienceCount} audienceSourceLabel={campaign.audienceSourceLabel} reviewSha256={campaign.reviewSha256} />
+        </section>}
+
+        {audienceReview && <section className={styles.panel} aria-labelledby="review-counts-heading">
+          <div className={styles.panelHeading}><div><h2 id="review-counts-heading">Who will get this campaign</h2></div>
+            <span>{audienceReview.eligible} will send · {audienceReview.excluded} excluded</span></div>
+          <div className={styles.recipientListFlat}>
+            <div className={styles.recipientRow}><div><strong>Eligible to send</strong><small>{audienceReview.atRiskEligible} of them are At Risk (frequency-limit failures before) and still get this message</small></div><span>{audienceReview.eligible}</span></div>
+            <div className={styles.recipientRow}><div><strong>Excluded: Opt Out</strong><small>Asked not to be contacted</small></div><span>{audienceReview.optOut}</span></div>
+            <div className={styles.recipientRow}><div><strong>Excluded: Do Not Send</strong><small>Paused for manual audienceReview. Not opted out</small></div><span>{audienceReview.doNotSend}</span></div>
+            {audienceReview.other > 0 && <div className={styles.recipientRow}><div><strong>Excluded: other</strong><small>No current WhatsApp marketing permission</small></div><span>{audienceReview.other}</span></div>}
+            {audienceReview.willSkipAtSend > 0 && <div className={styles.recipientRow}><div><strong>Will be skipped when sending</strong><small>Became ineligible after this audience was frozen</small></div><span>{audienceReview.willSkipAtSend}</span></div>}
+          </div>
+          <p className={styles.helper}>No contact is deleted. Excluded numbers stay in your lists.</p>
         </section>}
 
         <nav className={styles.tabs} aria-label="Campaign sections">

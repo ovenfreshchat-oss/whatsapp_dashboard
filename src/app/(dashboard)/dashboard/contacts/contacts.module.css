@@ -116,3 +116,18 @@
   .switchOn .switchKnob { transform: translateX(22px); }
 }
 @media (max-width: 520px) { .fieldGrid { grid-template-columns: 1fr; } }
+
+/* Failed messages and delivery status */
+.statDanger { border-color: #f0c4be; background: #fdf1ef; }
+.statDanger strong { color: var(--danger-700); }
+.statMuted { background: var(--sand-50); }
+.filterRow { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+.filterRow select, .delayGrid input { min-height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; font: inherit; }
+.delayGrid { display: grid; grid-template-columns: repeat(3, minmax(90px, 140px)); gap: 10px; }
+.badge { display: inline-block; padding: 2px 9px; border-radius: 999px; background: var(--sand-100); color: var(--ink-700); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.badgeOk { background: var(--wa-50); color: var(--wa-700); }
+.badgeWarn { background: var(--gold-50); color: var(--gold-700); }
+.badgeBad { background: #fdf1ef; color: var(--danger-700); }
+.alertBanner { composes: warning from "../../../../components/ui/ui.module.css"; flex-direction: column; gap: 8px; }
+.alertBanner p { margin: 0; }
+@media (max-width: 640px) { .delayGrid { grid-template-columns: 1fr; } }
