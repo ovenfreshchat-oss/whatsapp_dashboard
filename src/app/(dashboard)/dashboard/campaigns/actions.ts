@@ -42,7 +42,9 @@ export async function createCampaignDraftAction(
   const name = formData.get("name");
   const templateKey = formData.get("templateKey");
   const rawParameters = formData.get("bodyParameters");
-  const selectedAudience = formData.get("audienceSource");
+  const sourceCampaignId = formData.get("sourceCampaignId");
+  const fromFailed = typeof sourceCampaignId === "string" && sourceCampaignId.length > 0;
+  const selectedAudience = fromFailed ? "failed" : formData.get("audienceSource");
   if (typeof name !== "string" || typeof templateKey !== "string" ||
       typeof rawParameters !== "string" || typeof selectedAudience !== "string") {
     return { error: "Enter a campaign name and choose a template.", success: "" };
@@ -65,8 +67,23 @@ export async function createCampaignDraftAction(
   }
   const batchMatch = /^batch:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
     .exec(selectedAudience);
-  if (selectedAudience !== "all" && !batchMatch) {
+  if (selectedAudience !== "all" && selectedAudience !== "failed" && !batchMatch) {
     return { error: "Choose a contact list for this campaign.", success: "" };
+  }
+  let failureIds: string[] | null = null;
+  if (fromFailed) {
+    const rawIds = formData.get("failureIds");
+    if (typeof rawIds !== "string") return { error: "Select the failed contacts again from the campaign.", success: "" };
+    if (rawIds !== "all") {
+      try {
+        const parsed: unknown = JSON.parse(rawIds);
+        if (!Array.isArray(parsed) || parsed.length < 1 || parsed.length > 5000 ||
+            !parsed.every((id) => typeof id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))) throw new Error("bad");
+        failureIds = parsed as string[];
+      } catch {
+        return { error: "Select the failed contacts again from the campaign.", success: "" };
+      }
+    }
   }
   let campaignId: string;
   try {
@@ -76,8 +93,9 @@ export async function createCampaignDraftAction(
       languageCode,
       bodyParameters,
       headerMediaUrl,
-      audienceSource: batchMatch ? "import_batch" : "all_eligible",
-      ...(batchMatch ? { importBatchId: batchMatch[1] } : {}),
+      audienceSource: fromFailed ? "failed_contacts" : batchMatch ? "import_batch" : "all_eligible",
+      ...(batchMatch && !fromFailed ? { importBatchId: batchMatch[1] } : {}),
+      ...(fromFailed ? { sourceCampaignId: sourceCampaignId as string, failureIds } : {}),
     });
     campaignId = campaign.id;
   } catch (error) {

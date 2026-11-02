@@ -4,6 +4,7 @@ import { getCampaignAnalytics, getMetaTemplateStats, type CampaignAnalytics } fr
 import { AutoRefresh } from "../../auto-refresh";
 import { estimateCost, getMetaBilledCost, getRateCard, listCampaignPhones } from "@/server/campaigns/pricing";
 import { RefreshButton } from "@/components/ui/refresh-button";
+import Link from "next/link";
 import styles from "../../campaigns.module.css";
 
 export const metadata: Metadata = { title: "Campaign analytics | Solalyn" };
@@ -113,6 +114,7 @@ export default async function CampaignAnalyticsPage({ params }: { params: Promis
               <p className={styles.helper}>Meta counts every send of template “{a.campaign.templateName}” in those days, not only this campaign, and its numbers can lag a day. If Meta shows delivered messages while the dashboard has none, the webhook is not reaching the database.</p>
             </> : <p className={styles.empty}>Meta’s template analytics could not be loaded (not available yet, or the access token lacks permission). The dashboard numbers above are unaffected.</p>}
             <h3 className={styles.subheading}>Failures</h3>
+            <p className={styles.helper}><Link href={`/dashboard/campaigns/${a.campaign.id}?tab=failed`}>Manage failed messages →</Link></p>
             {a.failureReasons.length || a.rejectionReasons.length ? <dl className={styles.countList}>
               {a.failureReasons.map((r) => <div key={`${r.code}${r.title}`}><dt>{r.title} (code {r.code})</dt><dd>{r.total}</dd></div>)}
               {a.rejectionReasons.map((r) => <div key={r.reason}><dt>Rejected: {r.reason}</dt><dd>{r.total}</dd></div>)}

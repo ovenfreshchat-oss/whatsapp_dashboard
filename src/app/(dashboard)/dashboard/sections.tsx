@@ -9,6 +9,7 @@ import { estimateCost, getMetaBilledCost, getRateCard, listCampaignPhones } from
 import { getMetricAdjustments } from "@/server/dashboard/adjustments";
 import { getWorkspaceMetrics } from "@/server/dashboard/metrics";
 import { getMetaAccountHealthCached } from "@/server/meta/cached";
+import { listCampaignChoices, loadDeliveryOverview } from "@/server/campaigns/retries";
 import { CampaignStateBadge, CategoryBadge } from "@/components/ui/badges";
 import ui from "@/components/ui/ui.module.css";
 import styles from "./dashboard.module.css";
@@ -41,6 +42,37 @@ function MetricCard({ label, value, detail, icon: Icon, tone }: { label: string;
       </div>
     </article>
   );
+}
+
+/** Delivery and failure totals across campaigns, with a date range and a campaign filter. Read only. */
+export async function DeliverySection({ from, to, campaignId }: { from: string | null; to: string | null; campaignId: string | null }) {
+  const [overview, campaigns] = await Promise.all([loadDeliveryOverview({ from, to, campaignId }), listCampaignChoices()]);
+  const n = (value: number | undefined) => (value === undefined ? "—" : value.toLocaleString("en-US"));
+  return <section aria-labelledby="delivery-heading" className={styles.categorySection}>
+    <div className={styles.sectionHead}>
+      <h2 id="delivery-heading">Delivery and failures</h2>
+      <span>{campaignId ? "One campaign" : "All campaigns"}{from || to ? ` · ${from ?? "start"} to ${to ?? "today"}` : ""}</span>
+    </div>
+    <form method="get" style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
+      <label className={ui.field}><span>From</span><input type="date" name="from" defaultValue={from ?? ""} /></label>
+      <label className={ui.field}><span>To</span><input type="date" name="to" defaultValue={to ?? ""} /></label>
+      <label className={ui.field}><span>Campaign</span>
+        <select name="campaign" defaultValue={campaignId ?? ""}>
+          <option value="">All campaigns</option>
+          {campaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select></label>
+      <button type="submit" className={`${ui.btn} ${ui.btnSecondary}`}>Apply</button>
+    </form>
+    {overview ? <div className={styles.categoryGrid}>
+      <MetricCard tone="ink" icon={Send} label="Total sent" value={n(overview.totalSent)} detail="Accepted by WhatsApp" />
+      <MetricCard tone="green" icon={CheckCheck} label="Delivered" value={n(overview.delivered)} detail="Delivered or read" />
+      <MetricCard tone="red" icon={AlertTriangle} label="Failed" value={n(overview.failed)} detail="Original failures, kept in history" />
+      <MetricCard tone="teal" icon={Sparkles} label="Delivery rate" value={`${overview.deliveryRate}%`} detail="Delivered of sent" />
+      <MetricCard tone="gold" icon={BellRing} label="Retry pending" value={n(overview.retryPending)} detail="Waiting or in progress" />
+      <MetricCard tone="green" icon={CheckCircle2} label="Recovered" value={n(overview.recovered)} detail="Delivered after a retry" />
+      <MetricCard tone="coral" icon={UserMinus} label="Retry exhausted" value={n(overview.retryExhausted)} detail="3 retries used, manual review" />
+    </div> : <p className={ui.notice}>Delivery metrics need database migration 0028.</p>}
+  </section>;
 }
 
 const show = (value: number | null) => (value === null ? "—" : value.toLocaleString("en-US"));

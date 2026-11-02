@@ -85,8 +85,11 @@ export type CreateCampaignDraftInput = {
   languageCode: string;
   bodyParameters?: string[];
   headerMediaUrl?: string;
-  audienceSource: "import_batch" | "all_eligible";
+  audienceSource: "import_batch" | "all_eligible" | "failed_contacts";
   importBatchId?: string;
+  /** failed_contacts: the campaign whose failed contacts are used, and which failures (null = every eligible one). */
+  sourceCampaignId?: string;
+  failureIds?: string[] | null;
 };
 
 /** Creates a frozen audience for review. It never sends or schedules messages. */
@@ -109,7 +112,15 @@ export async function createCampaignDraft(
   }
   const audienceSource = input.audienceSource;
   const importBatchId = input.importBatchId;
-  if ((audienceSource !== "import_batch" && audienceSource !== "all_eligible") ||
+  const failedFrom = audienceSource === "failed_contacts";
+  if (failedFrom) {
+    const ids = input.failureIds;
+    if (typeof input.sourceCampaignId !== "string" || !uuidPattern.test(input.sourceCampaignId) || importBatchId !== undefined ||
+        (ids !== null && ids !== undefined && (!Array.isArray(ids) || ids.length < 1 || ids.length > 5000 ||
+          !ids.every((id) => typeof id === "string" && uuidPattern.test(id))))) {
+      throw new CampaignInputError("Choose the failed contacts for this campaign.");
+    }
+  } else if ((audienceSource !== "import_batch" && audienceSource !== "all_eligible") ||
       (audienceSource === "import_batch" &&
         (typeof importBatchId !== "string" || !uuidPattern.test(importBatchId))) ||
       (audienceSource === "all_eligible" && importBatchId !== undefined)) {
@@ -118,7 +129,7 @@ export async function createCampaignDraft(
   const { wabaId, phoneNumberId } = getConfiguredMetaIdentifiers();
   const template = await approvedTemplate(input.templateName, input.languageCode, parameters, headerMediaUrl);
   const store = getCampaignStore();
-  const { data, error } = await store.rpc("create_whatsapp_campaign_draft", {
+  const common = {
     p_created_by: actorId,
     p_name: name,
     p_waba_id: wabaId,
@@ -128,10 +139,24 @@ export async function createCampaignDraft(
     p_template_language: template.language,
     p_template_snapshot: template,
     p_body_parameters: parameters,
-    p_import_batch_id: audienceSource === "import_batch" ? importBatchId : null,
-    p_all_eligible: audienceSource === "all_eligible",
-  });
-  if (error) throw new CampaignStoreError("The campaign could not be saved. Please try again.");
+  };
+  const { data, error } = failedFrom
+    ? await store.rpc("create_campaign_from_failed_contacts", {
+      ...common,
+      p_source_campaign_id: input.sourceCampaignId,
+      p_failure_ids: input.failureIds ?? null,
+    })
+    : await store.rpc("create_whatsapp_campaign_draft", {
+      ...common,
+      p_import_batch_id: audienceSource === "import_batch" ? importBatchId : null,
+      p_all_eligible: audienceSource === "all_eligible",
+    });
+  if (error) {
+    if (failedFrom && /No eligible contacts/.test(error.message ?? "")) {
+      throw new CampaignInputError("None of the selected contacts can be messaged right now. Check the reasons in the Failed Messages tab.");
+    }
+    throw new CampaignStoreError("The campaign could not be saved. Please try again.");
+  }
   if (headerMediaUrl && data?.id) {
     await store.from("whatsapp_campaigns")
       .update({ header_media_url: headerMediaUrl })

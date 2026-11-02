@@ -35,7 +35,7 @@ export type CampaignSummary = {
   id: string;
   name: string;
   state: CampaignState;
-  audienceSource: "import_batch" | "all_eligible";
+  audienceSource: "import_batch" | "all_eligible" | "failed_contacts";
   importBatchId: string | null;
   audienceSourceLabel: string;
   templateName: string;
@@ -106,7 +106,7 @@ export function mapCampaign(value: unknown): CampaignSummary {
   if (!["draft", "scheduled", "running", "paused", "canceled", "completed"].includes(state)) {
     throw new CampaignStoreError("Campaign storage returned an invalid state.");
   }
-  if (audienceSource !== "import_batch" && audienceSource !== "all_eligible") {
+  if (audienceSource !== "import_batch" && audienceSource !== "all_eligible" && audienceSource !== "failed_contacts") {
     throw new CampaignStoreError("Campaign storage returned an invalid audience source.");
   }
   return {

@@ -69,7 +69,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
           {((counts.at_risk ?? 0) > 0 || (counts.do_not_send ?? 0) > 0) && <p className={styles.muted}>
             {(counts.at_risk ?? 0) > 0 && <>{counts.at_risk} At Risk {counts.at_risk === 1 ? "contact has" : "contacts have"} had WhatsApp frequency-limit failures (131049) and still {counts.at_risk === 1 ? "gets" : "get"} messages. </>}
             {(counts.do_not_send ?? 0) > 0 && <>{counts.do_not_send} Do Not Send {counts.do_not_send === 1 ? "contact is" : "contacts are"} paused, not opted out. </>}
-            <Link href="/dashboard/failed-messages" className={styles.contactLink}>Review failed messages</Link></p>}
+            <Link href="/dashboard/campaigns" className={styles.contactLink}>Review failed messages in each campaign</Link></p>}
         </section>}
 
         <section className={styles.panel} aria-labelledby="import-heading">

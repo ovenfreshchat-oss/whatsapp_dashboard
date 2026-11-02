@@ -5,7 +5,8 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { Inbox, Plus } from "lucide-react";
 import { getStaffReadSession } from "@/server/auth/staff-users/admin";
-import { LastCampaignSection, MetricsSection, QualityBanner } from "./sections";
+import { DeliverySection, LastCampaignSection, MetricsSection, QualityBanner } from "./sections";
+import { parseCampaignFilter, parseDateParam } from "@/server/campaigns/retries";
 import ui from "@/components/ui/ui.module.css";
 import styles from "./dashboard.module.css";
 
@@ -19,7 +20,13 @@ function MetricsSkeleton() {
   </div>;
 }
 
-export default async function DashboardPage() {
+const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
+
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ from?: string | string[]; to?: string | string[]; campaign?: string | string[] }> }) {
+  const params = await searchParams;
+  const from = parseDateParam(first(params.from));
+  const to = parseDateParam(first(params.to));
+  const campaignId = parseCampaignFilter(first(params.campaign));
   const { access, workspaceAccess } = await getStaffReadSession();
   if (workspaceAccess === "signed-out") redirect("/sign-in");
   const isAdmin = workspaceAccess === "allowed"; // admin or staff: may see metrics and start campaigns
@@ -43,6 +50,8 @@ export default async function DashboardPage() {
 
       {isAdmin ? <Suspense fallback={<MetricsSkeleton />}><MetricsSection /></Suspense>
         : <p className={ui.notice}>Metrics are available to workspace members.</p>}
+
+      {isAdmin && <Suspense fallback={null}><DeliverySection from={from} to={to} campaignId={campaignId} /></Suspense>}
 
       {isAdmin && <Suspense fallback={<div className={`${ui.skeleton} ${styles.lastSkeleton}`} aria-busy="true" aria-label="Loading last campaign" />}>
         <LastCampaignSection />

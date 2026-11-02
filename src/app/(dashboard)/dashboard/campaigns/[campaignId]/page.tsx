@@ -4,7 +4,8 @@ import { BackLink } from "@/components/ui/back-link";
 import { AUDIT_PAGE_SIZE, getCampaignDetail, listExcludedRecipients, RECIPIENTS_PAGE_SIZE } from "@/server/campaigns/admin";
 import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { getCampaignWorkerReadiness } from "@/server/campaigns/worker";
-import { loadAudienceReview } from "@/server/campaigns/retries";
+import { loadAudienceReview, parseStatusFilter } from "@/server/campaigns/retries";
+import { FailedMessagesTab } from "./failed-tab";
 import { parseTemplateBodyParameters } from "@/server/meta/templates";
 import { CampaignControls } from "../campaign-controls";
 import { DeleteDraftButton } from "../delete-draft";
@@ -19,10 +20,10 @@ export const metadata: Metadata = { title: "Campaign | Solalyn" };
 
 type PageProps = {
   params: Promise<{ campaignId: string }>;
-  searchParams: Promise<{ tab?: string | string[]; rp?: string | string[]; ap?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[]; rp?: string | string[]; ap?: string | string[]; fp?: string | string[]; status?: string | string[] }>;
 };
 
-const TABS = [["overview", "Overview"], ["message", "Message"], ["audience", "Audience"], ["history", "History"]] as const;
+const TABS = [["overview", "Overview"], ["message", "Message"], ["audience", "Audience"], ["failed", "Failed messages"], ["history", "History"]] as const;
 type Tab = (typeof TABS)[number][0];
 
 function dateLabel(value: string | null) {
@@ -74,7 +75,7 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
   const isDraft = campaign?.state === "draft";
   const audienceReview = campaign && ["draft", "scheduled", "running", "paused"].includes(campaign.state)
     ? await loadAudienceReview(campaign.id) : null;
-  const visibleTabs = TABS.filter(([key]) => !(isDraft && key === "overview"));
+  const visibleTabs = TABS.filter(([key]) => !(isDraft && (key === "overview" || key === "failed")));
   const tab: Tab = visibleTabs.some(([key]) => key === requestedTab)
     ? (requestedTab as Tab) : (isDraft ? "message" : "overview");
   const tabHref = (key: Tab) => `/dashboard/campaigns/${campaignId}?tab=${key}`;
@@ -131,7 +132,7 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
           {!readiness.enabled && <div className={styles.formNote}><strong>Worker readiness</strong><p>{readiness.reason}</p></div>}
         </section>}
         {!isDraft && <section className={styles.summaryStrip} aria-label="Campaign summary">
-          <div><span>Audience</span><strong>{campaign.audienceCount}</strong><small>{campaign.audienceSource === "import_batch" ? "Selected import" : "All eligible"}</small></div>
+          <div><span>Audience</span><strong>{campaign.audienceCount}</strong><small>{campaign.audienceSource === "import_batch" ? "Selected import" : campaign.audienceSource === "failed_contacts" ? "Failed contacts" : "All eligible"}</small></div>
           <div><span>Template</span><strong className={styles.stripText}>{campaign.templateName}</strong><small>{campaign.templateLanguage}</small></div>
           <div><span>Scheduled for</span><strong className={styles.stripText}>{dateLabel(campaign.scheduledFor)}</strong><small>Created {dateLabel(campaign.createdAt)}</small></div>
         </section>}
@@ -195,6 +196,9 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
           <Pagination page={recipientPage} total={campaign.recipientTotal} pageSize={RECIPIENTS_PAGE_SIZE} param="rp"
             path={`/dashboard/campaigns/${campaign.id}`} query={{ tab: "audience" }} label="Recipient pages" />
         </section>}
+
+        {tab === "failed" && <FailedMessagesTab campaignId={campaign.id}
+          status={parseStatusFilter(Array.isArray(query.status) ? query.status[0] : query.status)} page={pageFrom(query.fp)} />}
 
         {tab === "history" && <section className={styles.panel} aria-labelledby="audit-heading">
           <div className={styles.panelHeading}><div><h2 id="audit-heading">Audit trail</h2></div><span>{campaign.auditTotal} events</span></div>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Megaphone, MessageSquare, PlugZap, UserPlus, MailWarning, Loader2, Ellipsis, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Users, Megaphone, MessageSquare, PlugZap, UserPlus, Loader2, Ellipsis, type LucideIcon } from "lucide-react";
 import styles from "./dashboard-shell.module.css";
 
 type Item = { href: string; icon: LucideIcon; label: string; short?: string; match: string[]; access?: "work" | "admin"; /** Stays in the phone tab bar; the rest move under "More". */ primary?: boolean };
@@ -12,7 +12,6 @@ const ITEMS: Item[] = [
   { primary: true, href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", match: [] },
   { primary: true, href: "/dashboard/contacts", icon: Users, label: "Contacts", match: ["/dashboard/contacts", "/dashboard/opt-outs"], access: "work" },
   { primary: true, href: "/dashboard/campaigns", icon: Megaphone, label: "Campaigns", match: ["/dashboard/campaigns", "/dashboard/templates"], access: "work" },
-  { href: "/dashboard/failed-messages", icon: MailWarning, label: "Failed messages", short: "Failed", match: ["/dashboard/failed-messages"], access: "work" },
   { primary: true, href: "/dashboard/inbox", icon: MessageSquare, label: "Inbox", match: ["/dashboard/inbox"], access: "work" },
   { href: "/dashboard/meta", icon: PlugZap, label: "WhatsApp setup", short: "Setup", match: ["/dashboard/meta"], access: "admin" },
   { href: "/dashboard/users/new", icon: UserPlus, label: "Team", match: ["/dashboard/users"], access: "admin" },

@@ -6,6 +6,10 @@ import Link from "next/link";
 import { Spinner } from "@/components/ui/spinner";
 import { useFeedback } from "@/components/ui/feedback";
 import { createCampaignDraftAction, type CampaignActionState } from "./actions";
+import { previewFailedContactsAction } from "./[campaignId]/failed-actions";
+import { SELECTION_KEY } from "./[campaignId]/failed-controls";
+import { describeExclusion } from "@/server/campaigns/retry-explain";
+import type { FailedContactPreview } from "@/server/campaigns/retries";
 import type { CampaignImportBatchOption } from "@/server/campaigns/admin";
 import styles from "./campaigns.module.css";
 
@@ -55,13 +59,49 @@ function BodyValues({ keys, errors, onEdit }: { keys: string[]; errors: Record<n
   </div>;
 }
 
+/** Recipients picked in a campaign's Failed Messages tab. Shows who can and cannot be messaged before anything is created. */
+function FailedSelection({ campaignId, campaignName }: { campaignId: string; campaignName: string }) {
+  const [ids, setIds] = useState<string[] | null | undefined>(undefined);
+  const [preview, setPreview] = useState<FailedContactPreview | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    let picked: { campaignId?: string; ids?: string[] | null } | null = null;
+    try {
+      const raw = sessionStorage.getItem(SELECTION_KEY);
+      picked = raw ? JSON.parse(raw) : null;
+    } catch { picked = null; }
+    if (!picked || picked.campaignId !== campaignId || picked.ids === undefined) {
+      setError("No contacts are selected. Go back to the campaign's Failed Messages tab and select contacts.");
+      return;
+    }
+    setIds(picked.ids);
+    previewFailedContactsAction(campaignId, picked.ids).then((result) => {
+      if (cancelled) return;
+      if (result.error) setError(result.error); else setPreview(result.preview);
+    }).catch(() => { if (!cancelled) setError("The selection could not be checked. Try again."); });
+    return () => { cancelled = true; };
+  }, [campaignId]);
+  return <div className={styles.field}>
+    <span>Recipients: failed contacts from {campaignName}</span>
+    <input type="hidden" name="sourceCampaignId" value={campaignId} />
+    <input type="hidden" name="failureIds" value={ids === undefined ? "" : ids === null ? "all" : JSON.stringify(ids)} />
+    {error ? <FieldError>{error}</FieldError> : !preview ? <small>Checking who can be messaged…</small> : <>
+      <strong>{preview.eligible} will be included · {preview.excluded} excluded</strong>
+      {Object.entries(preview.reasons).map(([reason, count]) => <small key={reason}>{count} excluded: {describeExclusion(reason)}</small>)}
+      <small>Contacts on a waiting time, Do Not Send hold, suppression or Global Opt Out are never included. Failure counts are not reset.</small>
+    </>}
+  </div>;
+}
+
 function FieldError({ children }: { children?: string }) {
   return children ? <span style={{ color: "var(--danger-700)", fontSize: 12, fontWeight: 600 }} role="alert">{children}</span> : null;
 }
 
-export function CreateCampaignForm({ options, batches }: {
+export function CreateCampaignForm({ options, batches, source }: {
   options: CampaignTemplateOption[];
   batches: CampaignImportBatchOption[];
+  source?: { campaignId: string; campaignName: string };
 }) {
   const [state, action] = useActionState(createCampaignDraftAction, initialState);
   const { toast } = useFeedback();
@@ -86,7 +126,7 @@ export function CreateCampaignForm({ options, batches }: {
     const name = String(data.get("name") ?? "").trim();
     if (!name) next.name = "Give the campaign a name.";
     if (!selected) next.template = "Choose an approved template.";
-    if (!selectedAudience) next.audience = "Choose who should receive it.";
+    if (!source && !selectedAudience) next.audience = "Choose who should receive it.";
     if (template?.headerFormat === "IMAGE") {
       const image = data.get("headerImage");
       if (!(image instanceof File) || image.size === 0) next.image = "This template needs a header image (JPG or PNG).";
@@ -125,7 +165,7 @@ export function CreateCampaignForm({ options, batches }: {
       </select>
       <FieldError>{errors.template}</FieldError>
     </label>
-    <label className={styles.field}>
+    {source ? <FailedSelection campaignId={source.campaignId} campaignName={source.campaignName} /> : <label className={styles.field}>
       <span>Choose contact list</span>
       <select name="audienceSource" value={selectedAudience} aria-invalid={errors.audience ? true : undefined}
         onChange={(event) => setSelectedAudience(event.target.value)}>
@@ -137,7 +177,7 @@ export function CreateCampaignForm({ options, batches }: {
       </select>
       <FieldError>{errors.audience}</FieldError>
       {!batches.length && <small>No uploads yet. <Link href="/dashboard/contacts">Upload contacts</Link> first, or pick all eligible contacts.</small>}
-    </label>
+    </label>}
     </div>
     <div className={styles.formCol}>
     {template && template.headerFormat === "IMAGE" && <label className={styles.field} key={`${selected}-header`}>

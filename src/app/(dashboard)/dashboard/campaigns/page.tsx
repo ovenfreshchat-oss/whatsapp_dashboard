@@ -14,6 +14,8 @@ import { CampaignStateBadge, CategoryBadge } from "@/components/ui/badges";
 import { categoryForCampaign, getTemplateCategories } from "@/server/campaigns/categories";
 import { Plus } from "lucide-react";
 import { SenderAlertBanner } from "@/components/ui/sender-alert-banner";
+import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
+import { isUuid } from "@/server/campaigns/retries";
 import styles from "./campaigns.module.css";
 
 export const metadata: Metadata = {
@@ -46,12 +48,13 @@ function dateLabel(value: string | null) {
   return Number.isNaN(date.valueOf()) ? "—" : `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
 }
 
-export default async function CampaignsPage({ searchParams }: { searchParams: Promise<{ page?: string | string[]; view?: string | string[] }> }) {
+export default async function CampaignsPage({ searchParams }: { searchParams: Promise<{ page?: string | string[]; view?: string | string[]; from?: string | string[] }> }) {
   const params = await searchParams;
   const rawPage = params.page;
   const requestedPage = Number.parseInt(Array.isArray(rawPage) ? rawPage[0] : rawPage ?? "1", 10);
   const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const creating = (Array.isArray(params.view) ? params.view[0] : params.view) === "new";
+  const fromParam = Array.isArray(params.from) ? params.from[0] : params.from;
 
   // One job per screen: the list by default, the create form only when asked for.
   // The Meta template sync is slow, so it only runs on the create screen.
@@ -66,6 +69,13 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
     const options = (templates ?? []).map(templateOption)
       .filter((value): value is CampaignTemplateOption => value !== null);
     const canCreate = Boolean(batches && options.length);
+    // "Create New Campaign with Selected Contacts": the composer opens with that campaign's failed contacts preloaded.
+    let source: { campaignId: string; campaignName: string } | undefined;
+    if (isUuid(fromParam)) {
+      const { data } = await (createStaffAdminClient()?.from("whatsapp_campaigns").select("id,name").eq("id", fromParam).maybeSingle()
+        ?? Promise.resolve({ data: null }));
+      if (data) source = { campaignId: String(data.id), campaignName: String(data.name) };
+    }
 
     return <>
       <div className={styles.content}>
@@ -74,7 +84,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
           <h1>New campaign</h1>
         </div>
         <section className={styles.panel} aria-label="Message and audience">
-          {canCreate ? <CreateCampaignForm options={options} batches={batches ?? []} /> : <p className={styles.empty}>Draft creation becomes available after import history, campaign storage, and a supported approved marketing template are ready.</p>}
+          {canCreate ? <CreateCampaignForm options={options} batches={batches ?? []} source={source} /> : <p className={styles.empty}>Draft creation becomes available after import history, campaign storage, and a supported approved marketing template are ready.</p>}
         </section>
       </div>
     </>;
