@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { BackLink } from "@/components/ui/back-link";
-import { getCampaignAnalytics, getMetaTemplateStats, type CampaignAnalytics } from "@/server/campaigns/analytics";
+import { getCampaignAnalytics, type CampaignAnalytics } from "@/server/campaigns/analytics";
 import { AutoRefresh } from "../../auto-refresh";
 import { estimateCost, getMetaBilledCost, getRateCard, listCampaignPhones } from "@/server/campaigns/pricing";
 import { RefreshButton } from "@/components/ui/refresh-button";
@@ -23,7 +23,7 @@ function duration(seconds: number | null) {
 function warnings(a: CampaignAnalytics): string[] {
   const out: string[] = [];
   if (a.accepted > 0 && a.noStatus === a.accepted) {
-    out.push("Meta accepted these messages but no delivery status has reached the dashboard for any of them. Delivered and read are unknown, not zero. Check the webhook (Vercel logs for /api/webhooks/meta/whatsapp) and compare with the Meta panel below.");
+    out.push("Meta accepted these messages but no delivery status has reached the dashboard for any of them. Delivered and read are unknown, not zero. Check the webhook (Vercel logs for /api/webhooks/meta/whatsapp).");
   } else if (a.noStatus > 0) {
     out.push(`${a.noStatus} accepted messages have no status yet. Statuses can lag by minutes to hours.`);
   }
@@ -39,7 +39,6 @@ export default async function CampaignAnalyticsPage({ params }: { params: Promis
   try { a = await getCampaignAnalytics(campaignId); } catch (error) {
     loadError = error instanceof Error ? error.message : "Analytics could not be loaded.";
   }
-  const meta = a ? await getMetaTemplateStats(a) : null;
   const card = getRateCard();
   const estimate = a && card
     ? estimateCost(await listCampaignPhones(a.campaign.id, { deliveryStatuses: ["delivered", "read"] }).catch(() => []), card)
@@ -103,17 +102,8 @@ export default async function CampaignAnalyticsPage({ params }: { params: Promis
             <p className={styles.helper}>“Sent” and “Delivered” include messages that moved further, so each step contains the next. Replies and opt-outs count contacts of this campaign who wrote after the first message went out, so they can include replies to other campaigns.</p>
           </section>
 
-          <section className={styles.panel} aria-labelledby="meta-heading">
-            <div className={styles.panelHeading}><div><span className={styles.eyebrow}>CROSS-CHECK</span><h2 id="meta-heading">What Meta reports</h2></div><span>{meta ? `${meta.from} → ${meta.to}` : "Unavailable"}</span></div>
-            {meta ? <>
-              <dl className={styles.countList}>
-                <div><dt>Sent</dt><dd>{meta.sent}</dd></div>
-                <div><dt>Delivered</dt><dd>{meta.delivered}</dd></div>
-                <div><dt>Read</dt><dd>{meta.read}</dd></div>
-              </dl>
-              <p className={styles.helper}>Meta counts every send of template “{a.campaign.templateName}” in those days, not only this campaign, and its numbers can lag a day. If Meta shows delivered messages while the dashboard has none, the webhook is not reaching the database.</p>
-            </> : <p className={styles.empty}>Meta’s template analytics could not be loaded (not available yet, or the access token lacks permission). The dashboard numbers above are unaffected.</p>}
-            <h3 className={styles.subheading}>Failures</h3>
+          <section className={styles.panel} aria-labelledby="failures-heading">
+            <div className={styles.panelHeading}><div><span className={styles.eyebrow}>FAILURES</span><h2 id="failures-heading">Why messages failed</h2></div></div>
             <p className={styles.helper}><Link href={`/dashboard/campaigns/${a.campaign.id}?tab=failed`}>Manage failed messages →</Link></p>
             {a.failureReasons.length || a.rejectionReasons.length ? <dl className={styles.countList}>
               {a.failureReasons.map((r) => <div key={`${r.code}${r.title}`}><dt>{r.title} (code {r.code})</dt><dd>{r.total}</dd></div>)}
