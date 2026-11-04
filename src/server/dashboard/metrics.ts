@@ -25,7 +25,7 @@ async function fetchMetrics(): Promise<WorkspaceMetrics | null> {
     admin.from("whatsapp_campaigns").select("id", { count: "exact", head: true }).neq("state", "draft"),
     admin.from("whatsapp_campaigns").select("id", { count: "exact", head: true }).in("state", ["scheduled", "running", "paused"]),
     admin.from("whatsapp_campaign_recipients").select("id", { count: "exact", head: true }).eq("state", "accepted"),
-    admin.from("opt_out_numbers").select("phone_e164", { count: "exact", head: true }),
+    admin.from("opt_out_numbers").select("phone_e164", { count: "exact", head: true }).is("released_at", null),
     admin.from("inbox_messages").select("id", { count: "exact", head: true }).eq("direction", "outbound").in("status", ["sent", "delivered", "read"]),
     admin.from("whatsapp_campaign_recipients").select("id", { count: "exact", head: true }).in("delivery_status", ["delivered", "read"]),
     admin.from("inbox_messages").select("id", { count: "exact", head: true }).eq("direction", "outbound").in("status", ["delivered", "read"]),
