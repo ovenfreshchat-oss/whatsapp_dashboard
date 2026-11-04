@@ -5,7 +5,7 @@ import {
 } from "@/server/campaigns/retries";
 import type { RetryStatusFilter } from "@/server/campaigns/retries";
 import { describeDelay } from "@/server/campaigns/retry-math";
-import { describeExclusion, explainRetry } from "@/server/campaigns/retry-explain";
+import { describeErrorCode, describeExclusion, explainRetry } from "@/server/campaigns/retry-explain";
 import { AutoRetryForm, CreateFromSelected, ReactivateButton, ResolveAlertButton, RetryButton } from "./failed-controls";
 import styles from "../../contacts/contacts.module.css";
 
@@ -86,7 +86,7 @@ export async function FailedMessagesTab({ campaignId, status, page }: {
       <div className={styles.panelHeading}><h2 id="codes-heading">Error codes</h2></div>
       {summary.byCode.length ? <div className={styles.tableWrap}><table>
         <thead><tr><th>Code</th><th>What it means</th><th>Messages</th></tr></thead>
-        <tbody>{summary.byCode.map((c) => <tr key={c.code}><td>{c.code}</td><td>{c.title ?? "—"}</td><td>{c.count}</td></tr>)}</tbody>
+        <tbody>{summary.byCode.map((c) => <tr key={c.code}><td>{c.code}</td><td>{describeErrorCode(c.code, c.title)}</td><td>{c.count}</td></tr>)}</tbody>
       </table></div> : <p className={styles.empty}>No failed messages in this campaign.</p>}
     </section>
 

@@ -5,6 +5,7 @@ import { AutoRefresh } from "../../auto-refresh";
 import { estimateCost, getMetaBilledCost, getRateCard, listCampaignPhones } from "@/server/campaigns/pricing";
 import { RefreshButton } from "@/components/ui/refresh-button";
 import Link from "next/link";
+import { describeErrorCode } from "@/server/campaigns/retry-explain";
 import styles from "../../campaigns.module.css";
 
 export const metadata: Metadata = { title: "Campaign analytics | Solalyn" };
@@ -115,7 +116,7 @@ export default async function CampaignAnalyticsPage({ params }: { params: Promis
             <div className={styles.panelHeading}><div><span className={styles.eyebrow}>FAILURES</span><h2 id="failures-heading">Why messages failed</h2></div></div>
             <p className={styles.helper}><Link href={`/dashboard/campaigns/${a.campaign.id}?tab=failed`}>Manage failed messages →</Link></p>
             {a.failureReasons.length || a.rejectionReasons.length ? <dl className={styles.countList}>
-              {a.failureReasons.map((r) => <div key={`${r.code}${r.title}`}><dt>{r.title} (code {r.code})</dt><dd>{r.total}</dd></div>)}
+              {a.failureReasons.map((r) => <div key={`${r.code}${r.title}`}><dt>{describeErrorCode(r.code, r.title)} (code {r.code})</dt><dd>{r.total}</dd></div>)}
               {a.rejectionReasons.map((r) => <div key={r.reason}><dt>Rejected: {r.reason}</dt><dd>{r.total}</dd></div>)}
             </dl> : <p className={styles.helper}>No failures recorded.</p>}
           </section>

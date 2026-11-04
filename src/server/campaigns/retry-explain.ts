@@ -8,6 +8,20 @@ const HOLD_REASON_TEXT: Record<string, string> = {
   manual_review: "On hold for a manual review",
 };
 
+/** What a WhatsApp error code means for the business, in plain words. Falls back to the text Meta sent. */
+const ERROR_MEANING: Record<string, string> = {
+  "131026": "This number cannot receive the message. It may not be on WhatsApp, may have an old WhatsApp version, or may not have accepted WhatsApp's latest terms.",
+  "131049": "WhatsApp did not deliver this marketing message because this person already got many marketing messages recently. It can be tried again after 24 hours.",
+  "131050": "This person chose to stop marketing messages from your business.",
+  "131048": "WhatsApp limited your business number because too many people reported or ignored your messages.",
+  "131056": "Too many messages were sent to this person in a short time. Wait a little before sending again.",
+  "131047": "More than 24 hours passed since this person last wrote to you, so only an approved template can be sent.",
+};
+
+export function describeErrorCode(code: string, metaTitle?: string | null): string {
+  return ERROR_MEANING[code] ?? metaTitle ?? "WhatsApp did not deliver this message.";
+}
+
 export type RetryExplainInput = {
   retryStatus: "recovered" | "pending" | "exhausted" | "stopped" | "eligible" | "not_retryable";
   errorCode: string;
