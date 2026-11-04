@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { sendMetaTestMessage, type TestSendState } from "./actions";
+import { WhatsAppPreview, type PreviewButton } from "@/components/ui/whatsapp-preview";
 import styles from "./meta.module.css";
 
 export type TestTemplateOption = {
@@ -11,6 +12,8 @@ export type TestTemplateOption = {
   body: string;
   parameterKeys: string[];
   headerFormat?: "IMAGE" | "TEXT" | null;
+  footer?: string | null;
+  buttons?: PreviewButton[];
 };
 
 const initialState: TestSendState = { error: "", success: "", messageId: "" };
@@ -48,12 +51,7 @@ export function TestSendForm({ recipient, options }: { recipient: string; option
         </label>
       )}
 
-      {template && (
-        <div className={styles.templatePreview}>
-          <span>TEMPLATE BODY</span>
-          <p>{template.body}</p>
-        </div>
-      )}
+      {template && <WhatsAppPreview headerImageUrl={null} headerImageMissing={template.headerFormat === "IMAGE"} body={template.body} footer={template.footer} buttons={template.buttons} />}
 
       {template && template.parameterKeys.length > 0 && (
         <label className={styles.field}>

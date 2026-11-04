@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {
-  AlertTriangle, BellRing, CheckCheck, CheckCircle2, Megaphone, Send, ShieldCheck, Sparkles,
+  AlertTriangle, BellRing, CheckCheck, CheckCircle2, Inbox, Megaphone, Send, ShieldCheck, Sparkles,
   UserMinus, Users, type LucideIcon,
 } from "lucide-react";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
@@ -10,6 +10,8 @@ import { getMetricAdjustments } from "@/server/dashboard/adjustments";
 import { getWorkspaceMetrics } from "@/server/dashboard/metrics";
 import { getMetaAccountHealthCached } from "@/server/meta/cached";
 import { listCampaignChoices, loadDeliveryOverview } from "@/server/campaigns/retries";
+import { loadWhatsappTotals, resolvePeriod } from "@/server/campaigns/whatsapp-totals";
+import { DeliveryFilters } from "./delivery-filters";
 import { CampaignStateBadge, CategoryBadge } from "@/components/ui/badges";
 import ui from "@/components/ui/ui.module.css";
 import styles from "./dashboard.module.css";
@@ -46,29 +48,24 @@ function MetricCard({ label, value, detail, icon: Icon, tone }: { label: string;
 
 /** Delivery and failure totals across campaigns, with a date range and a campaign filter. Read only. */
 export async function DeliverySection({ from, to, campaignId }: { from: string | null; to: string | null; campaignId: string | null }) {
-  const [overview, campaigns] = await Promise.all([loadDeliveryOverview({ from, to, campaignId }), listCampaignChoices()]);
+  const period = resolvePeriod(from, to);
+  const [overview, campaigns, totals] = await Promise.all([loadDeliveryOverview({ from: period.from, to: period.to, campaignId }), listCampaignChoices(), loadWhatsappTotals(from, to)]);
   const n = (value: number | undefined) => (value === undefined ? "—" : value.toLocaleString("en-US"));
   return <section aria-labelledby="delivery-heading" className={styles.categorySection}>
     <div className={styles.sectionHead}>
       <h2 id="delivery-heading">Delivery and failures</h2>
-      <span>{campaignId ? "One campaign" : "All campaigns"}{from || to ? ` · ${from ?? "start"} to ${to ?? "today"}` : ""}</span>
+      <span>{totals.from} to {totals.to}</span>
     </div>
-    <form method="get" style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
-      <label className={ui.field}><span>From</span><input type="date" name="from" defaultValue={from ?? ""} /></label>
-      <label className={ui.field}><span>To</span><input type="date" name="to" defaultValue={to ?? ""} /></label>
-      <label className={ui.field}><span>Campaign</span>
-        <select name="campaign" defaultValue={campaignId ?? ""}>
-          <option value="">All campaigns</option>
-          {campaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select></label>
-      <button type="submit" className={`${ui.btn} ${ui.btnSecondary}`}>Apply</button>
-    </form>
+    <DeliveryFilters from={totals.from} to={totals.to} campaignId={campaignId} campaigns={campaigns} />
+    <div className={styles.categoryGrid}>
+      <MetricCard tone="ink" icon={Send} label="Messages sent" value={show(totals.sent)} detail="All messages, per WhatsApp" />
+      <MetricCard tone="green" icon={CheckCheck} label="Messages delivered" value={show(totals.delivered)} detail="All messages, per WhatsApp" />
+      <MetricCard tone="violet" icon={Inbox} label="Messages received" value={show(totals.received)} detail="From customers, in your inbox" />
+    </div>
+    {totals.sent === null && <p className={ui.notice}>WhatsApp totals could not be loaded right now. The campaign numbers below are unaffected.</p>}
+    {campaignId && <p className={ui.notice}>The three numbers above cover your whole WhatsApp number, not just the campaign you picked.</p>}
     {overview ? <div className={styles.categoryGrid}>
-      <MetricCard tone="ink" icon={Send} label="Messages sent" value={n(overview.totalSent)} detail="Messages accepted by WhatsApp" />
-      <MetricCard tone="green" icon={CheckCheck} label="Delivered" value={n(overview.delivered)} detail="Delivered or read" />
-      <MetricCard tone="red" icon={AlertTriangle} label="Failed messages" value={n(overview.failed)} detail="Messages WhatsApp could not deliver" />
-      <MetricCard tone="teal" icon={Sparkles} label="Delivery rate" value={`${overview.deliveryRate}%`} detail="Delivered of sent" />
-      <MetricCard tone="gold" icon={BellRing} label="Messages waiting to retry" value={n(overview.retryPending)} detail="Failed messages queued for another try" />
+      <MetricCard tone="red" icon={AlertTriangle} label="Failed messages" value={n(overview.failed)} detail="Campaign messages WhatsApp could not deliver" />
     </div> : <p className={ui.notice}>Delivery metrics need database migration 0028.</p>}
   </section>;
 }

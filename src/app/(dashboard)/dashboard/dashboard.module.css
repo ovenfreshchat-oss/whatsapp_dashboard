@@ -77,3 +77,43 @@
   .headerActions { width: 100%; }
   .headerActions > * { flex: 1 1 0; }
 }
+
+/* Delivery and failures: date range picker and campaign filter */
+.filterBar { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.pickerWrap { position: relative; display: grid; gap: 6px; }
+.filterLabel { font-size: 13px; font-weight: 600; color: var(--ink-700); }
+.pickerButton, .campaignSelect { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 10px; background: #fff; color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+.pickerButton:focus-visible, .campaignSelect:focus-visible { outline: none; border-color: var(--coral); box-shadow: var(--focus); }
+.pickerPop { position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; width: max-content; max-width: calc(100vw - 32px); border: 1px solid var(--line-strong); border-radius: 14px; background: #fff; box-shadow: 0 18px 48px rgba(15, 23, 42, .18); }
+.pickerBody { display: flex; gap: 8px; padding: 14px; }
+.presetList { display: grid; align-content: start; gap: 10px; min-width: 120px; padding: 6px 12px 6px 4px; border-right: 1px solid var(--line); }
+.presetItem { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); cursor: pointer; }
+.calendars { display: flex; gap: 20px; padding-left: 8px; }
+.calMonth { width: 252px; }
+.calMonthHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+.calNav { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); cursor: pointer; }
+.calNav:hover { background: var(--sand-50); }
+.calNavGap { width: 28px; }
+.calGrid { display: grid; grid-template-columns: repeat(7, 36px); row-gap: 2px; justify-content: center; }
+.calWeekday { display: grid; place-items: center; height: 28px; font-size: 12px; color: var(--muted); }
+.calDay { height: 34px; border: 0; border-radius: 0; background: transparent; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+.calDay:hover:not(:disabled) { background: var(--coral-50); }
+.calInRange { background: var(--coral-50); }
+.calEdge { background: var(--coral); color: #fff; border-radius: 8px; font-weight: 700; }
+.calEdge:hover:not(:disabled) { background: var(--coral-600); }
+.calFuture { color: #aab2c0; cursor: not-allowed; }
+.pickerFoot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-top: 1px solid var(--line); font-size: 13px; }
+.pickerFoot small { display: block; color: var(--muted); font-size: 12px; }
+.pickerActions { display: flex; gap: 8px; }
+.pickerCancel, .pickerUpdate { min-height: 38px; padding: 0 18px; border-radius: 10px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.pickerCancel { border: 1px solid var(--line-strong); background: #fff; color: var(--ink); }
+.pickerUpdate { border: 1px solid var(--coral); background: var(--coral); color: #fff; }
+.pickerUpdate:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 720px) {
+  .pickerPop { position: fixed; left: 16px; right: 16px; top: auto; bottom: 16px; width: auto; max-height: calc(100vh - 32px); overflow: auto; }
+  .pickerBody { flex-direction: column; }
+  .presetList { grid-auto-flow: column; grid-template-columns: repeat(3, auto); border-right: 0; border-bottom: 1px solid var(--line); padding: 0 0 10px; }
+  .calendars { flex-direction: column; padding-left: 0; }
+  .calMonth { width: 100%; }
+  .calGrid { grid-template-columns: repeat(7, 1fr); }
+}

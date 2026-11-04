@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState, type FormEvent } from "rea
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { Spinner } from "@/components/ui/spinner";
+import { WhatsAppPreview, type PreviewButton } from "@/components/ui/whatsapp-preview";
 import { useFeedback } from "@/components/ui/feedback";
 import { createCampaignDraftAction, type CampaignActionState } from "./actions";
 import { previewFailedContactsAction } from "./[campaignId]/failed-actions";
@@ -19,6 +20,8 @@ export type CampaignTemplateOption = {
   body: string;
   parameterKeys: string[];
   headerFormat?: "IMAGE" | "TEXT" | null;
+  footer?: string | null;
+  buttons?: PreviewButton[];
 };
 
 const initialState: CampaignActionState = { error: "", success: "" };
@@ -41,8 +44,9 @@ function valueLabel(key: string): string {
 type Errors = { name?: string; template?: string; audience?: string; image?: string; values?: Record<number, string> };
 
 /** One text box per blank in the message. They are sent to the server as one value per line. */
-function BodyValues({ keys, errors, onEdit }: { keys: string[]; errors: Record<number, string>; onEdit: (index: number) => void }) {
+function BodyValues({ keys, errors, onEdit, onValues }: { keys: string[]; errors: Record<number, string>; onEdit: (index: number) => void; onValues: (values: string[]) => void }) {
   const [values, setValues] = useState<string[]>(() => keys.map(() => ""));
+  useEffect(() => { onValues(values); }, [values, onValues]);
   return <div className={styles.valueFields}>
     {keys.map((key, index) => <label className={styles.field} key={key}>
       <span>{valueLabel(key)}</span>
@@ -94,6 +98,12 @@ function FailedSelection({ campaignId, campaignName }: { campaignId: string; cam
   </div>;
 }
 
+/** The template body with the typed values filled in. Blanks stay as {{name}} until a value is typed. */
+function fillValues(body: string, keys: string[], values: string[]): string {
+  const byKey = new Map(keys.map((key, index) => [key, values[index]?.trim() ?? ""]));
+  return body.replace(/\{\{\s*([^{}]*?)\s*\}\}/g, (match, key: string) => byKey.get(key) || match);
+}
+
 function FieldError({ children }: { children?: string }) {
   return children ? <span style={{ color: "var(--danger-700)", fontSize: 12, fontWeight: 600 }} role="alert">{children}</span> : null;
 }
@@ -108,6 +118,7 @@ export function CreateCampaignForm({ options, batches, source }: {
   const [selected, setSelected] = useState(options[0]?.key ?? "");
   const [selectedAudience, setSelectedAudience] = useState(batches[0] ? `batch:${batches[0].id}` : "");
   const [preview, setPreview] = useState("");
+  const [liveValues, setLiveValues] = useState<string[]>([]);
   const [errors, setErrors] = useState<Errors>({});
   const handled = useRef(state);
   const template = options.find((item) => item.key === selected);
@@ -197,12 +208,15 @@ export function CreateCampaignForm({ options, batches, source }: {
       {preview && /* eslint-disable-next-line @next/next/no-img-element */
         <img src={preview} alt="Selected header preview" className={styles.headerImagePreview} />}
     </label>}
-    {template && <div className={styles.templatePreview}>
-      <span>Template body</span>
-      <p>{template.body}</p>
-    </div>}
+    {template && <WhatsAppPreview
+      headerImageUrl={template.headerFormat === "IMAGE" ? preview || null : null}
+      headerImageMissing={template.headerFormat === "IMAGE" && !preview}
+      body={fillValues(template.body, template.parameterKeys, liveValues)}
+      footer={template.footer}
+      buttons={template.buttons} />}
     {template && template.parameterKeys.length > 0
       ? <BodyValues key={selected} keys={template.parameterKeys} errors={errors.values ?? {}}
+          onValues={setLiveValues}
           onEdit={(index) => errors.values?.[index] && setErrors((old) => ({ ...old, values: { ...old.values, [index]: "" } }))} />
       : <input name="bodyParameters" type="hidden" value="" />}
     </div>

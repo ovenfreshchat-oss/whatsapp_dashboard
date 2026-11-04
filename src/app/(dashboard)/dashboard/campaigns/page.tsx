@@ -36,6 +36,8 @@ function templateOption(template: MetaTemplate): CampaignTemplateOption | null {
       body,
       parameterKeys: spec.keys,
       headerFormat: validation.headerFormat,
+      footer: template.components.find((part) => part.type === "FOOTER")?.text ?? null,
+      buttons: template.components.find((part) => part.type === "BUTTONS")?.buttons ?? [],
     };
   } catch {
     return null;

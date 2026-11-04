@@ -13,6 +13,7 @@ import { ExcludeNumbers } from "../exclude-numbers";
 import { AutoRefresh } from "../auto-refresh";
 import { RefreshButton } from "@/components/ui/refresh-button";
 import { CampaignStateBadge, CategoryBadge } from "@/components/ui/badges";
+import { WhatsAppPreview } from "@/components/ui/whatsapp-preview";
 import { categoryForCampaign, getTemplateCategories } from "@/server/campaigns/categories";
 import styles from "../campaigns.module.css";
 
@@ -87,25 +88,13 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
 
   // The one and only preview of the message: header, rendered body, footer and buttons.
   // Drafts show it in the "Send or schedule" card; sent campaigns show it in the Message tab.
-  const messagePreview = campaign ? <div className={styles.messagePreview}>
-    {header && <div className={styles.componentReview}>
-      <strong>Header {header.format ? `(${header.format})` : ""}</strong>
-      {header.format === "IMAGE" ? (
-        campaign.headerMediaUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={campaign.headerMediaUrl} alt="Header preview" className={styles.headerImagePreview} />
-        ) : <p>No header image provided</p>
-      ) : <p>{header.text || "No header text"}</p>}
-    </div>}
-    <div className={styles.renderedPreview}><strong>Message preview</strong><p>{review?.rendered}</p></div>
-    {footer && <div className={styles.componentReview}><strong>Footer</strong><p>{footer.text || "No footer text"}</p></div>}
-    {buttons.length > 0 && <div className={styles.componentReview}>
-      <strong>Buttons</strong>
-      <ul>{buttons.map((button, index) => <li key={index}>
-        {button.text || button.type || "Button"}{button.url ? ` · ${button.url}` : ""}{button.phoneNumber ? ` · ${button.phoneNumber}` : ""}
-      </li>)}</ul>
-    </div>}
-  </div> : null;
+  const messagePreview = campaign ? <WhatsAppPreview
+    headerImageUrl={header?.format === "IMAGE" ? campaign.headerMediaUrl : null}
+    headerImageMissing={header?.format === "IMAGE" && !campaign.headerMediaUrl}
+    headerText={header && header.format !== "IMAGE" ? header.text : null}
+    body={review?.rendered ?? ""}
+    footer={footer?.text}
+    buttons={buttons} /> : null;
 
   return <>
     <div className={styles.content}>
@@ -189,7 +178,7 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
           <p className={styles.helper}>Source: {campaign.audienceSourceLabel}</p>
           {campaign.recipientPreview.length ? <div className={styles.recipientListFlat}>
             {campaign.recipientPreview.map((recipient) => <div className={styles.recipientRow} key={recipient.contactId}>
-              <div><strong>{recipient.displayName || "Unnamed contact"}</strong><small>{recipient.phoneE164}</small></div>
+              <div>{recipient.displayName ? <><strong>{recipient.displayName}</strong><small>{recipient.phoneE164}</small></> : <strong>{recipient.phoneE164}</strong>}</div>
               <span>{recipient.state}</span>
             </div>)}
           </div> : <p className={styles.empty}>No eligible recipients were captured.</p>}

@@ -52,6 +52,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
         <div className={styles.pageHead}>
           <h1>Contacts{storageReady && <small>{contactCountResult?.count ?? 0}</small>}</h1>
           <div className={styles.actions}>
+            <Link href="/dashboard/campaigns" className={styles.secondaryButton}>Failed messages in each campaign</Link>
             <Link href="/dashboard/opt-outs" className={styles.secondaryButton}>Opt-out list</Link>
           </div>
         </div>
@@ -60,16 +61,12 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
 
         {counts && <section aria-label="Contact status">
           <div className={styles.stats}>
-            <div className={styles.stat}><strong>{counts.total ?? 0}</strong><span>Total contacts</span></div>
-            <div className={`${styles.stat} ${styles.statOk}`}><strong>{counts.active ?? 0}</strong><span>Active</span></div>
-            <div className={`${styles.stat} ${styles.statSkip}`}><strong>{counts.at_risk ?? 0}</strong><span>At Risk</span></div>
-            <div className={`${styles.stat} ${styles.statDanger}`}><strong>{counts.do_not_send ?? 0}</strong><span>Do Not Send</span></div>
-            <div className={`${styles.stat} ${styles.statMuted}`}><strong>{counts.opt_out ?? 0}</strong><span>Opt Out</span></div>
+            <div className={styles.stat}><strong>{counts.total ?? 0}</strong><span>Total contacts</span><small>Every saved number</small></div>
+            <div className={`${styles.stat} ${styles.statOk}`}><strong>{counts.active ?? 0}</strong><span>Active</span><small>Read or replied in the last 30 days</small></div>
+            <div className={`${styles.stat} ${styles.statSkip}`}><strong>{counts.at_risk ?? 0}</strong><span>At Risk</span><small>Had a 131049 failure. Still messaged</small></div>
+            <div className={`${styles.stat} ${styles.statDanger}`}><strong>{counts.do_not_send ?? 0}</strong><span>Do Not Send</span><small>Paused for review. Not opted out</small></div>
+            <div className={`${styles.stat} ${styles.statMuted}`}><strong>{counts.opt_out ?? 0}</strong><span>Opt Out</span><small>Asked to stop. Never messaged</small></div>
           </div>
-          {((counts.at_risk ?? 0) > 0 || (counts.do_not_send ?? 0) > 0) && <p className={styles.muted}>
-            {(counts.at_risk ?? 0) > 0 && <>{counts.at_risk} At Risk {counts.at_risk === 1 ? "contact has" : "contacts have"} had WhatsApp frequency-limit failures (131049) and still {counts.at_risk === 1 ? "gets" : "get"} messages. </>}
-            {(counts.do_not_send ?? 0) > 0 && <>{counts.do_not_send} Do Not Send {counts.do_not_send === 1 ? "contact is" : "contacts are"} paused, not opted out. </>}
-            <Link href="/dashboard/campaigns" className={styles.contactLink}>Review failed messages in each campaign</Link></p>}
         </section>}
 
         <section className={styles.panel} aria-labelledby="import-heading">

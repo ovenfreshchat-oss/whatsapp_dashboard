@@ -37,6 +37,7 @@
 .stat { display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
 .stat strong { font-size: 24px; font-weight: 750; letter-spacing: -.02em; line-height: 1.2; }
 .stat span { color: var(--muted); font-size: 13px; }
+.stat small { color: var(--muted); font-size: 12px; line-height: 1.35; }
 .statOk { border-color: #bfe9cc; background: var(--wa-50); }
 .statOk strong { color: var(--wa-700); }
 .statSkip { border-color: #ecd9a0; background: var(--gold-50); }
