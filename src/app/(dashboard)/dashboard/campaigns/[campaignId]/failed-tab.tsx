@@ -144,7 +144,11 @@ export async function FailedMessagesTab({ campaignId, status, page }: {
     <section className={styles.panel} aria-labelledby="new-heading">
       <div className={styles.panelHeading}><h2 id="new-heading">Create a new campaign from failed contacts</h2>
         <span>{allPreview ? `${allPreview.eligible} eligible · ${allPreview.excluded} excluded` : ""}</span></div>
-      <p className={styles.muted}>Tick eligible contacts above, then compose a new message with an approved marketing template. Contacts on a waiting time, Do Not Send hold, suppression or Global Opt Out cannot be selected. This does not reset any failure counts, and the original campaign keeps its history.</p>
+      <ul className={styles.muted} style={{ margin: "0 0 12px", paddingLeft: 20, display: "grid", gap: 4 }}>
+        <li>Tick the eligible contacts in the table above.</li>
+        <li>Then write a new message with an approved marketing template.</li>
+        <li>Contacts on a waiting time, a Do Not Send hold, suppression or Global Opt Out cannot be selected.</li>
+      </ul>
       <CreateFromSelected campaignId={campaign.id} formId={formId} eligibleTotal={allPreview?.eligible ?? 0} />
     </section>
   </div>;

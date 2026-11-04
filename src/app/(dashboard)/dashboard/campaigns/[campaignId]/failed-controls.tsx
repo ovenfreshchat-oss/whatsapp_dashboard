@@ -121,7 +121,7 @@ export function CreateFromSelected({ campaignId, formId, eligibleTotal }: { camp
     }
     router.push(`/dashboard/campaigns?view=new&from=${campaignId}`);
   }
-  return <div className={styles.actions}>
+  return <div className={styles.actions} style={{ justifyContent: "space-between", width: "100%" }}>
     <label className={styles.muted} style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
       <input type="checkbox" checked={all} onChange={(event) => setAll(event.target.checked)} />
       Use every eligible contact in this campaign ({eligibleTotal})
