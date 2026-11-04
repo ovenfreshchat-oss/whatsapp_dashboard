@@ -90,10 +90,12 @@ export async function FailedMessagesTab({ campaignId, status, page }: {
       </table></div> : <p className={styles.empty}>No failed messages in this campaign.</p>}
     </section>
 
-    <section className={styles.panel} aria-labelledby="auto-heading">
+    <section className={`${styles.panel} ${styles.autoRetryPanel}`} aria-labelledby="auto-heading">
       <div className={styles.panelHeading}><h2 id="auto-heading">Auto retry</h2><span>{campaign.autoRetry ? "On" : "Off"}</span></div>
-      <p className={styles.muted}>Only code 131049 is retried, at most 3 times, never right away, and only for people who are still allowed to be messaged. After 3 failed retries the contact goes to Do Not Send for a 30 day hold and a manual review. Never to Global Opt Out.
-        {campaign.autoRetry && <> Current waits: {campaign.delays.map(describeDelay).join(", ")}.</>}</p>
+      <p className={styles.muted}>Some messages fail because WhatsApp limits how many marketing messages one person can get (error 131049). Auto retry sends those messages again later, so you do not have to.
+        It never retries straight away. It waits the number of hours you set below, and tries up to 3 times. It only retries people who can still be messaged.
+        If a message still fails after 3 retries, that number is paused for 30 days (shown as Do Not Send) so you can check it. It is never moved to the Global Opt Out list.
+        {campaign.autoRetry && <> Current waiting times: {campaign.delays.map(describeDelay).join(", ")}.</>}</p>
       <AutoRetryForm campaignId={campaign.id} enabled={campaign.autoRetry} delays={campaign.delays} />
     </section>
 
@@ -106,7 +108,7 @@ export async function FailedMessagesTab({ campaignId, status, page }: {
         </div></div>
 
       {data.rows.length ? <form id={formId}><div className={styles.tableWrap}><table>
-        <thead><tr><th>New campaign</th><th>Contact</th><th>Error</th><th>Failed</th><th>Retries</th><th>Retry status</th><th>Next retry</th><th>Why / history</th></tr></thead>
+        <thead><tr><th>Select</th><th>Contact</th><th>Error</th><th>Failed</th><th>Retries</th><th>Retry status</th><th>Next retry</th><th>Why / history</th></tr></thead>
         <tbody>{data.rows.map((row) => {
           const why = explainRetry(row);
           return <tr key={row.failureId}>
@@ -114,7 +116,7 @@ export async function FailedMessagesTab({ campaignId, status, page }: {
               ? <input type="checkbox" name="failureId" value={row.failureId} aria-label={`Select ${row.phone}`} />
               : <small title={describeExclusion(row.newCampaign.reason)}>{describeExclusion(row.newCampaign.reason)}{row.newCampaign.readyAt ? ` · from ${when(row.newCampaign.readyAt)}` : ""}</small>}</td>
             <td>{row.name ?? "—"}<br /><small>{row.phone}</small></td>
-            <td>{row.errorCode}{row.errorTitle ? <small> · {row.errorTitle}</small> : null}</td>
+            <td>{row.errorCode}</td>
             <td>{when(row.failedAt)}</td><td>{row.attemptsMade} of 3</td>
             <td><span className={badgeClass(row.retryStatus)}>{STATUS_LABEL[row.retryStatus]}</span></td>
             <td>{row.retryStatus === "eligible" || row.retryStatus === "pending" ? when(row.retryReadyAt) : "—"}</td>

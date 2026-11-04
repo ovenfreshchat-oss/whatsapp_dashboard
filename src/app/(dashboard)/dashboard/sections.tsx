@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {
-  AlertTriangle, BellRing, CheckCheck, CheckCircle2, Inbox, Megaphone, Send, ShieldCheck, Sparkles,
+  AlertTriangle, BellRing, CheckCheck, CheckCircle2, Megaphone, Percent, Send, ShieldCheck, Sparkles,
   UserMinus, Users, type LucideIcon,
 } from "lucide-react";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
@@ -9,8 +9,7 @@ import { estimateCost, getMetaBilledCost, getRateCard, listCampaignPhones } from
 import { getMetricAdjustments } from "@/server/dashboard/adjustments";
 import { getWorkspaceMetrics } from "@/server/dashboard/metrics";
 import { getMetaAccountHealthCached } from "@/server/meta/cached";
-import { listCampaignChoices, loadDeliveryOverview } from "@/server/campaigns/retries";
-import { loadWhatsappTotals, resolvePeriod } from "@/server/campaigns/whatsapp-totals";
+import { loadWhatsappTotals } from "@/server/campaigns/whatsapp-totals";
 import { DeliveryFilters } from "./delivery-filters";
 import { CampaignStateBadge, CategoryBadge } from "@/components/ui/badges";
 import ui from "@/components/ui/ui.module.css";
@@ -46,27 +45,21 @@ function MetricCard({ label, value, detail, icon: Icon, tone }: { label: string;
   );
 }
 
-/** Delivery and failure totals across campaigns, with a date range and a campaign filter. Read only. */
-export async function DeliverySection({ from, to, campaignId }: { from: string | null; to: string | null; campaignId: string | null }) {
-  const period = resolvePeriod(from, to);
-  const [overview, campaigns, totals] = await Promise.all([loadDeliveryOverview({ from: period.from, to: period.to, campaignId }), listCampaignChoices(), loadWhatsappTotals(from, to)]);
-  const n = (value: number | undefined) => (value === undefined ? "—" : value.toLocaleString("en-US"));
+/** Delivery and failure totals across campaigns, with a date range. Read only. */
+export async function DeliverySection({ from, to }: { from: string | null; to: string | null }) {
+  const totals = await loadWhatsappTotals(from, to);
   return <section aria-labelledby="delivery-heading" className={styles.categorySection}>
     <div className={styles.sectionHead}>
       <h2 id="delivery-heading">Delivery and failures</h2>
       <span>{totals.from} to {totals.to}</span>
     </div>
-    <DeliveryFilters from={totals.from} to={totals.to} campaignId={campaignId} campaigns={campaigns} />
+    <DeliveryFilters from={totals.from} to={totals.to} campaignId={null} campaigns={[]} />
     <div className={styles.categoryGrid}>
       <MetricCard tone="ink" icon={Send} label="Messages sent" value={show(totals.sent)} detail="All messages, per WhatsApp" />
       <MetricCard tone="green" icon={CheckCheck} label="Messages delivered" value={show(totals.delivered)} detail="All messages, per WhatsApp" />
-      <MetricCard tone="violet" icon={Inbox} label="Messages received" value={show(totals.received)} detail="From customers, in your inbox" />
+      <MetricCard tone="violet" icon={Percent} label="Delivery rate" value={totals.sent && totals.delivered !== null ? `${((totals.delivered / totals.sent) * 100).toFixed(1)}%` : "—"} detail="Delivered out of sent, per WhatsApp" />
     </div>
     {totals.sent === null && <p className={ui.notice}>WhatsApp totals could not be loaded right now. The campaign numbers below are unaffected.</p>}
-    {campaignId && <p className={ui.notice}>The three numbers above cover your whole WhatsApp number, not just the campaign you picked.</p>}
-    {overview ? <div className={styles.categoryGrid}>
-      <MetricCard tone="red" icon={AlertTriangle} label="Failed messages" value={n(overview.failed)} detail="Campaign messages WhatsApp could not deliver" />
-    </div> : <p className={ui.notice}>Delivery metrics need database migration 0028.</p>}
   </section>;
 }
 
@@ -174,7 +167,7 @@ export async function LastCampaignSection() {
   const qualityInfo = QUALITY[String(quality ?? "").toUpperCase()];
 
   return (
-    <section className={ui.panel} aria-labelledby="last-campaign-heading">
+    <section className={`${ui.panel} ${styles.lastCampaignPanel}`} aria-labelledby="last-campaign-heading">
       <div className={ui.panelHeading}>
         <div className={styles.lastTitle}>
           <h2 id="last-campaign-heading">Last campaign</h2>

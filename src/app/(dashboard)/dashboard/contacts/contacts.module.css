@@ -129,6 +129,8 @@
 .badgeOk { background: var(--wa-50); color: var(--wa-700); }
 .badgeWarn { background: var(--gold-50); color: var(--gold-700); }
 .badgeBad { background: #fdf1ef; color: var(--danger-700); }
+.autoRetryPanel { border-color: #f1c9a6; background: #fff3e6; }
+.autoRetryPanel .panelHeading span { color: #b45309; font-weight: 700; }
 .alertBanner { composes: warning from "../../../../components/ui/ui.module.css"; flex-direction: column; gap: 8px; }
 .alertBanner p { margin: 0; }
 @media (max-width: 640px) { .delayGrid { grid-template-columns: 1fr; } }

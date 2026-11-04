@@ -134,12 +134,5 @@ export function DeliveryFilters({ from, to, campaignId, campaigns }: {
         </div>
       </div>}
     </div>
-    <label className={styles.pickerWrap}>
-      <span className={styles.filterLabel}>Campaign</span>
-      <select className={styles.campaignSelect} value={campaignId ?? ""} onChange={(event) => go(from, to, event.target.value || null)}>
-        <option value="">All campaigns</option>
-        {campaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-      </select>
-    </label>
   </div>;
 }

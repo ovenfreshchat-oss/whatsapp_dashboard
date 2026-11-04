@@ -146,6 +146,7 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
         <nav className={styles.tabs} aria-label="Campaign sections">
           {visibleTabs.map(([key, label]) => <Link key={key} href={tabHref(key)} scroll={false}
             className={key === tab ? styles.tabOn : ""} aria-current={key === tab ? "page" : undefined}>{label}</Link>)}
+          {!isDraft && <Link href={`/dashboard/campaigns/${campaignId}/analytics`}>Analytics</Link>}
         </nav>
 
         {tab === "overview" && <>

@@ -117,3 +117,5 @@
   .calMonth { width: 100%; }
   .calGrid { grid-template-columns: repeat(7, 1fr); }
 }
+
+.lastCampaignPanel { background: #f1f6ff; border-color: #d6e2f7; }

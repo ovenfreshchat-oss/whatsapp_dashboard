@@ -68,6 +68,15 @@ export default async function CampaignAnalyticsPage({ params }: { params: Promis
           </div>
         </div>
 
+        <nav className={styles.tabs} aria-label="Campaign sections">
+          {a.campaign.state !== "draft" && <Link href={`/dashboard/campaigns/${campaignId}?tab=overview`}>Overview</Link>}
+          <Link href={`/dashboard/campaigns/${campaignId}?tab=message`}>Message</Link>
+          <Link href={`/dashboard/campaigns/${campaignId}?tab=audience`}>Audience</Link>
+          {a.campaign.state !== "draft" && <Link href={`/dashboard/campaigns/${campaignId}?tab=failed`}>Failed messages</Link>}
+          <Link href={`/dashboard/campaigns/${campaignId}?tab=history`}>History</Link>
+          <Link href={`/dashboard/campaigns/${campaignId}/analytics`} className={styles.tabOn} aria-current="page">Analytics</Link>
+        </nav>
+
         {warnings(a).map((text) => <section key={text} className={styles.notice} role="status"><strong>Check this</strong><p>{text}</p></section>)}
 
         <section className={styles.kpiGrid} aria-label="Key numbers">

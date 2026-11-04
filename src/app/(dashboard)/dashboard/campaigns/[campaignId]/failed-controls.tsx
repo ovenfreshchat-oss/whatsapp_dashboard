@@ -47,7 +47,7 @@ export function AutoRetryForm({ campaignId, enabled, delays }: { campaignId: str
     <input type="hidden" name="campaignId" value={campaignId} />
     <div className={styles.delayGrid}>
       {[1, 2, 3].map((n) => <label className={styles.field} key={n}>
-        <span>Retry {n} after (hours)</span>
+        <span>{["First", "Second", "Third"][n - 1]} retry after (hours)</span>
         <input name={`delay${n}`} inputMode="numeric" pattern="[0-9]*" maxLength={4} required defaultValue={delays[n - 1] ?? [24, 72, 168][n - 1]} />
       </label>)}
     </div>

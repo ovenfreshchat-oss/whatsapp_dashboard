@@ -51,7 +51,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       {isAdmin ? <Suspense fallback={<MetricsSkeleton />}><MetricsSection /></Suspense>
         : <p className={ui.notice}>Metrics are available to workspace members.</p>}
 
-      {isAdmin && <Suspense fallback={null}><DeliverySection from={from} to={to} campaignId={campaignId} /></Suspense>}
+      {isAdmin && <Suspense fallback={null}><DeliverySection from={from} to={to} /></Suspense>}
 
       {isAdmin && <Suspense fallback={<div className={`${ui.skeleton} ${styles.lastSkeleton}`} aria-busy="true" aria-label="Loading last campaign" />}>
         <LastCampaignSection />
