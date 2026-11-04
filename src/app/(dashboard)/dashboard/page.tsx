@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 function MetricsSkeleton() {
   return <div className={styles.metricGrid} aria-busy="true" aria-label="Loading metrics">
-    {Array.from({ length: 5 }, (_, index) => <div key={index} className={`${ui.skeleton} ${styles.metricSkeleton}`} />)}
+    {Array.from({ length: 3 }, (_, index) => <div key={index} className={`${ui.skeleton} ${styles.metricSkeleton}`} />)}
   </div>;
 }
 

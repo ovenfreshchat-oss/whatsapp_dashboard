@@ -64,13 +64,11 @@ export async function DeliverySection({ from, to, campaignId }: { from: string |
       <button type="submit" className={`${ui.btn} ${ui.btnSecondary}`}>Apply</button>
     </form>
     {overview ? <div className={styles.categoryGrid}>
-      <MetricCard tone="ink" icon={Send} label="Total sent" value={n(overview.totalSent)} detail="Accepted by WhatsApp" />
+      <MetricCard tone="ink" icon={Send} label="Messages sent" value={n(overview.totalSent)} detail="Messages accepted by WhatsApp" />
       <MetricCard tone="green" icon={CheckCheck} label="Delivered" value={n(overview.delivered)} detail="Delivered or read" />
-      <MetricCard tone="red" icon={AlertTriangle} label="Failed" value={n(overview.failed)} detail="Original failures, kept in history" />
+      <MetricCard tone="red" icon={AlertTriangle} label="Failed messages" value={n(overview.failed)} detail="Messages WhatsApp could not deliver" />
       <MetricCard tone="teal" icon={Sparkles} label="Delivery rate" value={`${overview.deliveryRate}%`} detail="Delivered of sent" />
-      <MetricCard tone="gold" icon={BellRing} label="Retry pending" value={n(overview.retryPending)} detail="Waiting or in progress" />
-      <MetricCard tone="green" icon={CheckCircle2} label="Recovered" value={n(overview.recovered)} detail="Delivered after a retry" />
-      <MetricCard tone="coral" icon={UserMinus} label="Retry exhausted" value={n(overview.retryExhausted)} detail="3 retries used, manual review" />
+      <MetricCard tone="gold" icon={BellRing} label="Messages waiting to retry" value={n(overview.retryPending)} detail="Failed messages queued for another try" />
     </div> : <p className={ui.notice}>Delivery metrics need database migration 0028.</p>}
   </section>;
 }
@@ -79,10 +77,6 @@ const show = (value: number | null) => (value === null ? "—" : value.toLocaleS
 
 export async function MetricsSection() {
   const [metrics, adjustments] = await Promise.all([getWorkspaceMetrics(), getMetricAdjustments()]);
-  // Database count + the admin's manual baseline for messages sent outside the dashboard.
-  const totalSent = metrics?.campaignSent == null ? null : metrics.campaignSent + (metrics.replySent ?? 0) + adjustments.messages_sent;
-  const totalDelivered = metrics?.campaignDelivered == null ? null : metrics.campaignDelivered + (metrics.replyDelivered ?? 0) + adjustments.messages_delivered;
-  const deliveredShare = totalSent && totalDelivered !== null ? `${Math.round((totalDelivered / totalSent) * 100)}% of sent` : "Campaigns and inbox replies";
   const categories = metrics?.categories ?? null;
   const metaNote = categories ? "Delivered, per Meta (12 months)" : null;
 
@@ -91,8 +85,6 @@ export async function MetricsSection() {
       <section aria-label="Workspace metrics" className={styles.metricGrid}>
         <MetricCard tone="indigo" icon={Users} label="Contacts" value={show(metrics?.contacts ?? null)}
           detail={metrics?.contacts == null ? "Database setup needed" : "Saved numbers"} />
-        <MetricCard tone="ink" icon={Send} label="Messages sent" value={show(totalSent)} detail={adjustments.messages_sent ? "Includes manual baseline" : "Campaigns and inbox replies"} />
-        <MetricCard tone="green" icon={CheckCheck} label="Delivered" value={show(totalDelivered)} detail={deliveredShare} />
         <MetricCard tone="red" icon={UserMinus} label="Opted out" value={show(metrics?.optedOut ?? null)} detail="Never messaged" />
         <MetricCard tone="coral" icon={Megaphone} label="Campaigns" value={show(metrics?.campaigns ?? null)}
           detail={metrics?.campaigns == null ? "Database setup needed" : `${metrics.activeCampaigns ?? 0} active now`} />

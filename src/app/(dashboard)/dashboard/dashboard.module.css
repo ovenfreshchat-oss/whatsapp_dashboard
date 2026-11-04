@@ -3,7 +3,7 @@
 .headerActions { composes: headerActions from "../../../components/ui/ui.module.css"; }
 
 /* Metric cards: white, with a soft tinted icon. Colour hints at meaning, it never shouts. */
-.metricGrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.metricGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .categoryGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .metricSkeleton { height: 108px; border-radius: 16px; }
 .lastSkeleton { height: 260px; border-radius: 16px; }
