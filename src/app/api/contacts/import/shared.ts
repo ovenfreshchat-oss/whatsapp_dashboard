@@ -35,7 +35,7 @@ export async function readImportForm(request: Request): Promise<FormData> {
   }
   const declared = Number(request.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > MAX_IMPORT_REQUEST_BYTES) {
-    throw new ImportRequestError("The upload exceeds 5 MiB.", 413);
+    throw new ImportRequestError("The upload exceeds 5 MB.", 413);
   }
   if (!request.body) throw new ImportRequestError("Choose a file to upload.", 400);
 
@@ -49,7 +49,7 @@ export async function readImportForm(request: Request): Promise<FormData> {
       total += value.byteLength;
       if (total > MAX_IMPORT_REQUEST_BYTES) {
         await reader.cancel();
-        throw new ImportRequestError("The upload exceeds 5 MiB.", 413);
+        throw new ImportRequestError("The upload exceeds 5 MB.", 413);
       }
       chunks.push(value);
     }

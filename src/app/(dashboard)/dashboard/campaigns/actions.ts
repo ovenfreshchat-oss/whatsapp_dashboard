@@ -18,7 +18,7 @@ import {
 import { CampaignStoreError } from "@/server/campaigns/store";
 import { startCampaignSendWorkflow } from "@/server/campaigns/start-send";
 import { MetaApiError } from "@/server/meta/client";
-import { uploadCampaignHeaderImage } from "@/server/campaigns/media";
+import { assertHeaderVideoUrl, uploadCampaignHeaderImage } from "@/server/campaigns/media";
 
 export type CampaignActionState = { error: string; success: string };
 
@@ -61,6 +61,14 @@ export async function createCampaignDraftAction(
   if (image instanceof File && image.size > 0) {
     try {
       headerMediaUrl = await uploadCampaignHeaderImage(image);
+    } catch (error) {
+      return { error: safeError(error), success: "" };
+    }
+  }
+  const videoLink = formData.get("headerVideoUrl");
+  if (typeof videoLink === "string" && videoLink.trim()) {
+    try {
+      headerMediaUrl = await assertHeaderVideoUrl(videoLink);
     } catch (error) {
       return { error: safeError(error), success: "" };
     }

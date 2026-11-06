@@ -158,7 +158,7 @@ function validateTestSend(input: ApprovedTemplateTestSend): string[] {
   }
   if (input.headerMediaUrl !== undefined) {
     if (typeof input.headerMediaUrl !== "string" || !/^https:\/\/[^\s$.?#].[^\s]*$/i.test(input.headerMediaUrl.trim())) {
-      reject("The header image URL must be a valid https:// URL.");
+      reject("The header image or video URL must be a valid https:// URL.");
     }
   }
   const parameters = input.bodyParameters ?? [];
@@ -172,7 +172,7 @@ function validateTestSend(input: ApprovedTemplateTestSend): string[] {
 }
 
 export type ApprovedTemplateValidation = TemplateBodyParameterSpec & {
-  headerFormat: "IMAGE" | "TEXT" | null;
+  headerFormat: "IMAGE" | "VIDEO" | "TEXT" | null;
 };
 
 export function parseTemplateBodyParameters(body: string): TemplateBodyParameterSpec {
@@ -211,16 +211,16 @@ export function assertApprovedMarketingTemplate(
     reject("This template uses a format we cannot send yet. Please choose another template.");
   }
   const header = template.components.find((part) => part.type === "HEADER");
-  const headerFormat = (header?.format ? header.format.toUpperCase() : null) as "IMAGE" | "TEXT" | null;
-  if (header && headerFormat && headerFormat !== "TEXT" && headerFormat !== "IMAGE") {
-    reject("This template has a video or document header, which is not supported yet. Please choose a template with a text or image header.");
+  const headerFormat = (header?.format ? header.format.toUpperCase() : null) as "IMAGE" | "VIDEO" | "TEXT" | null;
+  if (header && headerFormat && headerFormat !== "TEXT" && headerFormat !== "IMAGE" && headerFormat !== "VIDEO") {
+    reject("This template has a document or location header, which is not supported yet. Please choose a template with a text, image or video header.");
   }
   if (headerFormat === "TEXT" && header?.text?.includes("{{")) {
     reject("This template has a changing value in its title, which is not supported yet. Please choose another template.");
   }
-  if (headerFormat === "IMAGE" && headerMediaUrl !== undefined) {
+  if ((headerFormat === "IMAGE" || headerFormat === "VIDEO") && headerMediaUrl !== undefined) {
     if (!headerMediaUrl || !/^https:\/\/[^\s$.?#].[^\s]*$/i.test(headerMediaUrl.trim())) {
-      reject("This template needs a header image. Please upload a JPG or PNG.");
+      reject(headerFormat === "VIDEO" ? "This template needs a header video. Please upload an MP4." : "This template needs a header image. Please upload a JPG or PNG.");
     }
   }
   const buttons = template.components.find((part) => part.type === "BUTTONS");
@@ -291,7 +291,7 @@ export async function sendApprovedTemplateTest(
 ): Promise<MetaAcceptedTestSend> {
   const parameters = validateTestSend(input);
   const { phoneNumberId } = getConfiguredMetaIdentifiers();
-  let parameterSpec: TemplateBodyParameterSpec = { format: "positional", keys: [] };
+  let parameterSpec: TemplateBodyParameterSpec & { headerFormat?: ApprovedTemplateValidation["headerFormat"] } = { format: "positional", keys: [] };
 
   // Every failure before the POST is definitive: no message request was made.
   try {
@@ -306,8 +306,8 @@ export async function sendApprovedTemplateTest(
     }
     const validation = assertApprovedMarketingTemplate(template, parameters, input.headerMediaUrl);
     parameterSpec = validation;
-    if (validation.headerFormat === "IMAGE" && !input.headerMediaUrl?.trim()) {
-      reject("An image header URL is required for this template.");
+    if ((validation.headerFormat === "IMAGE" || validation.headerFormat === "VIDEO") && !input.headerMediaUrl?.trim()) {
+      reject(validation.headerFormat === "VIDEO" ? "A video header URL is required for this template." : "An image header URL is required for this template.");
     }
     if (input.expectedTemplateSnapshot !== undefined) {
       assertTemplateSnapshotUnchanged(template, input.expectedTemplateSnapshot);
@@ -330,10 +330,9 @@ export async function sendApprovedTemplateTest(
   if (input.headerMediaUrl?.trim()) {
     templateComponents.push({
       type: "header",
-      parameters: [{
-        type: "image",
-        image: { link: input.headerMediaUrl.trim() },
-      }],
+      parameters: [parameterSpec.headerFormat === "VIDEO"
+        ? { type: "video", video: { link: input.headerMediaUrl.trim() } }
+        : { type: "image", image: { link: input.headerMediaUrl.trim() } }],
     });
   }
   if (parameters.length) {

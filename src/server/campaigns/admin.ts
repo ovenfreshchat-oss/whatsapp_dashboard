@@ -73,8 +73,10 @@ async function approvedTemplate(
   );
   if (!template) throw new CampaignInputError("That template is not available any more. Refresh the page and choose another.");
   const validation = assertApprovedMarketingTemplate(template, parameters, headerMediaUrl);
-  if (validation.headerFormat === "IMAGE" && !headerMediaUrl?.trim()) {
-    throw new CampaignInputError("This template needs a header image. Please upload a JPG or PNG.");
+  if ((validation.headerFormat === "IMAGE" || validation.headerFormat === "VIDEO") && !headerMediaUrl?.trim()) {
+    throw new CampaignInputError(validation.headerFormat === "VIDEO"
+      ? "This template needs a header video. Please upload an MP4."
+      : "This template needs a header image. Please upload a JPG or PNG.");
   }
   return template;
 }

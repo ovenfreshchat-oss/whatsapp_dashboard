@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { getStaffAdminAccess } from "@/server/auth/staff-users/admin";
 import { getMetaConfigurationStatus } from "@/server/meta/client";
+import { readHeaderVideo } from "@/server/campaigns/media";
 import {
   MAX_HEADER_IMAGE_BYTES,
   saveMetaTemplate,
@@ -45,6 +46,14 @@ export async function POST(request: Request): Promise<Response> {
     image = { bytes: new Uint8Array(await file.arrayBuffer()), mime: file.type, name: file.name || "header" };
   }
 
+  let video: TemplateSaveInput["video"];
+  const videoUrl = text(form, "videoUrl").trim();
+  if (videoUrl) {
+    try { video = { bytes: await readHeaderVideo(videoUrl), mime: "video/mp4", name: "header.mp4" }; } catch (error) {
+      return json({ error: error instanceof Error ? error.message : "The header video could not be read." }, 400);
+    }
+  }
+
   try {
     const result = await saveMetaTemplate({
       templateId: text(form, "templateId") || undefined,
@@ -56,6 +65,7 @@ export async function POST(request: Request): Promise<Response> {
       format: text(form, "format") === "named" ? "named" : "positional",
       examples,
       image,
+      video,
     });
     revalidatePath("/dashboard/templates");
     return json({ ok: true, ...result });

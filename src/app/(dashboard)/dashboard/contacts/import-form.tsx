@@ -352,7 +352,7 @@ export function ContactImportForm() {
   return (
     <div className={styles.stack}>
       <div className={styles.dropIntro}>
-        <p className={styles.muted}>CSV, Excel (.xlsx) or Word (.docx), up to 5 MiB and 5,000 rows, with a header row. A column named Phone number (and optionally Name) is picked up automatically.</p>
+        <p className={styles.muted}>CSV, Excel (.xlsx) or Word (.docx), up to 5 MB and 5,000 rows, with a header row. A column named Phone number (and optionally Name) is picked up automatically.</p>
         <Link className={styles.contactLink} href="/templates/whatsapp-contacts-template.docx" download>Download Word template</Link>
       </div>
 

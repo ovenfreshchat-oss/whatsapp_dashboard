@@ -37,10 +37,13 @@ function ButtonIcon({ type }: { type?: string | null }) {
 }
 
 /** How a template looks in WhatsApp: image on top, message, footer, then one row per button. */
-export function WhatsAppPreview({ headerImageUrl, headerImageMissing, headerText, body, footer, buttons = [] }: {
+export function WhatsAppPreview({ headerImageUrl, headerImageMissing, headerVideoUrl, headerVideoMissing, headerText, body, footer, buttons = [] }: {
   headerImageUrl?: string | null;
   /** The template has an image header but no picture is chosen yet. */
   headerImageMissing?: boolean;
+  /** A video header: the link to play, or a note that none is chosen yet. */
+  headerVideoUrl?: string | null;
+  headerVideoMissing?: boolean;
   headerText?: string | null;
   body: string;
   footer?: string | null;
@@ -52,6 +55,8 @@ export function WhatsAppPreview({ headerImageUrl, headerImageMissing, headerText
       {headerImageUrl && /* eslint-disable-next-line @next/next/no-img-element */
         <img className={styles.image} src={headerImageUrl} alt="Message header" />}
       {!headerImageUrl && headerImageMissing && <div className={styles.imageMissing}>Image header</div>}
+      {headerVideoUrl && <video className={styles.image} src={headerVideoUrl} controls preload="metadata" playsInline aria-label="Message header video" />}
+      {!headerVideoUrl && headerVideoMissing && <div className={styles.imageMissing}>▶ Video header</div>}
       {headerText && <p className={styles.headerText}>{renderWhatsAppText(headerText)}</p>}
       <p className={styles.body}>{renderWhatsAppText(body)}</p>
       {footer && <p className={styles.footer}>{footer}</p>}

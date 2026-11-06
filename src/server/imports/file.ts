@@ -246,7 +246,7 @@ export async function parseContactFile(input: ParseContactFileInput): Promise<Pa
   }
   const bytes = Buffer.from(input.bytes);
   if (!bytes.length || bytes.length > MAX_CONTACT_FILE_BYTES) {
-    throw new ContactImportError(`File must be between 1 byte and ${MAX_CONTACT_FILE_BYTES / 1024 / 1024} MiB.`, "file_size");
+    throw new ContactImportError(`File must be between 1 byte and ${MAX_CONTACT_FILE_BYTES / 1024 / 1024} MB.`, "file_size");
   }
   if (kind !== "csv") {
     preflightOfficeArchive(bytes);

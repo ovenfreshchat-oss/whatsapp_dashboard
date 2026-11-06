@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { checkHeaderVideo, uploadHeaderVideo } from "@/lib/header-video-upload";
 import styles from "../campaigns/campaigns.module.css";
 
 export type TemplateFormInitial = {
@@ -13,6 +14,7 @@ export type TemplateFormInitial = {
   body: string;
   footer: string;
   hasImageHeader: boolean;
+  hasVideoHeader?: boolean;
 };
 
 const LANGUAGES: [string, string][] = [
@@ -36,6 +38,9 @@ export function TemplateForm({ initial }: { initial?: TemplateFormInitial }) {
   const [footer, setFooter] = useState(initial?.footer ?? "");
   const [examples, setExamples] = useState<string[]>([]);
   const [image, setImage] = useState<File | null>(null);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoName, setVideoName] = useState("");
+  const [videoBusy, setVideoBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
@@ -62,12 +67,13 @@ export function TemplateForm({ initial }: { initial?: TemplateFormInitial }) {
       form.set("footer", footer);
       form.set("examples", JSON.stringify(Array.from({ length: count }, (_, i) => examples[i] ?? "")));
       if (image) form.set("image", image);
+      if (videoUrl) form.set("videoUrl", videoUrl);
       const response = await fetch("/api/templates/save", { method: "POST", body: form });
       const value = await response.json().catch(() => ({})) as { error?: string; status?: string | null };
       if (!response.ok) throw new Error(value.error ?? "Could not save the template.");
       setDone(`Sent to WhatsApp for review${value.status ? ` (${value.status.toLowerCase()})` : ""}. It can be used in campaigns once it is approved, usually within minutes.`);
       router.refresh();
-      if (!editing) { setName(""); setBody(""); setFooter(""); setExamples([]); setImage(null); }
+      if (!editing) { setName(""); setBody(""); setFooter(""); setExamples([]); setImage(null); setVideoUrl(""); setVideoName(""); }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not save the template.");
     } finally {
@@ -90,9 +96,24 @@ export function TemplateForm({ initial }: { initial?: TemplateFormInitial }) {
       </select>
     </label>}
     <label className={styles.field}>Image at the top (optional)
-      <input type="file" accept="image/jpeg,image/png" onChange={(e) => setImage(e.target.files?.[0] ?? null)} />
+      <input type="file" accept="image/jpeg,image/png" onChange={(e) => { const file = e.target.files?.[0] ?? null; setImage(file); if (file) { setVideoUrl(""); setVideoName(""); } }} />
       <small>{initial?.hasImageHeader ? "This template has an image. WhatsApp needs it again when you edit: choose it again." : "JPG or PNG, under 5 MB."}</small>
       {preview && /* eslint-disable-next-line @next/next/no-img-element */ <img className={styles.headerImagePreview} src={preview} alt="Header preview" />}
+    </label>
+    <label className={styles.field}>Video at the top (optional)
+      <input type="file" accept="video/mp4" disabled={videoBusy} onChange={async (e) => {
+        const file = e.target.files?.[0];
+        setVideoUrl(""); setVideoName(""); setError("");
+        if (!file) return;
+        const invalid = checkHeaderVideo(file);
+        if (invalid) { setError(invalid); e.target.value = ""; return; }
+        setImage(null);
+        setVideoBusy(true);
+        try { setVideoUrl(await uploadHeaderVideo(file)); setVideoName(file.name); } catch (cause) {
+          setError(cause instanceof Error ? cause.message : "The video could not be uploaded."); e.target.value = "";
+        } finally { setVideoBusy(false); }
+      }} />
+      <small>{videoBusy ? "Uploading the video…" : videoName ? `${videoName} is ready.` : initial?.hasVideoHeader ? "This template has a video. WhatsApp needs it again when you edit: choose it again." : "MP4, up to 16 MB. Use either an image or a video, not both."}</small>
     </label>
     <label className={styles.field}>Message
       <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} maxLength={1024} required placeholder={"Hi {{1}}, our October offer is live! Get 20% off until Sunday."} />
@@ -111,6 +132,6 @@ export function TemplateForm({ initial }: { initial?: TemplateFormInitial }) {
     </label>
     {error && <p className={styles.error} role="alert">{error}</p>}
     {done && <p className={styles.helper} role="status">{done}</p>}
-    <button type="submit" className={styles.primaryButton} disabled={busy}>{busy ? "Sending…" : editing ? "Save changes" : "Create template"}</button>
+    <button type="submit" className={styles.primaryButton} disabled={busy || videoBusy}>{busy ? "Sending…" : editing ? "Save changes" : "Create template"}</button>
   </form>;
 }

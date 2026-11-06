@@ -32,7 +32,7 @@ function templateOption(template: MetaTemplate): CampaignTemplateOption | null {
     const validation = assertApprovedMarketingTemplate(template, Array(spec.keys.length).fill("Preview value"));
     return {
       key: `${template.name}|${template.language}`,
-      label: `${template.name} · ${template.language}${validation.headerFormat === "IMAGE" ? " (Image header)" : ""}`,
+      label: `${template.name} · ${template.language}${validation.headerFormat === "IMAGE" ? " (Image header)" : validation.headerFormat === "VIDEO" ? " (Video header)" : ""}`,
       body,
       parameterKeys: spec.keys,
       headerFormat: validation.headerFormat,

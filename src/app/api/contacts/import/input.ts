@@ -49,7 +49,7 @@ export async function parsedImportFile(form: FormData) {
     throw new ImportRequestError("Choose a CSV, Excel, or Word file.", 400);
   }
   if (upload.size > MAX_CONTACT_FILE_BYTES) {
-    throw new ImportRequestError("The file exceeds 5 MiB.", 413);
+    throw new ImportRequestError("The file exceeds 5 MB.", 413);
   }
   const sheetName = form.get("sheetName");
   if (sheetName !== null && (typeof sheetName !== "string" || sheetName.length > 120)) {

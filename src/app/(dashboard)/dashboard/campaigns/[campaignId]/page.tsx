@@ -91,7 +91,9 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
   const messagePreview = campaign ? <WhatsAppPreview
     headerImageUrl={header?.format === "IMAGE" ? campaign.headerMediaUrl : null}
     headerImageMissing={header?.format === "IMAGE" && !campaign.headerMediaUrl}
-    headerText={header && header.format !== "IMAGE" ? header.text : null}
+    headerVideoUrl={header?.format === "VIDEO" ? campaign.headerMediaUrl : null}
+    headerVideoMissing={header?.format === "VIDEO" && !campaign.headerMediaUrl}
+    headerText={header && header.format !== "IMAGE" && header.format !== "VIDEO" ? header.text : null}
     body={review?.rendered ?? ""}
     footer={footer?.text}
     buttons={buttons} /> : null;

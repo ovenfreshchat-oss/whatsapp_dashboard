@@ -9,6 +9,7 @@ import { useFeedback } from "@/components/ui/feedback";
 import { createCampaignDraftAction, type CampaignActionState } from "./actions";
 import { previewFailedContactsAction } from "./[campaignId]/failed-actions";
 import { SELECTION_KEY } from "./[campaignId]/failed-controls";
+import { checkHeaderVideo, uploadHeaderVideo } from "@/lib/header-video-upload";
 import { describeExclusion } from "@/server/campaigns/retry-explain";
 import type { FailedContactPreview } from "@/server/campaigns/retries";
 import type { CampaignImportBatchOption } from "@/server/campaigns/admin";
@@ -19,7 +20,7 @@ export type CampaignTemplateOption = {
   label: string;
   body: string;
   parameterKeys: string[];
-  headerFormat?: "IMAGE" | "TEXT" | null;
+  headerFormat?: "IMAGE" | "VIDEO" | "TEXT" | null;
   footer?: string | null;
   buttons?: PreviewButton[];
 };
@@ -41,7 +42,7 @@ function valueLabel(key: string): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-type Errors = { name?: string; template?: string; audience?: string; image?: string; values?: Record<number, string> };
+type Errors = { name?: string; template?: string; audience?: string; image?: string; video?: string; values?: Record<number, string> };
 
 /** One text box per blank in the message. They are sent to the server as one value per line. */
 function BodyValues({ keys, errors, onEdit, onValues }: { keys: string[]; errors: Record<number, string>; onEdit: (index: number) => void; onValues: (values: string[]) => void }) {
@@ -119,6 +120,9 @@ export function CreateCampaignForm({ options, batches, source }: {
   const [selectedAudience, setSelectedAudience] = useState(batches[0] ? `batch:${batches[0].id}` : "");
   const [preview, setPreview] = useState("");
   const [liveValues, setLiveValues] = useState<string[]>([]);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoPreview, setVideoPreview] = useState("");
+  const [videoBusy, setVideoBusy] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const handled = useRef(state);
   const template = options.find((item) => item.key === selected);
@@ -143,6 +147,10 @@ export function CreateCampaignForm({ options, batches, source }: {
       if (!(image instanceof File) || image.size === 0) next.image = "This template needs a header image (JPG or PNG).";
       else if (!/^image\/(jpeg|png)$/.test(image.type)) next.image = "Use a JPG or PNG image.";
       else if (image.size > MAX_IMAGE_BYTES) next.image = "The image is larger than 4 MB. Choose a smaller one.";
+    }
+    if (template?.headerFormat === "VIDEO") {
+      if (videoBusy) next.video = "The video is still uploading. Wait a moment.";
+      else if (!videoUrl) next.video = "This template needs a header video (MP4, up to 16 MB).";
     }
     if (template?.parameterKeys.length) {
       const values = String(data.get("bodyParameters") ?? "").split("\n");
@@ -208,7 +216,33 @@ export function CreateCampaignForm({ options, batches, source }: {
       {preview && /* eslint-disable-next-line @next/next/no-img-element */
         <img src={preview} alt="Selected header preview" className={styles.headerImagePreview} />}
     </label>}
+    {template && template.headerFormat === "VIDEO" && <label className={styles.field} key={`${selected}-video`}>
+      <span>Header video (MP4, up to 16 MB)</span>
+      <input type="file" accept="video/mp4" disabled={videoBusy} aria-invalid={errors.video ? true : undefined}
+        onChange={async (event) => {
+          const file = event.target.files?.[0];
+          setErrors((old) => ({ ...old, video: undefined }));
+          setVideoUrl("");
+          setVideoPreview((old) => { if (old) URL.revokeObjectURL(old); return ""; });
+          if (!file) return;
+          const invalid = checkHeaderVideo(file);
+          if (invalid) { setErrors((old) => ({ ...old, video: invalid })); event.target.value = ""; return; }
+          setVideoPreview(URL.createObjectURL(file));
+          setVideoBusy(true);
+          try { setVideoUrl(await uploadHeaderVideo(file)); } catch (error) {
+            setErrors((old) => ({ ...old, video: error instanceof Error ? error.message : "The video could not be uploaded." }));
+            setVideoPreview((old) => { if (old) URL.revokeObjectURL(old); return ""; });
+            event.target.value = "";
+          } finally { setVideoBusy(false); }
+        }} />
+      <input type="hidden" name="headerVideoUrl" value={videoUrl} />
+      {videoBusy && <small>Uploading the video…</small>}
+      {videoUrl && !videoBusy && <small>Video uploaded.</small>}
+      <FieldError>{errors.video}</FieldError>
+    </label>}
     {template && <WhatsAppPreview
+      headerVideoUrl={template.headerFormat === "VIDEO" ? videoPreview || null : null}
+      headerVideoMissing={template.headerFormat === "VIDEO" && !videoPreview}
       headerImageUrl={template.headerFormat === "IMAGE" ? preview || null : null}
       headerImageMissing={template.headerFormat === "IMAGE" && !preview}
       body={fillValues(template.body, template.parameterKeys, liveValues)}

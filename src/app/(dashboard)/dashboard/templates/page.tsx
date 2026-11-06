@@ -27,6 +27,7 @@ function initialFrom(template: MetaTemplate): TemplateFormInitial | null {
     body,
     footer: template.components.find((c) => c.type === "FOOTER")?.text ?? "",
     hasImageHeader: template.components.some((c) => c.type === "HEADER" && c.format === "IMAGE"),
+    hasVideoHeader: template.components.some((c) => c.type === "HEADER" && c.format === "VIDEO"),
   };
 }
 

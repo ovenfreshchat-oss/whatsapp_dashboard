@@ -11,7 +11,7 @@ export type TestTemplateOption = {
   label: string;
   body: string;
   parameterKeys: string[];
-  headerFormat?: "IMAGE" | "TEXT" | null;
+  headerFormat?: "IMAGE" | "VIDEO" | "TEXT" | null;
   footer?: string | null;
   buttons?: PreviewButton[];
 };
@@ -37,21 +37,21 @@ export function TestSendForm({ recipient, options }: { recipient: string; option
         </select>
       </label>
 
-      {template && template.headerFormat === "IMAGE" && (
+      {template && (template.headerFormat === "IMAGE" || template.headerFormat === "VIDEO") && (
         <label className={styles.field} key={`${selected}-header`}>
-          <span>Header image URL (HTTPS)</span>
+          <span>Header {template.headerFormat === "VIDEO" ? "video" : "image"} URL (HTTPS)</span>
           <input
             name="headerMediaUrl"
             type="url"
             pattern="https://.*"
-            placeholder="https://example.com/banner.jpg"
+            placeholder={template.headerFormat === "VIDEO" ? "https://example.com/offer.mp4" : "https://example.com/banner.jpg"}
             required
           />
-          <small>Meta requires a publicly accessible HTTPS URL for image headers.</small>
+          <small>Meta requires a publicly accessible HTTPS URL{template.headerFormat === "VIDEO" ? " to an MP4 video (16 MB or smaller)" : " for image headers"}.</small>
         </label>
       )}
 
-      {template && <WhatsAppPreview headerImageUrl={null} headerImageMissing={template.headerFormat === "IMAGE"} body={template.body} footer={template.footer} buttons={template.buttons} />}
+      {template && <WhatsAppPreview headerImageUrl={null} headerImageMissing={template.headerFormat === "IMAGE"} headerVideoMissing={template.headerFormat === "VIDEO"} body={template.body} footer={template.footer} buttons={template.buttons} />}
 
       {template && template.parameterKeys.length > 0 && (
         <label className={styles.field}>

@@ -3,6 +3,8 @@ import { getConfiguredMetaIdentifiers } from "./client";
 const GRAPH = "https://graph.facebook.com";
 export const MAX_HEADER_IMAGE_BYTES = 5 * 1024 * 1024;
 const IMAGE_TYPES = ["image/jpeg", "image/png"];
+export { MAX_HEADER_VIDEO_BYTES } from "@/server/campaigns/media-paths";
+import { MAX_HEADER_VIDEO_BYTES } from "@/server/campaigns/media-paths";
 
 export class TemplateInputError extends Error {}
 
@@ -19,6 +21,8 @@ export type TemplateSaveInput = {
   /** One sample value per variable, in order of first appearance. */
   examples: string[];
   image?: { bytes: Uint8Array; mime: string; name: string };
+  /** An MP4 header video (WhatsApp: up to 16 MB). Use either an image or a video, not both. */
+  video?: { bytes: Uint8Array; mime: string; name: string };
 };
 
 export type TemplateSaveResult = { id: string; status: string | null };
@@ -73,6 +77,13 @@ function validate(input: TemplateSaveInput): string[] {
       throw new TemplateInputError("The image must be under 5 MB.");
     }
   }
+  if (input.image && input.video) throw new TemplateInputError("Choose either an image or a video for the top of the message, not both.");
+  if (input.video) {
+    if (input.video.mime !== "video/mp4") throw new TemplateInputError("The video must be an MP4 file.");
+    if (input.video.bytes.byteLength === 0 || input.video.bytes.byteLength > MAX_HEADER_VIDEO_BYTES) {
+      throw new TemplateInputError("The video must be 16 MB or smaller.");
+    }
+  }
   return keys;
 }
 
@@ -87,7 +98,7 @@ async function graphError(response: Response): Promise<string> {
 }
 
 /** Meta's resumable upload gives the example handle a template image header needs. */
-async function uploadHeaderImage(image: NonNullable<TemplateSaveInput["image"]>): Promise<string> {
+async function uploadHeaderImage(image: NonNullable<TemplateSaveInput["image"] | TemplateSaveInput["video"]>): Promise<string> {
   const { token, version, appId } = settings();
   if (!appId) throw new TemplateInputError("META_APP_ID is needed to upload an image.");
   const start = await fetch(
@@ -120,6 +131,9 @@ export async function saveMetaTemplate(input: TemplateSaveInput): Promise<Templa
   if (input.image) {
     const handle = await uploadHeaderImage(input.image);
     components.push({ type: "HEADER", format: "IMAGE", example: { header_handle: [handle] } });
+  } else if (input.video) {
+    const handle = await uploadHeaderImage(input.video);
+    components.push({ type: "HEADER", format: "VIDEO", example: { header_handle: [handle] } });
   }
   components.push({
     type: "BODY",
