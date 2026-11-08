@@ -6,6 +6,7 @@ import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { getConfiguredMetaIdentifiers, getMetaConfigurationStatus } from "@/server/meta/client";
 import { ConsentRecordForm } from "../record-form";
 import styles from "../contacts.module.css";
+import { formatDateTime } from "@/lib/timezone";
 
 export const metadata: Metadata = { title: "Contact consent | Solalyn" };
 
@@ -16,10 +17,9 @@ type Event = {
   occurred_at: string | null; recorded_at: string; import_batch_id: string | null;
 };
 
-function dateLabel(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.valueOf()) ? "—" : `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+/** Shown in the client's time zone (see src/lib/timezone.ts). */
+function dateLabel(value: string | null | undefined) {
+  return formatDateTime(value);
 }
 
 export default async function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {

@@ -9,7 +9,8 @@ import { useFeedback } from "@/components/ui/feedback";
 import { createCampaignDraftAction, type CampaignActionState } from "./actions";
 import { previewFailedContactsAction } from "./[campaignId]/failed-actions";
 import { SELECTION_KEY } from "./[campaignId]/failed-controls";
-import { checkHeaderVideo, uploadHeaderVideo } from "@/lib/header-video-upload";
+import { checkHeaderVideo, prepareHeaderVideo, uploadHeaderVideo } from "@/lib/header-video-upload";
+import { compressHeaderImage } from "@/lib/media-compress";
 import { describeExclusion } from "@/server/campaigns/retry-explain";
 import type { FailedContactPreview } from "@/server/campaigns/retries";
 import type { CampaignImportBatchOption } from "@/server/campaigns/admin";
@@ -123,6 +124,9 @@ export function CreateCampaignForm({ options, batches, source }: {
   const [videoUrl, setVideoUrl] = useState("");
   const [videoPreview, setVideoPreview] = useState("");
   const [videoBusy, setVideoBusy] = useState(false);
+  const [videoNote, setVideoNote] = useState("");
+  const [imageBusy, setImageBusy] = useState(false);
+  const [imageNote, setImageNote] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const handled = useRef(state);
   const template = options.find((item) => item.key === selected);
@@ -144,7 +148,8 @@ export function CreateCampaignForm({ options, batches, source }: {
     if (!source && !selectedAudience) next.audience = "Choose who should receive it.";
     if (template?.headerFormat === "IMAGE") {
       const image = data.get("headerImage");
-      if (!(image instanceof File) || image.size === 0) next.image = "This template needs a header image (JPG or PNG).";
+      if (imageBusy) next.image = "The image is still being optimised. Wait a moment.";
+      else if (!(image instanceof File) || image.size === 0) next.image = "This template needs a header image (JPG or PNG).";
       else if (!/^image\/(jpeg|png)$/.test(image.type)) next.image = "Use a JPG or PNG image.";
       else if (image.size > MAX_IMAGE_BYTES) next.image = "The image is larger than 4 MB. Choose a smaller one.";
     }
@@ -200,24 +205,37 @@ export function CreateCampaignForm({ options, batches, source }: {
     </div>
     <div className={styles.formCol}>
     {template && template.headerFormat === "IMAGE" && <label className={styles.field} key={`${selected}-header`}>
-      <span>Header image (JPG or PNG, up to 4 MB)</span>
+      <span>Header image (JPG or PNG, large images are optimised automatically)</span>
       <input
         name="headerImage"
         type="file"
         accept="image/jpeg,image/png"
         aria-invalid={errors.image ? true : undefined}
-        onChange={(event) => {
-          const file = event.target.files?.[0];
+        onChange={async (event) => {
+          const input = event.currentTarget;
+          const file = input.files?.[0];
           setErrors((old) => ({ ...old, image: undefined }));
-          setPreview((old) => { if (old) URL.revokeObjectURL(old); return file ? URL.createObjectURL(file) : ""; });
+          setImageNote("");
+          setPreview((old) => { if (old) URL.revokeObjectURL(old); return ""; });
+          if (!file) return;
+          setImageBusy(true);
+          const result = await compressHeaderImage(file);
+          if (result.file !== file) {
+            try { const transfer = new DataTransfer(); transfer.items.add(result.file); input.files = transfer.files; } catch { /* keep the original */ }
+          }
+          setImageNote(input.files?.[0] === result.file ? result.message : "");
+          setPreview(URL.createObjectURL(input.files?.[0] ?? file));
+          setImageBusy(false);
         }}
       />
+      {imageBusy && <small>Optimising the image…</small>}
+      {imageNote && !imageBusy && <small>{imageNote}</small>}
       <FieldError>{errors.image}</FieldError>
       {preview && /* eslint-disable-next-line @next/next/no-img-element */
         <img src={preview} alt="Selected header preview" className={styles.headerImagePreview} />}
     </label>}
     {template && template.headerFormat === "VIDEO" && <label className={styles.field} key={`${selected}-video`}>
-      <span>Header video (MP4, up to 16 MB)</span>
+      <span>Header video (MP4, large videos are optimised automatically)</span>
       <input type="file" accept="video/mp4" disabled={videoBusy} aria-invalid={errors.video ? true : undefined}
         onChange={async (event) => {
           const file = event.target.files?.[0];
@@ -227,17 +245,24 @@ export function CreateCampaignForm({ options, batches, source }: {
           if (!file) return;
           const invalid = checkHeaderVideo(file);
           if (invalid) { setErrors((old) => ({ ...old, video: invalid })); event.target.value = ""; return; }
-          setVideoPreview(URL.createObjectURL(file));
           setVideoBusy(true);
-          try { setVideoUrl(await uploadHeaderVideo(file)); } catch (error) {
+          setVideoNote("Optimising the video… 0%");
+          try {
+            const prepared = await prepareHeaderVideo(file, (fraction) => setVideoNote(`Optimising the video… ${Math.round(fraction * 100)}%`));
+            setVideoPreview(URL.createObjectURL(prepared.file));
+            setVideoNote("Uploading the video…");
+            setVideoUrl(await uploadHeaderVideo(prepared.file));
+            setVideoNote(prepared.message);
+          } catch (error) {
             setErrors((old) => ({ ...old, video: error instanceof Error ? error.message : "The video could not be uploaded." }));
             setVideoPreview((old) => { if (old) URL.revokeObjectURL(old); return ""; });
+            setVideoNote("");
             event.target.value = "";
           } finally { setVideoBusy(false); }
         }} />
       <input type="hidden" name="headerVideoUrl" value={videoUrl} />
-      {videoBusy && <small>Uploading the video…</small>}
-      {videoUrl && !videoBusy && <small>Video uploaded.</small>}
+      {videoBusy && <small>{videoNote}</small>}
+      {videoUrl && !videoBusy && <small>Video uploaded. {videoNote}</small>}
       <FieldError>{errors.video}</FieldError>
     </label>}
     {template && <WhatsAppPreview

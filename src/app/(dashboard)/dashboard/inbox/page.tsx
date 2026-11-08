@@ -21,6 +21,7 @@ import { AutoSelectFirst } from "./auto-select";
 import { LinkPending } from "./link-pending";
 import { ReplyForm } from "./reply-form";
 import styles from "./inbox.module.css";
+import { getSendTimeZone } from "@/lib/timezone";
 
 export const metadata: Metadata = {
   title: "WhatsApp inbox | Solalyn",
@@ -91,7 +92,7 @@ function Bubble({ message, timeZone }: { message: InboxMessage; timeZone: string
 export default async function InboxPage({ searchParams }: { searchParams: Promise<{ c?: string | string[] }> }) {
   const rawSelected = (await searchParams).c;
   const selectedId = typeof rawSelected === "string" && isUuid(rawSelected) ? rawSelected : null;
-  const timeZone = safeTimeZone(process.env.INBOX_TIME_ZONE?.trim() || process.env.WHATSAPP_SEND_TIME_ZONE?.trim());
+  const timeZone = safeTimeZone(process.env.INBOX_TIME_ZONE?.trim() || getSendTimeZone());
 
   const [list, thread] = await Promise.all([
     listConversations(),

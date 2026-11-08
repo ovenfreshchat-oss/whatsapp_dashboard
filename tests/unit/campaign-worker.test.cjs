@@ -21,7 +21,7 @@ function loadTypeScript(file, dependencies) {
 
 const workerPath = path.resolve(__dirname, "../../src/server/campaigns/worker.ts");
 const environmentNames = [
-  "WHATSAPP_SENDS_ENABLED", "WHATSAPP_SEND_TIME_ZONE", "WHATSAPP_SEND_WINDOW_START",
+  "WHATSAPP_SENDS_ENABLED", "CLIENT_TIME_ZONE", "WHATSAPP_SEND_TIME_ZONE", "WHATSAPP_SEND_WINDOW_START",
   "WHATSAPP_SEND_WINDOW_END", "WHATSAPP_SEND_DAYS", "WHATSAPP_WORKER_BATCH_SIZE",
   "WHATSAPP_MIN_INTERVAL_MS", "META_APP_ID", "META_APP_SECRET",
   "META_WEBHOOK_VERIFY_TOKEN", "WHATSAPP_THROTTLE_BATCH", "WHATSAPP_THROTTLE_COOLDOWN_MINUTES",
@@ -138,6 +138,7 @@ function workerFixture({ gateSequence = ["allowed", "allowed"], subscribed = tru
       listMetaWebhookSubscriptions: async () => ({ isCurrentAppSubscribed: subscribed }),
       MetaApiError,
     },
+    "@/lib/timezone": loadTypeScript(path.resolve(__dirname, "../../src/lib/timezone.ts"), {}),
     "../meta/templates": {
       sendApprovedMarketingTemplate: send ?? (async (input) => {
         await input.beforeSend();
@@ -439,5 +440,82 @@ test("Meta 131048 on a first send also raises the sender alert", async () => {
     await fixture.worker.runCampaignWorkerTick();
     assert.equal(fixture.alerts.length, 1);
     assert.equal(fixture.records[0].p_state, "rejected");
+  });
+});
+
+const torontoWindow = {
+  ...enabledEnvironment,
+  WHATSAPP_SEND_TIME_ZONE: undefined,
+  CLIENT_TIME_ZONE: "America/Toronto",
+  WHATSAPP_SEND_WINDOW_START: "09:00",
+  WHATSAPP_SEND_WINDOW_END: "18:00",
+  WHATSAPP_SEND_DAYS: "1,2,3,4,5",
+};
+
+test("the sending window follows Toronto clock time in winter (EST) and summer (EDT)", async () => {
+  await withEnvironment(torontoWindow, () => {
+    const { worker } = workerFixture();
+    const policy = worker.getCampaignWorkerReadiness();
+    assert.equal(policy.enabled, true);
+    assert.equal(policy.timeZone, "America/Toronto");
+    const open = (iso) => worker.isWithinCampaignSendWindow(policy, new Date(iso));
+    // Wednesday 2026-11-04 is EST (UTC-5): 09:00 local is 14:00 UTC.
+    assert.equal(open("2026-11-04T13:59:00Z"), false);
+    assert.equal(open("2026-11-04T14:00:00Z"), true);
+    assert.equal(open("2026-11-04T22:59:00Z"), true);
+    assert.equal(open("2026-11-04T23:00:00Z"), false);
+    // Wednesday 2026-07-15 is EDT (UTC-4): 09:00 local is 13:00 UTC.
+    assert.equal(open("2026-07-15T12:59:00Z"), false);
+    assert.equal(open("2026-07-15T13:00:00Z"), true);
+    assert.equal(open("2026-07-15T21:59:00Z"), true);
+    assert.equal(open("2026-07-15T22:00:00Z"), false);
+  });
+});
+
+test("the allowed days follow the Toronto calendar day, not the UTC day", async () => {
+  await withEnvironment({ ...torontoWindow, WHATSAPP_SEND_WINDOW_START: "00:00", WHATSAPP_SEND_WINDOW_END: "23:59", WHATSAPP_SEND_DAYS: "5" }, () => {
+    const { worker } = workerFixture();
+    const policy = worker.getCampaignWorkerReadiness();
+    // 01:00 UTC on Saturday 2026-11-07 is still 20:00 on Friday in Toronto.
+    assert.equal(worker.isWithinCampaignSendWindow(policy, new Date("2026-11-07T01:00:00Z")), true);
+    // 05:30 UTC on Saturday is 00:30 on Saturday in Toronto.
+    assert.equal(worker.isWithinCampaignSendWindow(policy, new Date("2026-11-07T05:30:00Z")), false);
+  });
+});
+
+test("CLIENT_TIME_ZONE wins over the older WHATSAPP_SEND_TIME_ZONE, which still works alone", async () => {
+  await withEnvironment({ ...torontoWindow, WHATSAPP_SEND_TIME_ZONE: "Asia/Kolkata" }, () => {
+    assert.equal(workerFixture().worker.getCampaignWorkerReadiness().timeZone, "America/Toronto");
+  });
+  await withEnvironment({ ...torontoWindow, CLIENT_TIME_ZONE: undefined, WHATSAPP_SEND_TIME_ZONE: "Asia/Kolkata" }, () => {
+    assert.equal(workerFixture().worker.getCampaignWorkerReadiness().timeZone, "Asia/Kolkata");
+  });
+});
+
+test("a campaign scheduled for a Toronto time becomes due at exactly that local time, in EST, EDT and across a clock change", async () => {
+  const tz = loadTypeScript(path.resolve(__dirname, "../../src/lib/timezone.ts"), {});
+  await withEnvironment(torontoWindow, () => {
+    const { worker } = workerFixture();
+    const policy = worker.getCampaignWorkerReadiness();
+    const cases = [
+      ["2026-11-10T09:00", "2026-11-10T14:00:00.000Z"], // winter, EST
+      ["2026-07-14T09:00", "2026-07-14T13:00:00.000Z"], // summer, EDT
+      ["2026-10-30T09:00", "2026-10-30T13:00:00.000Z"], // Friday before the autumn change, still EDT
+      ["2026-11-02T09:00", "2026-11-02T14:00:00.000Z"], // Monday after it, EST
+      ["2026-03-06T09:00", "2026-03-06T14:00:00.000Z"], // Friday before the spring change, EST
+      ["2026-03-09T09:00", "2026-03-09T13:00:00.000Z"], // Monday after it, EDT
+    ];
+    for (const [local, expectedUtc] of cases) {
+      const scheduled = tz.zonedLocalToUtc(local, "America/Toronto");
+      assert.equal(scheduled.ok, true, local);
+      assert.equal(scheduled.iso, expectedUtc, local); // what is stored in Supabase
+      const due = (nowMs) => Date.parse(scheduled.iso) <= nowMs;
+      const at = Date.parse(expectedUtc);
+      assert.equal(due(at - 60_000), false, `${local} must not run a minute early`);
+      assert.equal(due(at), true, `${local} runs at the chosen time`);
+      assert.equal(worker.isWithinCampaignSendWindow(policy, new Date(at - 60_000)), false, `${local}: window still closed a minute early`);
+      assert.equal(worker.isWithinCampaignSendWindow(policy, new Date(at)), true, `${local}: window open at the chosen time`);
+      assert.equal(tz.formatDateTime(scheduled.iso, "America/Toronto").startsWith(local.replace("T", " ")), true, local);
+    }
   });
 });

@@ -7,13 +7,14 @@ import { RefreshButton } from "@/components/ui/refresh-button";
 import Link from "next/link";
 import { describeErrorCode } from "@/server/campaigns/retry-explain";
 import styles from "../../campaigns.module.css";
+import { formatDateTime, getClientTimeZone } from "@/lib/timezone";
 
 export const metadata: Metadata = { title: "Campaign analytics | Solalyn" };
 export const dynamic = "force-dynamic";
 
 const pct = (part: number, whole: number) => (whole > 0 ? `${((part / whole) * 100).toFixed(1)}%` : "—");
 const width = (part: number, whole: number) => `${whole > 0 ? Math.min(100, (part / whole) * 100) : 0}%`;
-const when = (value: string | null) => (value ? `${value.slice(0, 16).replace("T", " ")} UTC` : "—");
+const when = (value: string | null) => formatDateTime(value);
 function duration(seconds: number | null) {
   if (seconds === null || seconds < 0) return "—";
   if (seconds < 90) return `${Math.round(seconds)} sec`;
@@ -50,6 +51,7 @@ export default async function CampaignAnalyticsPage({ params }: { params: Promis
         new Date(Math.max(Date.parse(a.lastStatusAt ?? a.firstAcceptedAt), Date.parse(a.lastAcceptedAt ?? a.firstAcceptedAt)) + 60 * 60_000).toISOString())
     : null;
   const money = (value: number, currency: string) => `${currency} ${value.toFixed(value < 1 ? 4 : 2)}`;
+  const zoneName = getClientTimeZone().replace("_", " ");
   const peak = a ? Math.max(1, ...a.timeline.map((t) => t.accepted)) : 1;
 
   return <>
@@ -131,10 +133,10 @@ export default async function CampaignAnalyticsPage({ params }: { params: Promis
         </section>
 
         <section className={styles.panel} aria-labelledby="timeline-heading">
-          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>TIMELINE</span><h2 id="timeline-heading">Messages sent per hour (UTC)</h2></div></div>
+          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>TIMELINE</span><h2 id="timeline-heading">Messages sent per hour ({zoneName})</h2></div></div>
           {a.timeline.length ? <div className={styles.timeline}>
             {a.timeline.map((t) => <div key={t.hour} className={styles.timelineRow}>
-              <time dateTime={t.hour}>{t.hour.slice(5, 13).replace("T", " ")}h</time>
+              <time dateTime={t.hour}>{formatDateTime(t.hour)}</time>
               <div className={styles.bar}><div style={{ width: width(t.accepted, peak) }} /></div>
               <span>{t.accepted} sent · {t.delivered} delivered · {t.read} read</span>
             </div>)}

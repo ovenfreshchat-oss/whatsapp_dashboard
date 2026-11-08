@@ -9,6 +9,7 @@ import { RefreshButton } from "@/components/ui/refresh-button";
 import { CategoryBadge, toCategory } from "@/components/ui/badges";
 import { CheckCircle2, FileText, Radio, TriangleAlert } from "lucide-react";
 import styles from "./meta.module.css";
+import { formatDateTime } from "@/lib/timezone";
 
 export const metadata: Metadata = {
   title: "WhatsApp setup | Solalyn",
@@ -50,10 +51,9 @@ function QualityBadge({ rating }: { rating: string | null | undefined }) {
   </span>;
 }
 
+/** Shown in the client's time zone (see src/lib/timezone.ts). */
 function dateLabel(value: string | null | undefined) {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "—" : `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+  return formatDateTime(value);
 }
 
 function maskedPhone(value: string) {

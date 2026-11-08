@@ -14,6 +14,7 @@ import { DeliveryFilters } from "./delivery-filters";
 import { CampaignStateBadge, CategoryBadge } from "@/components/ui/badges";
 import ui from "@/components/ui/ui.module.css";
 import styles from "./dashboard.module.css";
+import { formatDate, getClientTimeZone } from "@/lib/timezone";
 
 const metaSettingsPresent = () => [
   process.env.META_GRAPH_API_VERSION,
@@ -53,7 +54,7 @@ export async function DeliverySection({ from, to }: { from: string | null; to: s
       <h2 id="delivery-heading">Delivery and failures</h2>
       <span>{totals.from} to {totals.to}</span>
     </div>
-    <DeliveryFilters from={totals.from} to={totals.to} campaignId={null} campaigns={[]} />
+    <DeliveryFilters from={totals.from} to={totals.to} campaignId={null} campaigns={[]} timeZone={getClientTimeZone()} />
     <div className={styles.categoryGrid}>
       <MetricCard tone="ink" icon={Send} label="Messages sent" value={show(totals.sent)} detail="All messages, per WhatsApp" />
       <MetricCard tone="green" icon={CheckCheck} label="Messages delivered" value={show(totals.delivered)} detail="All messages, per WhatsApp" />
@@ -171,7 +172,7 @@ export async function LastCampaignSection() {
       <div className={ui.panelHeading}>
         <div className={styles.lastTitle}>
           <h2 id="last-campaign-heading">Last campaign</h2>
-          {last && <p><strong>{last.campaign.name}</strong> <CampaignStateBadge state={last.campaign.state} /> <CategoryBadge category="MARKETING" /> <span>{last.campaign.createdAt.slice(0, 10)}</span></p>}
+          {last && <p><strong>{last.campaign.name}</strong> <CampaignStateBadge state={last.campaign.state} /> <CategoryBadge category="MARKETING" /> <span>{formatDate(last.campaign.createdAt)}</span></p>}
         </div>
         {last && <Link href={`/dashboard/campaigns/${last.campaign.id}/analytics`} className={`${ui.btn} ${ui.btnSecondary} ${ui.btnSm}`}>Full analytics</Link>}
       </div>

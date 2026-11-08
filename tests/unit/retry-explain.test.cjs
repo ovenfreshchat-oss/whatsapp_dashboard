@@ -6,8 +6,14 @@ const ts = require("typescript");
 
 const source = fs.readFileSync(path.join(__dirname, "../../src/server/campaigns/retry-explain.ts"), "utf8");
 const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } });
+const tzSource = fs.readFileSync(path.join(__dirname, "../../src/lib/timezone.ts"), "utf8");
+const tzMod = { exports: {} };
+new Function("module", "exports", "process", ts.transpileModule(tzSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText)(tzMod, tzMod.exports, process);
 const mod = { exports: {} };
-new Function("module", "exports", outputText)(mod, mod.exports);
+new Function("module", "exports", "require", outputText)(mod, mod.exports, (id) => {
+  if (id === "@/lib/timezone") return tzMod.exports;
+  throw new Error(`Unexpected import ${id}`);
+});
 const { explainRetry, describeExclusion } = mod.exports;
 
 const NOW = new Date("2026-11-03T10:00:00Z");
@@ -19,7 +25,7 @@ test("a message that can be retried now has no blocking reason", () => {
 
 test("a message inside its waiting time says when it becomes eligible", () => {
   const text = explainRetry(row({ retryStatus: "eligible", retryReadyAt: "2026-11-04T09:00:00Z" }), NOW);
-  assert.match(text, /Eligible from 2026-11-04 09:00 UTC/);
+  assert.match(text, /Eligible from 2026-11-04 04:00 EST/); // 09:00 UTC is 04:00 in Toronto (EST)
 });
 
 test("recovered, pending, exhausted and stopped each get their own explanation", () => {
@@ -50,4 +56,9 @@ test("new-campaign exclusion codes read as plain words", () => {
   assert.match(describeExclusion("global_opt_out"), /Global Opt Out/);
   assert.match(describeExclusion("hold_something_new"), /Do Not Send/);
   assert.equal(describeExclusion("brand_new_code"), "Not eligible");
+});
+
+test("in summer the same message shows EDT", () => {
+  const text = explainRetry(row({ retryStatus: "eligible", retryReadyAt: "2026-07-20T13:00:00Z" }), new Date("2026-07-19T10:00:00Z"));
+  assert.match(text, /Eligible from 2026-07-20 09:00 EDT/);
 });

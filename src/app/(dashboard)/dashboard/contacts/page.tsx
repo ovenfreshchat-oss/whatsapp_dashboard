@@ -5,6 +5,7 @@ import { ChevronRight } from "lucide-react";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { ContactImportForm } from "./import-form";
 import styles from "./contacts.module.css";
+import { formatDateTime } from "@/lib/timezone";
 
 export const metadata: Metadata = {
   title: "Contacts | Solalyn",
@@ -21,10 +22,9 @@ type Batch = {
   pending_claims: number;
 };
 
-function dateLabel(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.valueOf()) ? "—" : `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+/** Shown in the client's time zone (see src/lib/timezone.ts). */
+function dateLabel(value: string | null | undefined) {
+  return formatDateTime(value);
 }
 
 export default async function ContactsPage({ searchParams }: { searchParams: Promise<{ bp?: string | string[] }> }) {

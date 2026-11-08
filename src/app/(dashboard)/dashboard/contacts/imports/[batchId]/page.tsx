@@ -7,6 +7,7 @@ import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { ActiveSwitch, BatchActiveButtons } from "../../number-switch";
 import styles from "../../contacts.module.css";
+import { formatDate } from "@/lib/timezone";
 
 export const metadata: Metadata = { title: "Upload | Solalyn" };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -15,9 +16,7 @@ type NumberRow = { id: string; phone_e164: string; display_name: string | null; 
 const NUMBERS_SIZE = 25;
 
 function dayLabel(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.valueOf()) ? "—" : date.toISOString().slice(0, 10);
+  return formatDate(value);
 }
 
 export default async function UploadNumbersPage({ params, searchParams }: {

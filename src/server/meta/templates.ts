@@ -5,6 +5,8 @@ import {
   metaGraphCollection,
   metaGraphPost,
 } from "./client";
+import { headerMedia } from "./media-id";
+import { MEDIA_REFERENCE_ERROR_CODES, type ResolvedMedia } from "./media-id-core";
 
 export type MetaTemplateButton = {
   type: string | null;
@@ -326,36 +328,41 @@ export async function sendApprovedTemplateTest(
     });
   }
 
-  const templateComponents: Record<string, unknown>[] = [];
-  if (input.headerMediaUrl?.trim()) {
-    templateComponents.push({
-      type: "header",
-      parameters: [parameterSpec.headerFormat === "VIDEO"
-        ? { type: "video", video: { link: input.headerMediaUrl.trim() } }
-        : { type: "image", image: { link: input.headerMediaUrl.trim() } }],
-    });
-  }
-  if (parameters.length) {
-    templateComponents.push({
-      type: "body",
-      parameters: parameters.map((text, index) => ({
-        type: "text",
-        ...(parameterSpec.format === "named" ? { parameter_name: parameterSpec.keys[index] } : {}),
-        text,
-      })),
-    });
-  }
-
-  const body = {
-    messaging_product: "whatsapp",
-    recipient_type: "individual",
-    to: input.recipientE164.slice(1),
-    type: "template",
-    template: {
-      name: input.templateName,
-      language: { code: input.languageCode },
-      ...(templateComponents.length ? { components: templateComponents } : {}),
-    },
+  // The header file is uploaded to WhatsApp once and sent by ID; the public link is the fallback.
+  const headerUrl = input.headerMediaUrl?.trim();
+  const uploaded: ResolvedMedia | null = headerUrl ? await headerMedia.resolve(headerUrl, phoneNumberId) : null;
+  const buildBody = (media: ResolvedMedia | null) => {
+    const templateComponents: Record<string, unknown>[] = [];
+    if (headerUrl) {
+      const reference = media ? { id: media.id } : { link: headerUrl };
+      templateComponents.push({
+        type: "header",
+        parameters: [parameterSpec.headerFormat === "VIDEO"
+          ? { type: "video", video: reference }
+          : { type: "image", image: reference }],
+      });
+    }
+    if (parameters.length) {
+      templateComponents.push({
+        type: "body",
+        parameters: parameters.map((text, index) => ({
+          type: "text",
+          ...(parameterSpec.format === "named" ? { parameter_name: parameterSpec.keys[index] } : {}),
+          text,
+        })),
+      });
+    }
+    return {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: input.recipientE164.slice(1),
+      type: "template",
+      template: {
+        name: input.templateName,
+        language: { code: input.languageCode },
+        ...(templateComponents.length ? { components: templateComponents } : {}),
+      },
+    };
   };
   if (input.beforeSend) {
     try {
@@ -364,7 +371,19 @@ export async function sendApprovedTemplateTest(
       reject("The final eligibility check did not pass.");
     }
   }
-  const response = await metaGraphPost(`${phoneNumberId}/${MARKETING_SEND_PATH}`, body);
+  let response: Record<string, unknown>;
+  try {
+    response = await metaGraphPost(`${phoneNumberId}/${MARKETING_SEND_PATH}`, buildBody(uploaded));
+  } catch (error) {
+    // Only a clear rejection of the media reference is retried (once, with the public link): no message was created.
+    if (uploaded && headerUrl && error instanceof MetaApiError && error.definitiveRejection &&
+        error.providerCode !== undefined && MEDIA_REFERENCE_ERROR_CODES.has(error.providerCode)) {
+      await headerMedia.rejected(headerUrl, phoneNumberId, uploaded);
+      response = await metaGraphPost(`${phoneNumberId}/${MARKETING_SEND_PATH}`, buildBody(null));
+    } else {
+      throw error;
+    }
+  }
   const messages = response.messages;
   const messageId = Array.isArray(messages) ? optionalString(record(messages[0])?.id) : null;
   if (!messageId || !messageId.startsWith("wamid.")) {

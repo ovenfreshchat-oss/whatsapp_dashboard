@@ -16,6 +16,7 @@
     "check:meta": "node --env-file=.env scripts/check-meta-analytics.mjs"
   },
   "dependencies": {
+    "mediabunny": "1.65.2",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.3",
     "@xmldom/xmldom": "^0.9.12",

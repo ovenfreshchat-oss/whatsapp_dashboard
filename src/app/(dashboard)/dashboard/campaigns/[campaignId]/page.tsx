@@ -16,6 +16,7 @@ import { CampaignStateBadge, CategoryBadge } from "@/components/ui/badges";
 import { WhatsAppPreview } from "@/components/ui/whatsapp-preview";
 import { categoryForCampaign, getTemplateCategories } from "@/server/campaigns/categories";
 import styles from "../campaigns.module.css";
+import { formatDateTime, getClientTimeZone } from "@/lib/timezone";
 
 export const metadata: Metadata = { title: "Campaign | Solalyn" };
 
@@ -27,10 +28,9 @@ type PageProps = {
 const TABS = [["overview", "Overview"], ["message", "Message"], ["audience", "Audience"], ["failed", "Failed messages"], ["history", "History"]] as const;
 type Tab = (typeof TABS)[number][0];
 
-function dateLabel(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.valueOf()) ? "—" : `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+/** Shown in the client's time zone (see src/lib/timezone.ts). */
+function dateLabel(value: string | null | undefined) {
+  return formatDateTime(value);
 }
 
 const outcomeKeys = [
@@ -119,7 +119,7 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
           </div>
           {messagePreview}
           <ExcludeNumbers campaignId={campaign.id} excluded={excluded} />
-          <CampaignControls id={campaign.id} state={campaign.state} audienceCount={campaign.audienceCount} audienceSourceLabel={campaign.audienceSourceLabel} reviewSha256={campaign.reviewSha256} />
+          <CampaignControls id={campaign.id} state={campaign.state} audienceCount={campaign.audienceCount} audienceSourceLabel={campaign.audienceSourceLabel} reviewSha256={campaign.reviewSha256} timeZone={getClientTimeZone()} />
           {!readiness.enabled && <div className={styles.formNote}><strong>Worker readiness</strong><p>{readiness.reason}</p></div>}
         </section>}
         {!isDraft && <section className={styles.summaryStrip} aria-label="Campaign summary">
@@ -129,7 +129,7 @@ export default async function CampaignDetailPage({ params, searchParams }: PageP
         </section>}
 
         {(campaign.state === "scheduled" || campaign.state === "running" || campaign.state === "paused") && <section className={`${styles.panel} ${styles.actionPanel}`} aria-label="Campaign actions">
-          <CampaignControls id={campaign.id} state={campaign.state} audienceCount={campaign.audienceCount} audienceSourceLabel={campaign.audienceSourceLabel} reviewSha256={campaign.reviewSha256} />
+          <CampaignControls id={campaign.id} state={campaign.state} audienceCount={campaign.audienceCount} audienceSourceLabel={campaign.audienceSourceLabel} reviewSha256={campaign.reviewSha256} timeZone={getClientTimeZone()} />
         </section>}
 
         {audienceReview && <section className={styles.panel} aria-labelledby="review-counts-heading">

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import styles from "./dashboard.module.css";
+import { todayInZone } from "@/lib/timezone";
 
 const DAY = 86_400_000;
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -12,7 +13,6 @@ const PRESETS = [7, 30, 60, 90] as const;
 
 const ymd = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 const ms = (day: string) => Date.parse(`${day}T00:00:00Z`);
-const todayYmd = () => { const n = new Date(); return ymd(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate())); };
 const label = (day: string) => `${Number(day.slice(8, 10))} ${MONTHS[Number(day.slice(5, 7)) - 1].slice(0, 3)} ${day.slice(0, 4)}`;
 const monthOf = (day: string) => ({ y: Number(day.slice(0, 4)), m: Number(day.slice(5, 7)) - 1 });
 const shift = (view: { y: number; m: number }, by: number) => {
@@ -32,8 +32,10 @@ function cells(view: { y: number; m: number }): (string | null)[] {
 type Campaign = { id: string; name: string };
 
 /** Date range picker (presets and a two-month calendar) plus the campaign filter. Applies by changing the page URL. */
-export function DeliveryFilters({ from, to, campaignId, campaigns }: {
+export function DeliveryFilters({ from, to, campaignId, campaigns, timeZone }: {
   from: string; to: string; campaignId: string | null; campaigns: Campaign[];
+  /** The client's zone: "today" and every day in the calendar are days there. */
+  timeZone: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -44,7 +46,7 @@ export function DeliveryFilters({ from, to, campaignId, campaigns }: {
   const [hover, setHover] = useState<string | null>(null);
   const [preset, setPreset] = useState<number | "custom">("custom");
   const [view, setView] = useState(() => shift(monthOf(to), -1));
-  const today = todayYmd();
+  const today = todayInZone(timeZone);
 
   useEffect(() => {
     if (!open) return;
@@ -125,7 +127,7 @@ export function DeliveryFilters({ from, to, campaignId, campaigns }: {
           <div className={styles.calendars}>{month(0)}{month(1)}</div>
         </div>
         <div className={styles.pickerFoot}>
-          <span>{draftTo ? `${label(draftFrom)} - ${label(draftTo)}` : `${label(draftFrom)} - pick an end date`}<small>Dates are in UTC</small></span>
+          <span>{draftTo ? `${label(draftFrom)} - ${label(draftTo)}` : `${label(draftFrom)} - pick an end date`}<small>Days follow {timeZone.split("/").pop()?.replace(/_/g, " ")} time</small></span>
           <div className={styles.pickerActions}>
             <button type="button" className={styles.pickerCancel} onClick={() => setOpen(false)}>Cancel</button>
             <button type="button" className={styles.pickerUpdate} disabled={!draftTo}

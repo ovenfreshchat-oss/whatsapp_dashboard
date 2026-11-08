@@ -4,6 +4,7 @@ import { BackLink } from "@/components/ui/back-link";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { AddOptOutForm, ReleaseOptOutButton } from "./opt-out-forms";
 import styles from "../contacts/contacts.module.css";
+import { formatDateTime } from "@/lib/timezone";
 
 export const metadata: Metadata = {
   title: "Opt-out list | Solalyn",
@@ -52,7 +53,7 @@ export default async function OptOutsPage({ searchParams }: { searchParams: Prom
           <div className={styles.panelHeading}><div><span className={styles.eyebrow}>LIST</span><h2 id="list-heading">Opted-out numbers</h2></div><span>{phoneSearch ? `${listResult?.count ?? 0} found` : `${countResult?.count ?? 0} total`}</span></div>
           <form action="/dashboard/opt-outs" className={styles.searchForm}><label className={styles.field}><span>Search by phone number</span><input name="q" defaultValue={search} placeholder="+91…" maxLength={30} /></label><button className={styles.secondaryButton} type="submit">Search</button></form>
           {rows.length ? <div className={styles.tableWrap}><table><thead><tr><th>Number</th><th>Source</th><th>Added</th><th></th></tr></thead><tbody>
-            {rows.map((row) => <tr key={row.id}><td>{row.phone_e164}</td><td>{row.source}</td><td>{row.created_at.slice(0, 16).replace("T", " ")} UTC</td><td><ReleaseOptOutButton id={row.id} phone={row.phone_e164} /></td></tr>)}
+            {rows.map((row) => <tr key={row.id}><td>{row.phone_e164}</td><td>{row.source}</td><td>{formatDateTime(row.created_at)}</td><td><ReleaseOptOutButton id={row.id} phone={row.phone_e164} /></td></tr>)}
           </tbody></table></div> : <p className={styles.empty}>{ready ? "No opted-out numbers." : "Apply the migration to view the list."}</p>}
           {ready && <Pagination page={page} total={listResult?.count ?? 0} pageSize={PAGE_SIZE} path="/dashboard/opt-outs" query={{ q: search || undefined }} label="Opt-out pages" />}
         </section>

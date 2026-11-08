@@ -8,6 +8,7 @@ import { describeDelay } from "@/server/campaigns/retry-math";
 import { describeErrorCode, describeExclusion, explainRetry } from "@/server/campaigns/retry-explain";
 import { AutoRetryForm, CreateFromSelected, ReactivateButton, ResolveAlertButton, RetryButton } from "./failed-controls";
 import styles from "../../contacts/contacts.module.css";
+import { formatDateTime } from "@/lib/timezone";
 
 const PAGE_SIZE = 25;
 const STATUS_LABEL: Record<string, string> = {
@@ -15,10 +16,9 @@ const STATUS_LABEL: Record<string, string> = {
   stopped: "Needs a look", not_retryable: "Not retryable",
 };
 
-function when(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.valueOf()) ? "—" : `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+/** Shown in the client's time zone (see src/lib/timezone.ts). */
+function when(value: string | null | undefined) {
+  return formatDateTime(value);
 }
 
 function badgeClass(status: FailedRowDetail["retryStatus"]) {

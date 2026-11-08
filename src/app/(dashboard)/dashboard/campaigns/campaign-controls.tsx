@@ -6,28 +6,16 @@ import { Spinner } from "@/components/ui/spinner";
 import { useFeedback, type ConfirmOptions } from "@/components/ui/feedback";
 import type { CampaignState } from "@/server/campaigns/store";
 import { transitionCampaignAction, type CampaignActionState } from "./actions";
+import { formatDateTime, nextLocalHour, utcToLocalInput, zonedLocalToUtc } from "@/lib/timezone";
 import styles from "./campaigns.module.css";
 
 const initialState: CampaignActionState = { error: "", success: "" };
 
-/** `datetime-local` value (local time, no zone) for a Date. */
-function toLocalInput(date: Date): string {
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-/** Next occurrence of `hour:00` (today if still ahead by 5+ minutes, otherwise tomorrow). */
-function nextAt(hour: number, forceTomorrow = false): Date {
-  const date = new Date();
-  date.setHours(hour, 0, 0, 0);
-  if (forceTomorrow || date.getTime() < Date.now() + 5 * 60_000) date.setDate(date.getDate() + 1);
-  return date;
-}
-
-const presets: { label: string; at: () => Date }[] = [
-  { label: "In 1 hour", at: () => new Date(Date.now() + 60 * 60_000) },
-  { label: "Evening 6 PM", at: () => nextAt(18) },
-  { label: "Tomorrow 10 AM", at: () => nextAt(10, true) },
+/** Presets give a `datetime-local` value in the client's zone (see src/lib/timezone.ts), never the browser's zone. */
+const presets: { label: string; at: (timeZone: string) => string }[] = [
+  { label: "In 1 hour", at: (timeZone) => utcToLocalInput(Date.now() + 60 * 60_000, timeZone) },
+  { label: "Evening 6 PM", at: (timeZone) => nextLocalHour(18, timeZone) },
+  { label: "Tomorrow 10 AM", at: (timeZone) => nextLocalHour(10, timeZone, true) },
 ];
 
 type Intent = "schedule" | "send_now" | "pause" | "resume" | "cancel";
@@ -98,8 +86,10 @@ function ActionButton({ intent, label, danger = false, disabled = false, confirm
   >{busy ? <><Spinner /> {PENDING_LABEL[intent]}</> : label}</button>;
 }
 
-export function CampaignControls({ id, state, audienceCount, audienceSourceLabel, reviewSha256 }: {
+export function CampaignControls({ id, state, audienceCount, audienceSourceLabel, reviewSha256, timeZone }: {
   id: string;
+  /** The client's zone. The time typed below is read in this zone, whatever the browser's zone is. */
+  timeZone: string;
   state: CampaignState;
   audienceCount: number;
   audienceSourceLabel: string;
@@ -121,12 +111,16 @@ export function CampaignControls({ id, state, audienceCount, audienceSourceLabel
   const [mode, setMode] = useState<"now" | "later">("now");
   const [localTime, setLocalTime] = useState("");
   const [activePreset, setActivePreset] = useState<string | null>(null);
-  const parsed = localTime ? new Date(localTime) : null;
-  const scheduledForIso = parsed && Number.isFinite(parsed.valueOf()) ? parsed.toISOString() : "";
+  const converted = localTime ? zonedLocalToUtc(localTime, timeZone) : null;
+  const scheduledForIso = converted?.ok ? converted.iso : "";
+  const placeName = timeZone.split("/").pop()?.replace(/_/g, " ") ?? timeZone;
   const canSchedule = state === "draft" && audienceCount > 0;
-  const summary = parsed && scheduledForIso
-    ? `${parsed.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} (${Intl.DateTimeFormat().resolvedOptions().timeZone})`
-    : "";
+  const summary = scheduledForIso ? `${formatDateTime(scheduledForIso, timeZone)} (${placeName} time)` : "";
+  const timeNote = converted && !converted.ok
+    ? "That time does not exist on that date because the clocks move forward. Pick another time."
+    : converted?.ok && converted.ambiguous
+      ? "That time happens twice on that date because the clocks move back. The first one is used."
+      : "";
 
   return <div className={styles.controls}>
     <form action={action} className={styles.form} noValidate onSubmitCapture={(event) => {
@@ -145,13 +139,14 @@ export function CampaignControls({ id, state, audienceCount, audienceSourceLabel
             {presets.map((preset) => <button type="button" key={preset.label}
               className={activePreset === preset.label ? `${styles.chip} ${styles.chipOn}` : styles.chip}
               aria-pressed={activePreset === preset.label}
-              onClick={() => { setLocalTime(toLocalInput(preset.at())); setActivePreset(preset.label); }}>{preset.label}</button>)}
+              onClick={() => { setLocalTime(preset.at(timeZone)); setActivePreset(preset.label); }}>{preset.label}</button>)}
           </div>
           <label className={styles.field}>
-            <span>Or pick a date and time</span>
+            <span>Or pick a date and time ({placeName} time)</span>
             <input type="datetime-local" value={localTime} onChange={(event) => { setLocalTime(event.target.value); setActivePreset(null); }} />
           </label>
           {summary && <p className={styles.whenSummary}>Sends {summary}</p>}
+          {timeNote && <p className={styles.formError} role="alert">{timeNote}</p>}
         </div>}
         <input type="hidden" name="scheduledForIso" value={mode === "later" ? scheduledForIso : ""} />
         <input type="hidden" name="reviewAudienceCount" value={audienceCount} />
@@ -170,7 +165,7 @@ export function CampaignControls({ id, state, audienceCount, audienceSourceLabel
             onBefore={() => {
               const box = document.querySelector<HTMLInputElement>('input[name="reviewAcknowledged"]');
               setTimeError("");
-              if (mode === "later" && (!parsed || parsed.getTime() < Date.now() + 2 * 60_000)) {
+              if (mode === "later" && (!scheduledForIso || Date.parse(scheduledForIso) < Date.now() + 2 * 60_000)) {
                 setTimeError("Pick a date and time at least a few minutes from now.");
                 return false;
               }

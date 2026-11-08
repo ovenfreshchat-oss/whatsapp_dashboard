@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/timezone";
 
 /** Words for the reasons a failed message cannot be retried or put into a new campaign. */
 const HOLD_REASON_TEXT: Record<string, string> = {
@@ -15,6 +16,7 @@ const ERROR_MEANING: Record<string, string> = {
   "131050": "This person chose to stop marketing messages from your business.",
   "131048": "WhatsApp limited your business number because too many people reported or ignored your messages.",
   "131056": "Too many messages were sent to this person in a short time. Wait a little before sending again.",
+  "130472": "WhatsApp held this message back because this person is part of a test WhatsApp runs on some phone numbers. The number itself is fine, and it is not retried automatically.",
   "131047": "More than 24 hours passed since this person last wrote to you, so only an approved template can be sent.",
 };
 
@@ -31,10 +33,10 @@ export type RetryExplainInput = {
   contactReason?: string | null;
 };
 
+/** A time shown in the client's zone, e.g. "2026-11-04 04:00 EST". */
 function utc(value: string | null): string {
-  if (!value) return "later";
-  const date = new Date(value);
-  return Number.isNaN(date.valueOf()) ? "later" : `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+  const text = formatDateTime(value);
+  return text === "—" ? "later" : text;
 }
 
 /** Plain-language reason a message is not retryable right now. Null when it can be retried now. */

@@ -198,6 +198,42 @@ export function metaGraphGet(path: string, query?: URLSearchParams) {
   return requestGraph("GET", path, query);
 }
 
+/** Uploads a file to WhatsApp for this sender number and returns its media ID (valid for 30 days). */
+export async function metaGraphUploadMedia(
+  phoneNumberId: string,
+  file: { bytes: Uint8Array; mime: string; filename: string },
+): Promise<string> {
+  if (!/^\d{5,30}$/.test(phoneNumberId)) throw new MetaApiError("The sender number ID is invalid.", "validation");
+  const config = readMetaConfiguration();
+  const url = new URL(`${config.graphApiVersion}/${phoneNumberId}/media`, `${GRAPH_ORIGIN}/`);
+  const form = new FormData();
+  form.set("messaging_product", "whatsapp");
+  form.set("type", file.mime);
+  form.set("file", new Blob([file.bytes as BlobPart], { type: file.mime }), file.filename);
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: { Accept: "application/json", Authorization: `Bearer ${config.accessToken}` },
+      body: form,
+      cache: "no-store",
+      redirect: "error",
+      signal: AbortSignal.timeout(60_000),
+    });
+  } catch {
+    throw new MetaApiError("The media upload to Meta could not be completed.", "transport");
+  }
+  const payload = record(await response.json().catch(() => null));
+  if (!response.ok) {
+    throw new MetaApiError(`Meta rejected the media upload with HTTP ${response.status}.`, "provider", {
+      definitiveRejection: true, httpStatus: response.status,
+    });
+  }
+  const id = payload?.id;
+  if (typeof id !== "string" || !/^\d{5,30}$/.test(id)) throw new MetaApiError("Meta returned no usable media ID.", "response");
+  return id;
+}
+
 /** A successful HTTP response still only means Meta accepted a message for processing. */
 export function metaGraphPost(path: string, body: unknown) {
   return requestGraph("POST", path, undefined, body);

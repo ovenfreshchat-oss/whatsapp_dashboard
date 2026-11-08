@@ -14,6 +14,7 @@ import {
   type ClaimedRecipient,
   type ClaimedRetry,
 } from "./store";
+import { getSendTimeZone } from "@/lib/timezone";
 
 type SendGate = "allowed" | "suppressed" | "deferred" | "canceled" | "inactive";
 type SendResult = "accepted" | "rejected" | "uncertain" | "suppressed" | "canceled" | "deferred";
@@ -48,7 +49,7 @@ export function getCampaignWorkerReadiness(): WorkerReadiness {
       !process.env.META_WEBHOOK_VERIFY_TOKEN?.trim()) {
     return { enabled: false, reason: "Meta sending and webhook configuration is incomplete." };
   }
-  const timeZone = process.env.WHATSAPP_SEND_TIME_ZONE?.trim();
+  const timeZone = getSendTimeZone();
   const startMinute = parseClock(process.env.WHATSAPP_SEND_WINDOW_START);
   const endMinute = parseClock(process.env.WHATSAPP_SEND_WINDOW_END);
   const daysValue = process.env.WHATSAPP_SEND_DAYS?.trim();

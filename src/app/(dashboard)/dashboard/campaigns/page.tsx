@@ -17,6 +17,7 @@ import { SenderAlertBanner } from "@/components/ui/sender-alert-banner";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { isUuid } from "@/server/campaigns/retries";
 import styles from "./campaigns.module.css";
+import { formatDate, formatDateTime } from "@/lib/timezone";
 
 export const metadata: Metadata = {
   title: "Campaigns | Solalyn",
@@ -44,10 +45,9 @@ function templateOption(template: MetaTemplate): CampaignTemplateOption | null {
   }
 }
 
-function dateLabel(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.valueOf()) ? "—" : `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+/** Shown in the client's time zone (see src/lib/timezone.ts). */
+function dateLabel(value: string | null | undefined) {
+  return formatDateTime(value);
 }
 
 export default async function CampaignsPage({ searchParams }: { searchParams: Promise<{ page?: string | string[]; view?: string | string[]; from?: string | string[] }> }) {
@@ -86,7 +86,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
           <h1>New campaign</h1>
         </div>
         <section className={styles.panel} aria-label="Message and audience">
-          {canCreate ? <CreateCampaignForm options={options} batches={batches ?? []} source={source} /> : <p className={styles.empty}>Draft creation becomes available after import history, campaign storage, and a supported approved marketing template are ready.</p>}
+          {canCreate ? <CreateCampaignForm options={options} batches={(batches ?? []).map((batch) => ({ ...batch, createdAt: formatDate(batch.createdAt) }))} source={source} /> : <p className={styles.empty}>Draft creation becomes available after import history, campaign storage, and a supported approved marketing template are ready.</p>}
         </section>
       </div>
     </>;

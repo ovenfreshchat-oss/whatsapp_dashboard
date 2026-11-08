@@ -6,6 +6,7 @@ import { getConfiguredMetaIdentifiers, getMetaConfigurationStatus } from "@/serv
 import { ReconcileConfirmedHoldForm, ReleaseHoldForm } from "./release-form";
 import { RefreshButton } from "@/components/ui/refresh-button";
 import styles from "./review.module.css";
+import { formatDateTime } from "@/lib/timezone";
 
 export const metadata: Metadata = {
   title: "Inbound WhatsApp review | Solalyn",
@@ -75,10 +76,9 @@ function evidence(payload: unknown): Array<{ label: string; text: string }> {
   return fields.filter((field): field is { label: string; text: string } => field.text !== null);
 }
 
-function dateLabel(input: string | null): string {
-  if (!input) return "—";
-  const date = new Date(input);
-  return Number.isNaN(date.valueOf()) ? "—" : `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+/** Shown in the client's time zone (see src/lib/timezone.ts). */
+function dateLabel(input: string | null | undefined) {
+  return formatDateTime(input);
 }
 
 function canonicalRecipient(identity: string | null): string | null {

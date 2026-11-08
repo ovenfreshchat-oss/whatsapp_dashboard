@@ -9,6 +9,8 @@ import { DeliverySection, LastCampaignSection, MetricsSection, QualityBanner } f
 import { parseCampaignFilter, parseDateParam } from "@/server/campaigns/retries";
 import ui from "@/components/ui/ui.module.css";
 import styles from "./dashboard.module.css";
+import { ZoneClock } from "@/components/ui/zone-clock";
+import { getClientTimeZone } from "@/lib/timezone";
 
 export const metadata: Metadata = {
   title: "Dashboard | Solalyn",
@@ -41,6 +43,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <p>Your WhatsApp contacts, campaigns and delivery at a glance.</p>
         </div>
         {isAdmin && <div className={styles.headerActions}>
+          <ZoneClock timeZone={getClientTimeZone()} />
           <Link href="/dashboard/inbox" className={`${ui.btn} ${ui.btnSecondary}`}><Inbox size={16} aria-hidden="true" />Open inbox</Link>
           <Link href="/dashboard/campaigns?view=new" className={`${ui.btn} ${ui.btnPrimary}`}><Plus size={16} aria-hidden="true" />New campaign</Link>
         </div>}

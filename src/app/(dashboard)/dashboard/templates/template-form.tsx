@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { checkHeaderVideo, uploadHeaderVideo } from "@/lib/header-video-upload";
+import { checkHeaderVideo, prepareHeaderVideo, uploadHeaderVideo } from "@/lib/header-video-upload";
+import { compressHeaderImage } from "@/lib/media-compress";
 import styles from "../campaigns/campaigns.module.css";
 
 export type TemplateFormInitial = {
@@ -41,6 +42,9 @@ export function TemplateForm({ initial }: { initial?: TemplateFormInitial }) {
   const [videoUrl, setVideoUrl] = useState("");
   const [videoName, setVideoName] = useState("");
   const [videoBusy, setVideoBusy] = useState(false);
+  const [videoNote, setVideoNote] = useState("");
+  const [imageBusy, setImageBusy] = useState(false);
+  const [imageNote, setImageNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
@@ -53,6 +57,7 @@ export function TemplateForm({ initial }: { initial?: TemplateFormInitial }) {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (imageBusy || videoBusy) { setError("Wait until the media has finished optimising and uploading."); return; }
     setBusy(true);
     setError("");
     setDone("");
@@ -96,8 +101,17 @@ export function TemplateForm({ initial }: { initial?: TemplateFormInitial }) {
       </select>
     </label>}
     <label className={styles.field}>Image at the top (optional)
-      <input type="file" accept="image/jpeg,image/png" onChange={(e) => { const file = e.target.files?.[0] ?? null; setImage(file); if (file) { setVideoUrl(""); setVideoName(""); } }} />
-      <small>{initial?.hasImageHeader ? "This template has an image. WhatsApp needs it again when you edit: choose it again." : "JPG or PNG, under 5 MB."}</small>
+      <input type="file" accept="image/jpeg,image/png" onChange={async (e) => {
+        const file = e.target.files?.[0] ?? null;
+        setImageNote("");
+        if (!file) { setImage(null); return; }
+        setVideoUrl(""); setVideoName(""); setVideoNote("");
+        setImageBusy(true);
+        const result = await compressHeaderImage(file);
+        setImage(result.file); setImageNote(result.message);
+        setImageBusy(false);
+      }} />
+      <small>{imageBusy ? "Optimising the image…" : imageNote || (initial?.hasImageHeader ? "This template has an image. WhatsApp needs it again when you edit: choose it again." : "JPG or PNG. Large images are optimised automatically.")}</small>
       {preview && /* eslint-disable-next-line @next/next/no-img-element */ <img className={styles.headerImagePreview} src={preview} alt="Header preview" />}
     </label>
     <label className={styles.field}>Video at the top (optional)
@@ -107,13 +121,18 @@ export function TemplateForm({ initial }: { initial?: TemplateFormInitial }) {
         if (!file) return;
         const invalid = checkHeaderVideo(file);
         if (invalid) { setError(invalid); e.target.value = ""; return; }
-        setImage(null);
+        setImage(null); setImageNote("");
         setVideoBusy(true);
-        try { setVideoUrl(await uploadHeaderVideo(file)); setVideoName(file.name); } catch (cause) {
-          setError(cause instanceof Error ? cause.message : "The video could not be uploaded."); e.target.value = "";
+        setVideoNote("Optimising the video… 0%");
+        try {
+          const prepared = await prepareHeaderVideo(file, (fraction) => setVideoNote(`Optimising the video… ${Math.round(fraction * 100)}%`));
+          setVideoNote("Uploading the video…");
+          setVideoUrl(await uploadHeaderVideo(prepared.file)); setVideoName(file.name); setVideoNote(prepared.message);
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : "The video could not be uploaded."); setVideoNote(""); e.target.value = "";
         } finally { setVideoBusy(false); }
       }} />
-      <small>{videoBusy ? "Uploading the video…" : videoName ? `${videoName} is ready.` : initial?.hasVideoHeader ? "This template has a video. WhatsApp needs it again when you edit: choose it again." : "MP4, up to 16 MB. Use either an image or a video, not both."}</small>
+      <small>{videoBusy ? videoNote : videoName ? `${videoName} is ready. ${videoNote}` : initial?.hasVideoHeader ? "This template has a video. WhatsApp needs it again when you edit: choose it again." : "MP4. Large videos are optimised automatically (WhatsApp allows up to 16 MB). Use either an image or a video, not both."}</small>
     </label>
     <label className={styles.field}>Message
       <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} maxLength={1024} required placeholder={"Hi {{1}}, our October offer is live! Get 20% off until Sunday."} />

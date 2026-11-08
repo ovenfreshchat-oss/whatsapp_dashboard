@@ -23,7 +23,19 @@ function loadTypeScript(file, dependencies = {}) {
 
 const metaDir = path.resolve(__dirname, "../../src/server/meta");
 const client = loadTypeScript(path.join(metaDir, "client.ts"));
-const templates = loadTypeScript(path.join(metaDir, "templates.ts"), { "./client": client });
+// The header file is normally sent by WhatsApp media ID; tests choose what the resolver answers.
+const mediaIdCore = loadTypeScript(path.join(metaDir, "media-id-core.ts"));
+const headerMediaStub = {
+  answer: null,
+  rejectedCalls: [],
+  resolve: async () => headerMediaStub.answer,
+  rejected: async (...args) => { headerMediaStub.rejectedCalls.push(args); },
+};
+const templates = loadTypeScript(path.join(metaDir, "templates.ts"), {
+  "./client": client,
+  "./media-id": { headerMedia: headerMediaStub },
+  "./media-id-core": mediaIdCore,
+});
 const environmentNames = [
   "META_SYSTEM_USER_ACCESS_TOKEN",
   "META_WABA_ID",
@@ -481,6 +493,83 @@ test("campaign sends use the Marketing Messages API endpoint", async () => {
     assert.equal(accepted.messageId, "wamid.test-123");
     assert.deepEqual(calls.filter((c) => c.options.method === "POST").map((c) => c.url.pathname), ["/v25.0/222222/marketing_messages"]);
   } finally {
+    restore();
+  }
+});
+
+const mediaHeaderTemplate = () => ({
+  ...template(),
+  components: [{ type: "HEADER", format: "VIDEO" }, { type: "BODY", text: "Special offer {{1}}" }],
+});
+const mediaSend = () => templates.sendApprovedTemplateTest({
+  recipientE164: "+14165550124", templateName: "autumn_offer", languageCode: "en_US",
+  bodyParameters: ["Pizza"], headerMediaUrl: "https://example.com/promo.mp4",
+});
+
+test("a header file that was uploaded to WhatsApp is sent by media ID, not by link", async () => {
+  try {
+    configure();
+    headerMediaStub.answer = { id: "987654321", fresh: false };
+    headerMediaStub.rejectedCalls = [];
+    const calls = graphFixture({ templateOverride: mediaHeaderTemplate() });
+    await mediaSend();
+    const posts = calls.filter((call) => call.options.method === "POST");
+    assert.equal(posts.length, 1);
+    assert.deepEqual(JSON.parse(posts[0].options.body).template.components[0].parameters, [{ type: "video", video: { id: "987654321" } }]);
+  } finally {
+    headerMediaStub.answer = null;
+    restore();
+  }
+});
+
+test("when no media ID is available the public link is sent as before", async () => {
+  try {
+    configure();
+    headerMediaStub.answer = null;
+    const calls = graphFixture({ templateOverride: mediaHeaderTemplate() });
+    await mediaSend();
+    const post = calls.find((call) => call.options.method === "POST");
+    assert.deepEqual(JSON.parse(post.options.body).template.components[0].parameters, [{ type: "video", video: { link: "https://example.com/promo.mp4" } }]);
+  } finally {
+    restore();
+  }
+});
+
+test("a rejected media ID is retried once with the link, and only for media errors", async () => {
+  try {
+    configure();
+    headerMediaStub.answer = { id: "987654321", fresh: false };
+    headerMediaStub.rejectedCalls = [];
+    const calls = graphFixture({ templateOverride: mediaHeaderTemplate() });
+    const base = global.fetch;
+    let posts = 0;
+    global.fetch = async (url, options) => {
+      if (new URL(url).pathname.endsWith("/marketing_messages")) {
+        calls.push({ url: new URL(url), options });
+        posts += 1;
+        return posts === 1 ? json({ error: { code: 131053, message: "media" } }, 400) : json({ messages: [{ id: "wamid.test-123" }] });
+      }
+      return base(url, options);
+    };
+    const result = await mediaSend();
+    assert.equal(result.messageId, "wamid.test-123");
+    assert.equal(posts, 2);
+    const sent = calls.filter((call) => call.options.method === "POST").map((call) => JSON.parse(call.options.body).template.components[0].parameters[0].video);
+    assert.deepEqual(sent, [{ id: "987654321" }, { link: "https://example.com/promo.mp4" }]);
+    assert.equal(headerMediaStub.rejectedCalls.length, 1);
+
+    // A rejection that is not about media (for example an invalid phone number) is not retried.
+    headerMediaStub.rejectedCalls = [];
+    posts = 0;
+    global.fetch = async (url, options) => {
+      if (new URL(url).pathname.endsWith("/marketing_messages")) { posts += 1; return json({ error: { code: 131026, message: "undeliverable" } }, 400); }
+      return base(url, options);
+    };
+    await assert.rejects(() => mediaSend(), (error) => error instanceof client.MetaApiError && error.providerCode === 131026);
+    assert.equal(posts, 1);
+    assert.equal(headerMediaStub.rejectedCalls.length, 0);
+  } finally {
+    headerMediaStub.answer = null;
     restore();
   }
 });
