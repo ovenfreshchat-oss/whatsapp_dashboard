@@ -6,7 +6,6 @@ import { createStaffAdminClient, getWorkspaceAccess } from "@/server/auth/staff-
 import { startCampaignSendWorkflow } from "@/server/campaigns/start-send";
 import { isUuid, previewFailedContacts, type FailedContactPreview } from "@/server/campaigns/retries";
 import { parseRetryDelays } from "@/server/campaigns/retry-math";
-import { formatDate } from "@/lib/timezone";
 
 export type RetryActionState = { error: string; success: string };
 
@@ -97,11 +96,6 @@ export async function reactivateContactAction(_previous: RetryActionState, form:
   const current = Array.isArray(state.data) ? state.data[0] as Record<string, unknown> | undefined : undefined;
   if (state.error || !current) return FAILED;
   if (current.status === "opt_out") return { error: "This number is on the Global Opt Out list. It cannot be reactivated here.", success: "" };
-  const due = typeof current.review_due_at === "string" ? current.review_due_at
-    : typeof current.hold_until === "string" ? current.hold_until : null;
-  if (current.status === "do_not_send" && due && new Date(due).valueOf() > Date.now()) {
-    return { error: `This number is on hold until ${formatDate(due)}. A manual review is allowed after the hold.`, success: "" };
-  }
   const { data, error } = await who.admin.rpc("reactivate_contact_delivery", {
     p_phone: phone, p_actor_user_id: who.userId, p_note: (typeof note === "string" ? note.trim().slice(0, 500) : "") || null,
   });

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { formatDate, formatDateTime } from "@/lib/timezone";
@@ -26,20 +26,37 @@ const REASON: Record<string, string> = {
 type StatusRow = { contact_id: string; phone_e164: string; status: string; reason: string | null; hold_until: string | null; review_due_at: string | null };
 type FailureRow = { phone_e164: string; error_code: string; error_title: string | null; failed_at: string; campaign_id: string };
 
-export default async function FailedContactsPage({ searchParams }: { searchParams: Promise<{ tab?: string | string[]; p?: string | string[] }> }) {
+export default async function FailedContactsPage({ searchParams }: { searchParams: Promise<{ tab?: string | string[]; p?: string | string[]; q?: string | string[] }> }) {
   const params = await searchParams;
   const rawTab = Array.isArray(params.tab) ? params.tab[0] : params.tab;
   const tab: Tab = rawTab === "do_not_send" ? "do_not_send" : "at_risk";
   const page = pageFrom(params.p);
+  const rawSearch = Array.isArray(params.q) ? params.q[0] : params.q;
+  const search = (rawSearch ?? "").replace(/[^\p{L}\p{N}+ .'-]/gu, "").trim().slice(0, 40);
+  const searchDigits = search.replace(/[^+\d]/g, "");
   const first = (page - 1) * PAGE_SIZE;
   const admin = createStaffAdminClient();
+
+  // Search by name or phone number (typed in any format): find the matching contacts, then filter the list to them.
+  let matchIds: string[] | null = null;
+  if (admin && search) {
+    const filter = [`display_name.ilike.%${search}%`, searchDigits.length >= 2 ? `phone_e164.ilike.%${searchDigits}%` : null].filter(Boolean).join(",");
+    const found = await admin.from("contacts").select("id").or(filter).limit(1000);
+    matchIds = (found.data ?? []).map((row: { id: string }) => String(row.id));
+  }
+  const noMatch = matchIds !== null && matchIds.length === 0;
 
   const [counts, list] = admin
     ? await Promise.all([
         admin.rpc("contact_status_counts"),
-        admin.from("contact_delivery_status")
-          .select("contact_id,phone_e164,status,reason,hold_until,review_due_at", { count: "exact" })
-          .eq("status", tab).order("phone_e164").range(first, first + PAGE_SIZE - 1),
+        noMatch
+          ? Promise.resolve({ data: [], count: 0, error: null })
+          : (() => {
+              const base = admin.from("contact_delivery_status")
+                .select("contact_id,phone_e164,status,reason,hold_until,review_due_at", { count: "exact" })
+                .eq("status", tab);
+              return (matchIds ? base.in("contact_id", matchIds) : base).order("phone_e164").range(first, first + PAGE_SIZE - 1);
+            })(),
       ])
     : [null, null];
   const ready = Boolean(list && !list.error);
@@ -68,7 +85,7 @@ export default async function FailedContactsPage({ searchParams }: { searchParam
 
   const tabs: { key: Tab; label: string; help: string }[] = [
     { key: "at_risk", label: "At Risk", help: "Meta held a marketing message (131049). These numbers are still messaged. Review them, and reactivate a number you know is fine." },
-    { key: "do_not_send", label: "Do Not Send", help: "Paused from campaigns. A number returns after you review it, once its hold date has passed." },
+    { key: "do_not_send", label: "Do Not Send", help: "Paused from campaigns. You can reactivate a number at any time; the date shows when it would normally be reviewed." },
   ];
   const current = tabs.find((item) => item.key === tab)!;
 
@@ -93,12 +110,20 @@ export default async function FailedContactsPage({ searchParams }: { searchParam
           ))}
         </div>
         <p className={styles.tabHelp}>{current.help}</p>
+        <form action="/dashboard/contacts/failed" className={styles.searchForm} role="search">
+          {tab !== "at_risk" && <input type="hidden" name="tab" value={tab} />}
+          <label className={styles.searchBox}><Search size={18} aria-hidden="true" />
+            <input name="q" defaultValue={search} placeholder="Search by number or name" maxLength={40} aria-label={`Search ${current.label} contacts`} />
+          </label>
+          <button className={styles.button} type="submit">Search</button>
+          {search && <Link href={tab === "at_risk" ? "/dashboard/contacts/failed" : `/dashboard/contacts/failed?tab=${tab}`} className={styles.secondaryButton}>Clear</Link>}
+        </form>
 
         {!ready ? <p className={styles.empty}>Could not load this list. Check that drizzle/0025 and 0026 are applied.</p>
-          : rows.length === 0 ? <p className={styles.empty}>No contacts are {current.label} right now.</p>
+          : rows.length === 0 ? <p className={styles.empty}>{search ? `No ${current.label} contact matches your search.` : `No contacts are ${current.label} right now.`}</p>
           : <div className={styles.tableWrap}>
               <table>
-                <thead><tr><th>Contact</th><th>Why</th><th>Last failure</th><th>{tab === "do_not_send" ? "Review from" : "Status"}</th><th><span className="sr-only">Action</span></th></tr></thead>
+                <thead><tr><th>Contact</th><th>Why</th><th>Last failure</th><th>{tab === "do_not_send" ? "Held until" : "Status"}</th><th><span className="sr-only">Action</span></th></tr></thead>
                 <tbody>
                   {rows.map((row) => {
                     const failure = latest.get(row.phone_e164);
@@ -116,7 +141,7 @@ export default async function FailedContactsPage({ searchParams }: { searchParam
                 </tbody>
               </table>
             </div>}
-        {ready && <Pagination page={page} total={total} pageSize={PAGE_SIZE} path="/dashboard/contacts/failed" query={{ tab: tab === "at_risk" ? undefined : tab }} param="p" label="Failed contact pages" />}
+        {ready && <Pagination page={page} total={total} pageSize={PAGE_SIZE} path="/dashboard/contacts/failed" query={{ tab: tab === "at_risk" ? undefined : tab, q: search || undefined }} param="p" label="Failed contact pages" />}
       </section>
     </div>
   );

@@ -4,6 +4,7 @@
  *
  *   npm run db:migrate                       # database from DATABASE_URL (or --target)
  *   npm run db:migrate -- --target new       # NEW_DB_URL      (--target old = OLD_DB_URL)
+ *   npm run db:migrate -- --target-env TARGET_DB_URL   # any env variable name
  *   npm run db:migrate -- --dry-run          # list what would run, touch nothing
  *   npm run db:migrate -- --from 0030        # run 0030 and later only
  *   npm run db:migrate -- --only 0031,0032   # run just these
@@ -31,7 +32,7 @@ const value = (name) => {
 };
 
 const target = value("target");
-const envName = target === "new" ? "NEW_DB_URL" : target === "old" ? "OLD_DB_URL" : "DATABASE_URL";
+const envName = value("target-env") ?? (target === "new" ? "NEW_DB_URL" : target === "old" ? "OLD_DB_URL" : "DATABASE_URL");
 const url = process.env[envName];
 const dryRun = flag("dry-run");
 const prefix = (name) => name.slice(0, 4);

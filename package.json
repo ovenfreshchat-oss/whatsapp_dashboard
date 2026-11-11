@@ -14,7 +14,8 @@
     "bootstrap:admin": "node --env-file=.env scripts/bootstrap-admin.mjs",
     "reset:admin": "node --env-file=.env scripts/bootstrap-admin.mjs --reset",
     "check:meta": "node --env-file=.env scripts/check-meta-analytics.mjs",
-    "db:migrate": "node --env-file=.env scripts/run-migrations.mjs"
+    "db:migrate": "node --env-file=.env scripts/run-migrations.mjs",
+    "db:move": "node --env-file=.env scripts/migrate-to-new-db.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
