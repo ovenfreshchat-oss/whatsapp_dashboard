@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { countSkipReasons, listSkippedRows, previewContactImport } from "@/server/imports";
+import { applyDuplicateChoice, parseDuplicateChoice } from "@/server/imports/duplicate-list";
 import { authorizeImportRequest, ImportRequestError, importJson, readImportForm } from "../shared";
 import { importErrorResponse, importMapping, parsedImportFile } from "../input";
 
@@ -80,9 +81,16 @@ export async function POST(request: Request): Promise<Response> {
         linked = typeof count === "number" ? count : null;
       }
     }
+    // Same-name list: add the new numbers to it, or hide it. Done after the import is saved, so a failed
+    // import never removes the old list.
+    let duplicateError: string | null = null;
+    const choice = parseDuplicateChoice(form);
+    if (choice && typeof batchId === "string" && UUID.test(batchId)) {
+      duplicateError = await applyDuplicateChoice(choice, batchId, parsed.fileName);
+    }
     revalidatePath("/dashboard/contacts");
     const skipped = listSkippedRows(preview);
-    return importJson({ result: data, stats: preview.stats, linked, linkError, skipped, skippedReasons: countSkipReasons(skipped) });
+    return importJson({ result: data, duplicateError, duplicateMode: choice?.mode ?? null, stats: preview.stats, linked, linkError, skipped, skippedReasons: countSkipReasons(skipped) });
   } catch (error) {
     return importErrorResponse(error);
   }

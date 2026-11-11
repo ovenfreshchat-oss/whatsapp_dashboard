@@ -88,7 +88,7 @@ export async function MetricsSection() {
         </div>
         <div className={styles.categoryGrid}>
           <MetricCard tone="violet" icon={Sparkles} label="Marketing" value={show(categories ? categories.marketing : (metrics?.campaignSent == null ? null : metrics.campaignSent + adjustments.marketing))}
-            detail={categories ? "Promotions and offers" : "Sent from campaigns"} />
+            detail={categories ? "Promotions and offers" : "Meta unavailable: showing campaign sends, not delivered"} />
           <MetricCard tone="teal" icon={BellRing} label="Utility" value={show(categories ? categories.utility : adjustments.utility || null)} detail="Order and account updates" />
           <MetricCard tone="gold" icon={ShieldCheck} label="Authentication" value={show(categories ? categories.authentication : adjustments.authentication || null)} detail="One-time passcodes" />
         </div>

@@ -16,7 +16,11 @@ type RawPreview = {
   sheetNames: string[];
   headers: string[];
   totalRows: number;
+  duplicateList?: DuplicateList | null;
 };
+
+type DuplicateList = { id: string; fileName: string; createdAt: string; contacts: number };
+type DuplicateChoice = { mode: "merge" | "replace"; batchId: string };
 
 type SkippedRow = { rowNumber: number; name: string | null; phone: string; reasons: string[]; codes: string[] };
 type SkipReason = { code: string; label: string; count: number };
@@ -33,6 +37,7 @@ type CommitResult = {
   skipped?: SkippedRow[];
   skippedReasons?: SkipReason[];
   linkError?: string | null;
+  duplicateError?: string | null;
 };
 
 type Mapping = {
@@ -91,7 +96,7 @@ function suggestedMapping(headers: string[]): Mapping {
   return { ...emptyMapping, phoneColumn: phone, nameColumn: name };
 }
 
-function makeForm(file: File, mapping?: Mapping, hash?: string, importKey?: string, sheetName?: string): FormData {
+function makeForm(file: File, mapping?: Mapping, hash?: string, importKey?: string, sheetName?: string, duplicate?: DuplicateChoice | null): FormData {
   const form = new FormData();
   form.set("file", file);
   if (mapping) {
@@ -107,6 +112,7 @@ function makeForm(file: File, mapping?: Mapping, hash?: string, importKey?: stri
   if (hash) form.set("expectedFileSha256", hash);
   if (importKey) form.set("importKey", importKey);
   if (sheetName) form.set("sheetName", sheetName);
+  if (duplicate) { form.set("duplicateMode", duplicate.mode); form.set("duplicateBatchId", duplicate.batchId); }
   return form;
 }
 
@@ -207,6 +213,7 @@ export function ContactImportForm() {
   const [error, setError] = useState("");
   const [report, setReport] = useState<Report | null>(null);
   const [inputKey, setInputKey] = useState(0);
+  const [duplicateChoice, setDuplicateChoice] = useState<DuplicateChoice | null>(null);
   const busy = phase !== "idle";
 
   function begin(next: "reading" | "importing"): AbortSignal {
@@ -235,6 +242,7 @@ export function ContactImportForm() {
     setMapped(null);
     setMapping(emptyMapping);
     setImportKey("");
+    setDuplicateChoice(null);
     setError("");
     setInputKey((value) => value + 1);
     toast({
@@ -262,6 +270,20 @@ export function ContactImportForm() {
     }
   }
 
+  /** A list with this file name already exists: ask whether to add to it or replace it. */
+  function askAboutDuplicate(list: DuplicateList) {
+    const when = new Date(list.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    toast({
+      tone: "info",
+      title: `“${list.fileName}” already exists`,
+      message: `A list with this name was imported on ${when} (${list.contacts} numbers). Add the new numbers to it, or replace it?`,
+      actions: [
+        { label: "Add to existing", primary: true, onClick: () => setDuplicateChoice({ mode: "merge", batchId: list.id }) },
+        { label: "Delete old, use new", onClick: () => setDuplicateChoice({ mode: "replace", batchId: list.id }) },
+      ],
+    });
+  }
+
   /** Inspect and, when the phone column is recognised, preview in one go. */
   async function start(selected: File, selectedSheet = "") {
     const signal = begin("reading");
@@ -272,6 +294,8 @@ export function ContactImportForm() {
       const sheet = value.fileKind === "xlsx" ? value.sourceLabel : "";
       const guess = suggestedMapping(value.headers);
       setRaw(value);
+      setDuplicateChoice(null);
+      if (value.duplicateList) askAboutDuplicate(value.duplicateList);
       setSheetName(sheet);
       setMapping(guess);
       setImportKey("");
@@ -294,9 +318,13 @@ export function ContactImportForm() {
 
   async function commit() {
     if (!file || !raw || !mapped || !importKey || busy) return;
+    if (raw.duplicateList && !duplicateChoice) {
+      askAboutDuplicate(raw.duplicateList);
+      return;
+    }
     const signal = begin("importing");
     try {
-      const value = await postImport("/api/contacts/import/commit", makeForm(file, mapping, raw.fileSha256, importKey, sheetName), signal) as CommitResult;
+      const value = await postImport("/api/contacts/import/commit", makeForm(file, mapping, raw.fileSha256, importKey, sheetName, duplicateChoice), signal) as CommitResult;
       const inserted = value.result?.inserted ?? 0;
       const existing = value.result?.existing ?? 0;
       const skipped = value.skipped ?? mapped.skipped;
@@ -309,6 +337,9 @@ export function ContactImportForm() {
         reasons,
         linkError: value.linkError ?? null,
       });
+      if (value.duplicateError) {
+        toast({ tone: "error", title: "Imported, but the earlier list was not changed", message: value.duplicateError });
+      }
       toast({
         tone: "success",
         title: "Import complete",
@@ -320,6 +351,7 @@ export function ContactImportForm() {
       setImportKey("");
       setSheetName("");
       setMapping(emptyMapping);
+      setDuplicateChoice(null);
       setInputKey((count) => count + 1);
       router.refresh();
     } catch (cause) {

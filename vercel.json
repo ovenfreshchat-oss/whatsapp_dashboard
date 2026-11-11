@@ -1,6 +1,16 @@
 {
   "crons": [
-    { "path": "/api/cron/inbox-retention", "schedule": "30 20 * * *" },
-    { "path": "/api/cron/campaign-retries", "schedule": "15 14 * * *" }
+    {
+      "path": "/api/cron/inbox-retention",
+      "schedule": "30 20 * * *"
+    },
+    {
+      "path": "/api/cron/campaign-retries",
+      "schedule": "15 14 * * *"
+    },
+    {
+      "path": "/api/cron/campaign-media-cleanup",
+      "schedule": "45 19 * * *"
+    }
   ]
 }

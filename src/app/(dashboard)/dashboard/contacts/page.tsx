@@ -37,6 +37,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
         admin.from("contacts").select("id", { count: "exact", head: true }),
         admin.from("contact_import_batches")
           .select("id,file_name,created_at,total_rows,accepted_rows,rejected_rows,pending_claims", { count: "exact" })
+          .is("archived_at", null)
           .order("created_at", { ascending: false }).order("id").range(first, first + BATCHES_SIZE - 1),
         admin.rpc("contact_status_counts"),
       ])
@@ -52,7 +53,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
         <div className={styles.pageHead}>
           <h1>Contacts{storageReady && <small>{contactCountResult?.count ?? 0}</small>}</h1>
           <div className={styles.actions}>
-            <Link href="/dashboard/campaigns" className={styles.secondaryButton}>Failed messages in each campaign</Link>
+            <Link href="/dashboard/contacts/failed" className={styles.secondaryButton}>Failed Contacts</Link>
             <Link href="/dashboard/opt-outs" className={styles.secondaryButton}>Opt-out list</Link>
           </div>
         </div>

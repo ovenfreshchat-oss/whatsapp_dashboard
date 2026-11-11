@@ -9,7 +9,9 @@ import { Spinner } from "./spinner";
 import styles from "./feedback.module.css";
 
 export type ToastTone = "success" | "error" | "info";
-export type ToastInput = { tone: ToastTone; title: string; message?: string; duration?: number };
+export type ToastAction = { label: string; onClick: () => void; primary?: boolean };
+/** `actions` adds buttons to the snackbar; a toast with actions stays until it is answered or dismissed. */
+export type ToastInput = { tone: ToastTone; title: string; message?: string; duration?: number; actions?: ToastAction[]; onDismiss?: () => void };
 type Toast = ToastInput & { id: number };
 
 export type ConfirmOptions = {
@@ -42,11 +44,12 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   const [paused, setPaused] = useState(false);
   const Icon = ICON[toast.tone];
   const duration = toast.duration ?? (toast.tone === "error" ? 9000 : 5000);
+  const sticky = Boolean(toast.actions?.length);
   useEffect(() => {
-    if (paused) return;
+    if (paused || sticky) return;
     const timer = setTimeout(onClose, duration);
     return () => clearTimeout(timer);
-  }, [paused, duration, onClose]);
+  }, [paused, sticky, duration, onClose]);
   return (
     <li
       className={[styles.toast, styles[toast.tone]].join(" ")}
@@ -58,8 +61,14 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
       <div className={styles.toastBody}>
         <strong>{toast.title}</strong>
         {toast.message && <p>{toast.message}</p>}
+        {toast.actions && <div className={styles.toastActions}>
+          {toast.actions.map((action) => (
+            <button key={action.label} type="button" className={action.primary ? styles.toastActionPrimary : styles.toastAction}
+              onClick={() => { action.onClick(); onClose(); }}>{action.label}</button>
+          ))}
+        </div>}
       </div>
-      <button type="button" className={styles.toastClose} onClick={onClose} aria-label="Dismiss message"><X size={16} aria-hidden="true" /></button>
+      <button type="button" className={styles.toastClose} onClick={() => { toast.onDismiss?.(); onClose(); }} aria-label="Dismiss message"><X size={16} aria-hidden="true" /></button>
     </li>
   );
 }

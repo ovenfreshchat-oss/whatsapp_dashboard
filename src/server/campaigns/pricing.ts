@@ -121,35 +121,51 @@ export type CategoryVolumes = { marketing: number; utility: number; authenticati
  * Returns null when Meta cannot provide it.
  */
 async function fetchCategoryVolumes(): Promise<CategoryVolumes | null> {
-  try {
-    const end = Math.floor(Date.now() / 1000);
-    const start = end - 360 * 86_400;
-    const { wabaId } = getConfiguredMetaIdentifiers();
-    const payload = await metaGraphGet(`${wabaId}/pricing_analytics`, new URLSearchParams({
-      start: String(start), end: String(end), granularity: "MONTHLY",
-      metric_types: JSON.stringify(["VOLUME"]),
-      dimensions: JSON.stringify(["PRICING_CATEGORY"]),
-    }));
-    const totals: CategoryVolumes = { marketing: 0, utility: 0, authentication: 0 };
-    let found = false;
-    const rows = (value: unknown): Record<string, unknown>[] =>
-      Array.isArray(value) ? value.filter((v): v is Record<string, unknown> => !!v && typeof v === "object") : [];
-    for (const node of rows(payload.data)) {
-      const points = Array.isArray(node.data_points) ? rows(node.data_points) : [node];
-      for (const point of points) {
-        const category = String(point.pricing_category ?? "").toUpperCase();
-        const volume = Number(point.volume);
-        if (!Number.isFinite(volume)) continue;
-        if (category.startsWith("MARKETING")) { totals.marketing += volume; found = true; }
-        else if (category === "UTILITY") { totals.utility += volume; found = true; }
-        else if (category.startsWith("AUTHENTICATION")) { totals.authentication += volume; found = true; }
-      }
+  const end = Math.floor(Date.now() / 1000);
+  const start = end - 360 * 86_400;
+  const { wabaId } = getConfiguredMetaIdentifiers();
+  // Meta sometimes fails for a moment. Try twice, then THROW so the failure is not cached for five minutes
+  // (a cached null made the Marketing card show the database count instead of Meta's number).
+  let payload: Record<string, unknown> | null = null;
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2 && !payload; attempt += 1) {
+    try {
+      payload = await metaGraphGet(`${wabaId}/pricing_analytics`, new URLSearchParams({
+        start: String(start), end: String(end), granularity: "MONTHLY",
+        metric_types: JSON.stringify(["VOLUME"]),
+        dimensions: JSON.stringify(["PRICING_CATEGORY"]),
+      })) as Record<string, unknown>;
+    } catch (error) {
+      lastError = error;
     }
-    return found ? totals : null;
-  } catch {
+  }
+  if (!payload) throw lastError instanceof Error ? lastError : new Error("pricing_analytics failed");
+  const totals: CategoryVolumes = { marketing: 0, utility: 0, authentication: 0 };
+  let found = false;
+  const rows = (value: unknown): Record<string, unknown>[] =>
+    Array.isArray(value) ? value.filter((v): v is Record<string, unknown> => !!v && typeof v === "object") : [];
+  for (const node of rows(payload.data)) {
+    const points = Array.isArray(node.data_points) ? rows(node.data_points) : [node];
+    for (const point of points) {
+      const category = String(point.pricing_category ?? "").toUpperCase();
+      const volume = Number(point.volume);
+      if (!Number.isFinite(volume)) continue;
+      if (category.startsWith("MARKETING")) { totals.marketing += volume; found = true; }
+      else if (category === "UTILITY") { totals.utility += volume; found = true; }
+      else if (category.startsWith("AUTHENTICATION")) { totals.authentication += volume; found = true; }
+    }
+  }
+  return found ? totals : null;
+}
+
+/** Cached for five minutes on success only: a thrown error is not cached, so the next load tries Meta again. */
+const cachedCategoryVolumes = unstable_cache(fetchCategoryVolumes, ["meta-category-volumes"], { revalidate: 300 });
+
+export async function getCategoryVolumes(): Promise<CategoryVolumes | null> {
+  try {
+    return await cachedCategoryVolumes();
+  } catch (error) {
+    console.error("Meta pricing_analytics failed", error instanceof Error ? error.message : error);
     return null;
   }
 }
-
-/** Cached for five minutes so the dashboard does not call Meta on every load. */
-export const getCategoryVolumes = unstable_cache(fetchCategoryVolumes, ["meta-category-volumes"], { revalidate: 300 });

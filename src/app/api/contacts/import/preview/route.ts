@@ -1,4 +1,5 @@
 import { countSkipReasons, listSkippedRows, previewContactImport } from "@/server/imports";
+import { findDuplicateList } from "@/server/imports/duplicate-list";
 import { authorizeImportRequest, importJson, readImportForm } from "../shared";
 import { importErrorResponse, importMapping, parsedImportFile } from "../input";
 
@@ -19,6 +20,7 @@ export async function POST(request: Request): Promise<Response> {
         sheetNames: parsed.sheetNames ?? [],
         headers: parsed.headers,
         totalRows: parsed.rows.length,
+        duplicateList: await findDuplicateList(parsed.fileName),
         sample: parsed.rows.slice(0, 5),
       });
     }

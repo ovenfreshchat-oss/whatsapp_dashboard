@@ -17,6 +17,11 @@
 .toastBody { display: grid; flex: 1 1 auto; gap: 2px; min-width: 0; }
 .toastBody strong { font-size: 14px; font-weight: 700; }
 .toastBody p { color: var(--muted); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+.toastActions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.toastAction, .toastActionPrimary { padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; border: 1px solid var(--line); color: var(--ink); background: #fff; }
+.toastAction:hover { background: rgba(15, 23, 42, .05); }
+.toastActionPrimary { border-color: var(--indigo); color: #fff; background: var(--indigo); }
+.toastActionPrimary:hover { filter: brightness(.95); }
 .toastClose { display: grid; flex: 0 0 auto; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 8px; color: var(--faint); background: none; }
 .toastClose:hover { color: var(--ink); background: rgba(15, 23, 42, .07); }
 @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }

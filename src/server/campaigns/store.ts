@@ -206,7 +206,8 @@ export function mapCampaignTemplateReview(value: unknown): {
   if (typeof body !== "string" || body.length > 16384) {
     throw new CampaignStoreError("Campaign template review is unavailable.");
   }
-  const headerMediaUrl = typeof item.header_media_url === "string" && item.header_media_url ? item.header_media_url : null;
+  // A header file removed by the cleanup job is gone: show the plain placeholder instead of a broken image or video.
+  const headerMediaUrl = typeof item.header_media_url === "string" && item.header_media_url && !item.media_removed_at ? item.header_media_url : null;
   return { reviewSha256, templateBody: body, templateComponents,
     bodyParameters: item.body_parameters as string[], headerMediaUrl };
 }

@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { BackLink } from "@/components/ui/back-link";
 import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
-import { ActiveSwitch, BatchActiveButtons } from "../../number-switch";
+import { ActiveSwitch, BatchActiveButtons, DeleteUploadButton, RemoveNumberButton } from "../../number-switch";
 import styles from "../../contacts.module.css";
 import { formatDate } from "@/lib/timezone";
 
@@ -42,13 +42,13 @@ export default async function UploadNumbersPage({ params, searchParams }: {
     .select("id,phone_e164,display_name,campaign_active,contact_batch_members!inner(batch_id)", { count: "exact" })
     .eq("contact_batch_members.batch_id", batchId);
   const [batchResult, numbersResult, inactiveResult] = await Promise.all([
-    admin.from("contact_import_batches").select("id,file_name,created_at").eq("id", batchId).single(),
+    admin.from("contact_import_batches").select("id,file_name,created_at,archived_at").eq("id", batchId).single(),
     (searchFilter ? base.or(searchFilter) : base).order("phone_e164").range(first, first + NUMBERS_SIZE - 1),
     admin.from("contacts")
       .select("id,contact_batch_members!inner(batch_id)", { count: "exact", head: true })
       .eq("contact_batch_members.batch_id", batchId).eq("campaign_active", false),
   ]);
-  if (batchResult.error || !batchResult.data) notFound();
+  if (batchResult.error || !batchResult.data || batchResult.data.archived_at) notFound();
   const batch = batchResult.data;
   const numbersReady = !numbersResult.error && !inactiveResult.error;
   const numberRows = (numbersReady ? numbersResult.data ?? [] : []) as NumberRow[];
@@ -65,6 +65,7 @@ export default async function UploadNumbersPage({ params, searchParams }: {
     <BackLink href="/dashboard/contacts">Uploads</BackLink>
     <div className={styles.pageHead}>
       <div><h1 className={styles.fileTitle}>{batch.file_name}</h1><p className={styles.muted}>Uploaded {dayLabel(batch.created_at)}</p></div>
+      <DeleteUploadButton batchId={batchId} fileName={batch.file_name} />
     </div>
 
     <section className={styles.panel} aria-label="Numbers in this upload">
@@ -85,6 +86,7 @@ export default async function UploadNumbersPage({ params, searchParams }: {
           {optedOut.has(row.phone_e164)
             ? <span className={styles.optedOut} title="This number is on the do-not-contact list">Opted out</span>
             : <ActiveSwitch contactId={row.id} initial={row.campaign_active} name={row.display_name ?? row.phone_e164} />}
+          <RemoveNumberButton batchId={batchId} contactId={row.id} name={row.display_name ?? row.phone_e164} />
         </li>)}</ul> : <p className={styles.empty}>{search ? "No number or name matches your search." : "No numbers are linked to this upload."}</p>}
         <Pagination page={numbersPage} total={totalNumbers} pageSize={NUMBERS_SIZE} param="np" path={path} query={{ q: search || undefined }} label="Number pages" />
       </>}

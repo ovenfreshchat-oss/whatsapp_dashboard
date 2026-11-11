@@ -309,6 +309,7 @@ export async function listCampaignImportBatches(): Promise<CampaignImportBatchOp
   const store = getCampaignStore();
   const { data, error } = await store.from("contact_import_batches")
     .select("id,file_name,created_at,accepted_rows,pending_claims")
+    .is("archived_at", null)
     .order("created_at", { ascending: false }).limit(50);
   if (error) throw new CampaignStoreError("Your contact lists could not be loaded. Please refresh the page.");
   return (data ?? []).map((item) => ({
@@ -334,7 +335,7 @@ export async function getCampaignDetail(
   const auditFrom = (Math.max(1, pages.auditPage ?? 1) - 1) * AUDIT_PAGE_SIZE;
   const [campaignResult, countsResult, auditResult, recipientResult] = await Promise.all([
     store.from("whatsapp_campaigns")
-      .select("id,name,state,audience_source,import_batch_id,audience_source_label,template_name,template_language,template_snapshot,body_parameters,header_media_url,review_sha256,scheduled_for,audience_count,created_at")
+      .select("id,name,state,audience_source,import_batch_id,audience_source_label,template_name,template_language,template_snapshot,body_parameters,header_media_url,media_removed_at,review_sha256,scheduled_for,audience_count,created_at")
       .eq("id", id).single(),
     store.rpc("whatsapp_campaign_counts", { p_campaign_id: id }),
     store.from("whatsapp_campaign_audit").select("action,created_at,detail", { count: "exact" })

@@ -134,3 +134,15 @@
 .alertBanner { composes: warning from "../../../../components/ui/ui.module.css"; flex-direction: column; gap: 8px; }
 .alertBanner p { margin: 0; }
 @media (max-width: 640px) { .delayGrid { grid-template-columns: 1fr; } }
+
+/* Failed Contacts tabs */
+.tabs { display: flex; gap: 6px; padding: 10px 14px 0; border-bottom: 1px solid var(--line); }
+.tab { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 3px solid transparent; color: var(--muted); font-size: 14px; font-weight: 700; text-decoration: none; }
+.tab span { padding: 1px 8px; border-radius: 999px; background: #e8e2d2; color: var(--ink-700); font-size: 12px; }
+.tab:hover { color: var(--ink); }
+.tabActive { border-bottom-color: var(--indigo); color: var(--ink); }
+.tabHelp { margin: 0; padding: 12px 16px 4px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+.iconRemove { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 10px; color: var(--danger-700); background: #fff; }
+.iconRemove:hover:not(:disabled) { background: #fef3f2; }
+.iconRemove:disabled { opacity: .6; }
