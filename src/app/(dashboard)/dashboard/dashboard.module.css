@@ -44,6 +44,7 @@
 .statusLow { color: var(--danger-700); background: var(--danger-50); border-color: #f6c4be; }
 
 /* Last campaign */
+.lastActions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 .lastTitle { display: grid; gap: 6px; min-width: 0; }
 .lastTitle h2 { margin: 0; font-size: 17px; font-weight: 700; }
 .lastTitle p { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }

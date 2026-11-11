@@ -1,3 +1,4 @@
+import { PageLoadingSignal } from "@/components/layout/page-loading";
 import ui from "@/components/ui/ui.module.css";
 import styles from "./loading.module.css";
 
@@ -8,6 +9,7 @@ import styles from "./loading.module.css";
 export default function DashboardLoading() {
   return (
     <div className={styles.content} aria-busy="true" aria-label="Loading">
+      <PageLoadingSignal />
       <div className={styles.head}>
         <span className={`${ui.skeleton} ${styles.title}`} />
         <span className={`${ui.skeleton} ${styles.bar} ${styles.line}`} />

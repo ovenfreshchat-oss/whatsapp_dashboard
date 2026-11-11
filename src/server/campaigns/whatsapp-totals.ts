@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { getConfiguredMetaIdentifiers, metaGraphGet } from "@/server/meta/client";
+import { withSnapshot } from "@/server/dashboard/snapshots";
 import { addDaysToDate, getClientTimeZone, startOfDayUtc, todayInZone } from "@/lib/timezone";
 
 export type WhatsappTotals = {
@@ -11,6 +12,8 @@ export type WhatsappTotals = {
   received: number | null;
   from: string;
   to: string;
+  /** Set when Meta could not be reached: sent/delivered are the last known values from this time. */
+  asOf: string | null;
 };
 
 const DAY = 86_400_000;
@@ -58,8 +61,10 @@ async function fetchMetaSentDelivered(from: string, to: string, timeZone: string
   }
 }
 
-async function fetchTotals(from: string, to: string, timeZone: string): Promise<WhatsappTotals> {
-  const meta = await fetchMetaSentDelivered(from, to, timeZone);
+async function fetchTotals(from: string, to: string, timeZone: string, isDefault: boolean): Promise<WhatsappTotals> {
+  // The default period moves every day, so it keeps one stored value of its own; a chosen range keeps its own.
+  const snapshot = await withSnapshot(isDefault ? `totals:default:${timeZone}` : `totals:${from}:${to}:${timeZone}`, () => fetchMetaSentDelivered(from, to, timeZone));
+  const meta = snapshot.value;
   let received: number | null = null;
   const admin = createStaffAdminClient();
   if (admin) {
@@ -68,7 +73,7 @@ async function fetchTotals(from: string, to: string, timeZone: string): Promise<
       .gte("event_at", startOfDayUtc(from, timeZone)).lt("event_at", startOfDayUtc(addDaysToDate(to, 1), timeZone));
     if (!error) received = count ?? 0;
   }
-  return { sent: meta?.sent ?? null, delivered: meta?.delivered ?? null, received, from, to };
+  return { sent: meta?.sent ?? null, delivered: meta?.delivered ?? null, received, from, to, asOf: snapshot.asOf };
 }
 
 /** Cached for five minutes so the dashboard does not call Meta on every load. */
@@ -77,5 +82,5 @@ const cachedTotals = unstable_cache(fetchTotals, ["whatsapp-message-totals"], { 
 export function loadWhatsappTotals(from: string | null, to: string | null): Promise<WhatsappTotals> {
   const timeZone = getClientTimeZone();
   const period = resolvePeriod(from, to, Date.now(), timeZone);
-  return cachedTotals(period.from, period.to, timeZone);
+  return cachedTotals(period.from, period.to, timeZone, from === null && to === null);
 }

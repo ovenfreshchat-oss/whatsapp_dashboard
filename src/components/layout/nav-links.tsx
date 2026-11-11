@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, Megaphone, MessageSquare, PlugZap, UserPlus, Loader2, Ellipsis, type LucideIcon } from "lucide-react";
+import { usePageLoading } from "./page-loading";
 import styles from "./dashboard-shell.module.css";
 
 type Item = { href: string; icon: LucideIcon; label: string; short?: string; match: string[]; access?: "work" | "admin"; /** Stays in the phone tab bar; the rest move under "More". */ primary?: boolean };
@@ -23,8 +24,9 @@ function isActive(item: Item, pathname: string) {
 }
 
 /** Swaps the icon for a spinner while this link's page is loading, so every tap gets an answer. */
-function NavIcon({ icon: Icon }: { icon: LucideIcon }) {
-  const { pending } = useLinkStatus();
+function NavIcon({ icon: Icon, busy = false }: { icon: LucideIcon; busy?: boolean }) {
+  const { pending: linkPending } = useLinkStatus();
+  const pending = linkPending || busy;
   return <span className={styles.navIcon} aria-hidden="true">
     {pending ? <Loader2 size={20} className={styles.navSpin} /> : <Icon size={20} strokeWidth={1.9} />}
   </span>;
@@ -54,6 +56,7 @@ export function NavLinks({ isAdmin, canWork }: { isAdmin: boolean; canWork: bool
     return () => { document.removeEventListener("keydown", close); document.removeEventListener("mousedown", close); };
   }, [moreOpen]);
   const current = clicked ?? pathname;
+  const pageLoading = usePageLoading();
 
   const items = ITEMS.filter((item) => !item.access || (item.access === "admin" ? isAdmin : canWork));
   const useMore = items.length > PHONE_TAB_LIMIT;
@@ -75,7 +78,7 @@ export function NavLinks({ isAdmin, canWork }: { isAdmin: boolean; canWork: bool
       const props = linkProps(item);
       if (useMore && !item.primary) props.className = `${props.className} ${styles.navOverflow}`;
       return <Link key={item.href} {...props}>
-        <NavIcon icon={item.icon} />
+        <NavIcon icon={item.icon} busy={pageLoading && isActive(item, current)} />
         {item.short
           ? <><span className={styles.labelFull}>{item.label}</span><span className={styles.labelShort}>{item.short}</span></>
           : <span className={styles.label}>{item.label}</span>}

@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { ChevronRight } from "lucide-react";
-import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
+import { createStaffAdminClient, getStaffReadSession } from "@/server/auth/staff-users/admin";
 import { ContactImportForm } from "./import-form";
+import { DeleteUploadButton } from "./number-switch";
 import styles from "./contacts.module.css";
 import { formatDateTime } from "@/lib/timezone";
 
@@ -31,6 +32,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
   const batchPage = pageFrom((await searchParams).bp);
   const BATCHES_SIZE = 8;
   const first = (batchPage - 1) * BATCHES_SIZE;
+  const canDelete = (await getStaffReadSession()).role === "admin";
   const admin = createStaffAdminClient();
   const [contactCountResult, batchResult, statusResult] = admin
     ? await Promise.all([
@@ -77,11 +79,12 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
 
         <section className={styles.panel} aria-labelledby="batches-heading">
           <div className={styles.panelHeading}><h2 id="batches-heading">Uploads</h2></div>
-          {batches.length ? <ul className={styles.rowList}>{batches.map((batch) => <li key={batch.id}>
+          {batches.length ? <ul className={styles.rowList}>{batches.map((batch) => <li key={batch.id} className={styles.rowItem}>
             <Link className={styles.row} href={`/dashboard/contacts/imports/${batch.id}`}>
               <span className={styles.rowMain}><strong>{batch.file_name}</strong><small>{batch.accepted_rows} added · {batch.rejected_rows} skipped</small></span>
               <span className={styles.rowSide}><small>{dateLabel(batch.created_at).slice(0, 10)}</small><ChevronRight size={18} aria-hidden="true" /></span>
             </Link>
+            {canDelete && <DeleteUploadButton batchId={batch.id} fileName={batch.file_name} compact />}
           </li>)}</ul> : <p className={styles.empty}>{storageReady ? "No files uploaded yet." : "Uploads appear after setup."}</p>}
           {storageReady && <Pagination page={batchPage} total={batchResult?.count ?? 0} pageSize={BATCHES_SIZE} param="bp" path="/dashboard/contacts" label="Upload pages" />}
         </section>

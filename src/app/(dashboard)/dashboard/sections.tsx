@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { getCampaignAnalytics } from "@/server/campaigns/analytics";
-import { estimateCost, getMetaBilledCost, getRateCard, listCampaignPhones } from "@/server/campaigns/pricing";
+import { estimateCost, getBilledCostSnapshot, getRateCard, listCampaignPhones } from "@/server/campaigns/pricing";
 import { getMetricAdjustments } from "@/server/dashboard/adjustments";
 import { getWorkspaceMetrics } from "@/server/dashboard/metrics";
 import { getMetaAccountHealthCached } from "@/server/meta/cached";
@@ -14,7 +14,7 @@ import { DeliveryFilters } from "./delivery-filters";
 import { CampaignStateBadge, CategoryBadge } from "@/components/ui/badges";
 import ui from "@/components/ui/ui.module.css";
 import styles from "./dashboard.module.css";
-import { formatDate, getClientTimeZone } from "@/lib/timezone";
+import { formatDate, formatDateTime, getClientTimeZone } from "@/lib/timezone";
 
 const metaSettingsPresent = () => [
   process.env.META_GRAPH_API_VERSION,
@@ -60,6 +60,7 @@ export async function DeliverySection({ from, to }: { from: string | null; to: s
       <MetricCard tone="green" icon={CheckCheck} label="Messages delivered" value={show(totals.delivered)} detail="All messages, per WhatsApp" />
       <MetricCard tone="violet" icon={Percent} label="Delivery rate" value={totals.sent && totals.delivered !== null ? `${((totals.delivered / totals.sent) * 100).toFixed(1)}%` : "—"} detail="Delivered out of sent, per WhatsApp" />
     </div>
+    {totals.asOf && <p className={ui.notice}>WhatsApp is not answering right now. These totals are the last values received on {formatDateTime(totals.asOf)}.</p>}
     {totals.sent === null && <p className={ui.notice}>WhatsApp totals could not be loaded right now. The campaign numbers below are unaffected.</p>}
   </section>;
 }
@@ -69,7 +70,7 @@ const show = (value: number | null) => (value === null ? "—" : value.toLocaleS
 export async function MetricsSection() {
   const [metrics, adjustments] = await Promise.all([getWorkspaceMetrics(), getMetricAdjustments()]);
   const categories = metrics?.categories ?? null;
-  const metaNote = categories ? "Delivered, per Meta (12 months)" : null;
+  const metaNote = categories ? (metrics?.categoriesAsOf ? `Last known, per Meta (${formatDateTime(metrics.categoriesAsOf)})` : "Delivered, per Meta (12 months)") : null;
 
   return (
     <>
@@ -148,9 +149,9 @@ export async function LastCampaignSection() {
         const estimate = estimateCost(phones, card);
         price = `${estimate.currency} ${estimate.total.toFixed(estimate.total < 1 ? 4 : 2)}`;
       } else if (last.firstAcceptedAt) {
-        const billed = await getMetaBilledCost(
-          new Date(Date.parse(last.firstAcceptedAt) - 30 * 60_000).toISOString(),
-          new Date(Math.max(Date.parse(last.lastStatusAt ?? last.firstAcceptedAt), Date.parse(last.lastAcceptedAt ?? last.firstAcceptedAt)) + 60 * 60_000).toISOString());
+        const fromIso = new Date(Date.parse(last.firstAcceptedAt) - 30 * 60_000).toISOString();
+        const toIso = new Date(Math.max(Date.parse(last.lastStatusAt ?? last.firstAcceptedAt), Date.parse(last.lastAcceptedAt ?? last.firstAcceptedAt)) + 60 * 60_000).toISOString();
+        const billed = (await getBilledCostSnapshot(fromIso, toIso)).value;
         if (billed) price = billed.cost.toFixed(4);
       }
     } catch { /* price stays "—" */ }
@@ -174,7 +175,10 @@ export async function LastCampaignSection() {
           <h2 id="last-campaign-heading">Last campaign</h2>
           {last && <p><strong>{last.campaign.name}</strong> <CampaignStateBadge state={last.campaign.state} /> <CategoryBadge category="MARKETING" /> <span>{formatDate(last.campaign.createdAt)}</span></p>}
         </div>
-        {last && <Link href={`/dashboard/campaigns/${last.campaign.id}/analytics`} className={`${ui.btn} ${ui.btnSecondary} ${ui.btnSm}`}>Full analytics</Link>}
+        {last && <div className={styles.lastActions}>
+          {last.failed + last.rejected > 0 && <Link href={`/dashboard/campaigns/${last.campaign.id}?tab=failed`} className={`${ui.btn} ${ui.btnSecondary} ${ui.btnSm}`}>Manage failed messages</Link>}
+          <Link href={`/dashboard/campaigns/${last.campaign.id}/analytics`} className={`${ui.btn} ${ui.btnSecondary} ${ui.btnSm}`}>Full analytics</Link>
+        </div>}
       </div>
       {last ? <div className={styles.lastGrid}>
         {tiles.map((tile) => <article key={tile.label} className={`${styles.lastTile} ${styles[`tone_${tile.tone}`]}`}>

@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
-import { getCategoryVolumes } from "@/server/campaigns/pricing";
+import { getCategoryVolumesSnapshot } from "@/server/campaigns/pricing";
 
 export type WorkspaceMetrics = {
   contacts: number | null;
@@ -12,6 +12,8 @@ export type WorkspaceMetrics = {
   campaignDelivered: number | null;
   replyDelivered: number | null;
   categories: { marketing: number; utility: number; authentication: number } | null;
+  /** Set when Meta could not be reached and `categories` is the last known answer from this time. */
+  categoriesAsOf: string | null;
 };
 
 type CountResult = { count: number | null; error: unknown } | null;
@@ -29,7 +31,7 @@ async function fetchMetrics(): Promise<WorkspaceMetrics | null> {
     admin.from("inbox_messages").select("id", { count: "exact", head: true }).eq("direction", "outbound").in("status", ["sent", "delivered", "read"]),
     admin.from("whatsapp_campaign_recipients").select("id", { count: "exact", head: true }).in("delivery_status", ["delivered", "read"]),
     admin.from("inbox_messages").select("id", { count: "exact", head: true }).eq("direction", "outbound").in("status", ["delivered", "read"]),
-    getCategoryVolumes(),
+    getCategoryVolumesSnapshot(),
   ]);
   return {
     contacts: count(contacts),
@@ -40,7 +42,8 @@ async function fetchMetrics(): Promise<WorkspaceMetrics | null> {
     optedOut: count(optOut),
     campaignDelivered: count(delivered),
     replyDelivered: count(deliveredReplies),
-    categories: categories ?? null,
+    categories: categories.value,
+    categoriesAsOf: categories.asOf,
   };
 }
 

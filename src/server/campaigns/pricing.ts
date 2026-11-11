@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { withSnapshot, type Snapshotted } from "@/server/dashboard/snapshots";
 import { getConfiguredMetaIdentifiers, metaGraphGet } from "@/server/meta/client";
 import { getCampaignStore } from "./store";
 
@@ -169,3 +170,26 @@ export async function getCategoryVolumes(): Promise<CategoryVolumes | null> {
     return null;
   }
 }
+
+/**
+ * Category volumes with the last good Meta answer as a fallback (time of that answer in `asOf`).
+ * The whole lookup is cached for five minutes, so the stored copy is refreshed at most that often.
+ */
+export const getCategoryVolumesSnapshot = unstable_cache(
+  (): Promise<Snapshotted<CategoryVolumes>> => withSnapshot("category_volumes", async () => {
+    try { return await fetchCategoryVolumes(); } catch (error) {
+      console.error("Meta pricing_analytics failed", error instanceof Error ? error.message : error);
+      return null;
+    }
+  }),
+  ["meta-category-volumes-snapshot"],
+  { revalidate: 300 },
+);
+
+/** Billed cost of a finished campaign's send window, with the last good answer as a fallback. Cached for an hour. */
+export const getBilledCostSnapshot = unstable_cache(
+  (fromIso: string, toIso: string): Promise<Snapshotted<BilledCost>> =>
+    withSnapshot(`billed:${fromIso}:${toIso}`, () => getMetaBilledCost(fromIso, toIso)),
+  ["meta-billed-cost-snapshot"],
+  { revalidate: 3600 },
+);

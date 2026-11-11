@@ -1,3 +1,4 @@
+import { PageLoadingSignal } from "@/components/layout/page-loading";
 import ui from "@/components/ui/ui.module.css";
 import styles from "./inbox.module.css";
 
@@ -5,6 +6,7 @@ import styles from "./inbox.module.css";
 export default function InboxLoading() {
   return (
     <div className={styles.content} data-inbox aria-busy="true" aria-label="Loading inbox">
+      <PageLoadingSignal label="Loading inbox…" />
       <section className={styles.layout}>
         <div className={styles.list}>
           <div className={styles.listHeading}><strong>Chats</strong></div>

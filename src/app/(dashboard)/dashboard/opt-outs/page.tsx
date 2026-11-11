@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Search } from "lucide-react";
 import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { BackLink } from "@/components/ui/back-link";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
@@ -51,7 +53,11 @@ export default async function OptOutsPage({ searchParams }: { searchParams: Prom
 
         <section className={styles.panel} aria-labelledby="list-heading">
           <div className={styles.panelHeading}><div><span className={styles.eyebrow}>LIST</span><h2 id="list-heading">Opted-out numbers</h2></div><span>{phoneSearch ? `${listResult?.count ?? 0} found` : `${countResult?.count ?? 0} total`}</span></div>
-          <form action="/dashboard/opt-outs" className={styles.searchForm}><label className={styles.field}><span>Search by phone number</span><input name="q" defaultValue={search} placeholder="+91…" maxLength={30} /></label><button className={styles.secondaryButton} type="submit">Search</button></form>
+          <form action="/dashboard/opt-outs" className={styles.searchForm} role="search">
+            <label className={styles.searchBox}><Search size={18} aria-hidden="true" /><input name="q" defaultValue={search} placeholder="Search by phone number" maxLength={30} aria-label="Search opted-out numbers by phone number" /></label>
+            <button className={styles.button} type="submit">Search</button>
+            {search && <Link href="/dashboard/opt-outs" className={styles.secondaryButton}>Clear</Link>}
+          </form>
           {rows.length ? <div className={styles.tableWrap}><table><thead><tr><th>Number</th><th>Source</th><th>Added</th><th></th></tr></thead><tbody>
             {rows.map((row) => <tr key={row.id}><td>{row.phone_e164}</td><td>{row.source}</td><td>{formatDateTime(row.created_at)}</td><td><ReleaseOptOutButton id={row.id} phone={row.phone_e164} /></td></tr>)}
           </tbody></table></div> : <p className={styles.empty}>{ready ? "No opted-out numbers." : "Apply the migration to view the list."}</p>}

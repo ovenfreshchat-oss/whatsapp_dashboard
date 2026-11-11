@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { countSkipReasons, listSkippedRows, previewContactImport } from "@/server/imports";
-import { applyDuplicateChoice, parseDuplicateChoice } from "@/server/imports/duplicate-list";
+import { DUPLICATE_LIST_MESSAGE, findDuplicateList } from "@/server/imports/duplicate-list";
 import { authorizeImportRequest, ImportRequestError, importJson, readImportForm } from "../shared";
 import { importErrorResponse, importMapping, parsedImportFile } from "../input";
 
@@ -26,6 +26,8 @@ export async function POST(request: Request): Promise<Response> {
     if (parsed.fileSha256 !== expectedHash) {
       throw new ImportRequestError("The file changed after preview. Preview it again.", 409);
     }
+    // The browser already stops a same-name upload; this keeps the rule even if a request skips the check.
+    if (await findDuplicateList(parsed.fileName, importKey)) throw new ImportRequestError(DUPLICATE_LIST_MESSAGE, 409);
     const preview = previewContactImport(parsed, mapping);
     if (preview.validRows.length === 0) {
       throw new ImportRequestError("No valid contact rows can be imported.", 400);
@@ -81,16 +83,9 @@ export async function POST(request: Request): Promise<Response> {
         linked = typeof count === "number" ? count : null;
       }
     }
-    // Same-name list: add the new numbers to it, or hide it. Done after the import is saved, so a failed
-    // import never removes the old list.
-    let duplicateError: string | null = null;
-    const choice = parseDuplicateChoice(form);
-    if (choice && typeof batchId === "string" && UUID.test(batchId)) {
-      duplicateError = await applyDuplicateChoice(choice, batchId, parsed.fileName);
-    }
     revalidatePath("/dashboard/contacts");
     const skipped = listSkippedRows(preview);
-    return importJson({ result: data, duplicateError, duplicateMode: choice?.mode ?? null, stats: preview.stats, linked, linkError, skipped, skippedReasons: countSkipReasons(skipped) });
+    return importJson({ result: data, stats: preview.stats, linked, linkError, skipped, skippedReasons: countSkipReasons(skipped) });
   } catch (error) {
     return importErrorResponse(error);
   }

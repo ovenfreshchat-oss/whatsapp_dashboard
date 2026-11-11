@@ -4,8 +4,8 @@ import { Search } from "lucide-react";
 import { notFound } from "next/navigation";
 import { BackLink } from "@/components/ui/back-link";
 import { Pagination, pageFrom } from "@/components/ui/pagination";
-import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
-import { ActiveSwitch, BatchActiveButtons, DeleteUploadButton, RemoveNumberButton } from "../../number-switch";
+import { createStaffAdminClient, getStaffReadSession } from "@/server/auth/staff-users/admin";
+import { ActiveSwitch, BatchActiveButtons, DeleteUploadButton } from "../../number-switch";
 import styles from "../../contacts.module.css";
 import { formatDate } from "@/lib/timezone";
 
@@ -35,6 +35,7 @@ export default async function UploadNumbersPage({ params, searchParams }: {
     ? [`display_name.ilike.%${search}%`, searchDigits.length >= 2 ? `phone_e164.ilike.%${searchDigits}%` : null].filter(Boolean).join(",")
     : "";
 
+  const canDelete = (await getStaffReadSession()).role === "admin";
   const admin = createStaffAdminClient();
   if (!admin) throw new Error("The contact database is unavailable.");
   const first = (numbersPage - 1) * NUMBERS_SIZE;
@@ -65,7 +66,7 @@ export default async function UploadNumbersPage({ params, searchParams }: {
     <BackLink href="/dashboard/contacts">Uploads</BackLink>
     <div className={styles.pageHead}>
       <div><h1 className={styles.fileTitle}>{batch.file_name}</h1><p className={styles.muted}>Uploaded {dayLabel(batch.created_at)}</p></div>
-      <DeleteUploadButton batchId={batchId} fileName={batch.file_name} />
+      {canDelete ? <DeleteUploadButton batchId={batchId} fileName={batch.file_name} /> : null}
     </div>
 
     <section className={styles.panel} aria-label="Numbers in this upload">
@@ -86,7 +87,6 @@ export default async function UploadNumbersPage({ params, searchParams }: {
           {optedOut.has(row.phone_e164)
             ? <span className={styles.optedOut} title="This number is on the do-not-contact list">Opted out</span>
             : <ActiveSwitch contactId={row.id} initial={row.campaign_active} name={row.display_name ?? row.phone_e164} />}
-          <RemoveNumberButton batchId={batchId} contactId={row.id} name={row.display_name ?? row.phone_e164} />
         </li>)}</ul> : <p className={styles.empty}>{search ? "No number or name matches your search." : "No numbers are linked to this upload."}</p>}
         <Pagination page={numbersPage} total={totalNumbers} pageSize={NUMBERS_SIZE} param="np" path={path} query={{ q: search || undefined }} label="Number pages" />
       </>}
