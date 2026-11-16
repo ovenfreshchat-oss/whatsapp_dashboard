@@ -199,13 +199,20 @@ export function parseTemplateBodyParameters(body: string): TemplateBodyParameter
   reject("This template fills in its message in a way we cannot support yet. Please choose another template.");
 }
 
+const CAMPAIGN_CATEGORIES = new Set(["MARKETING", "UTILITY"]);
+
+/**
+ * Campaigns may use an approved Marketing or Utility template. Authentication templates are
+ * excluded: they carry one-time codes generated per login/verification attempt, not a value an
+ * admin fills in for a bulk audience, so they are sent from the auth flow itself, never from here.
+ */
 export function assertApprovedMarketingTemplate(
   template: MetaTemplate,
   parameters: string[],
   headerMediaUrl?: string,
 ): ApprovedTemplateValidation {
-  if (template.status !== "APPROVED" || template.category !== "MARKETING") {
-    reject("This template is not approved by WhatsApp yet, so it cannot be used for a campaign.");
+  if (template.status !== "APPROVED" || !CAMPAIGN_CATEGORIES.has(template.category)) {
+    reject("This template is not an approved Marketing or Utility template, so it cannot be used for a campaign.");
   }
 
   const supported = new Set(["HEADER", "BODY", "FOOTER", "BUTTONS"]);
@@ -287,6 +294,7 @@ export function assertTemplateSnapshotUnchanged(
  * API `/messages` endpoint (see src/server/meta/messages.ts).
  */
 export const MARKETING_SEND_PATH = "marketing_messages";
+const UTILITY_SEND_PATH = "messages";
 
 export async function sendApprovedTemplateTest(
   input: ApprovedTemplateTestSend,
@@ -294,6 +302,9 @@ export async function sendApprovedTemplateTest(
   const parameters = validateTestSend(input);
   const { phoneNumberId } = getConfiguredMetaIdentifiers();
   let parameterSpec: TemplateBodyParameterSpec & { headerFormat?: ApprovedTemplateValidation["headerFormat"] } = { format: "positional", keys: [] };
+  // Set once the template is found, before validation can reject: the send path below depends on
+  // it, and a campaign must always use the category Meta approved the template under, not a guess.
+  let sendPath: string = MARKETING_SEND_PATH;
 
   // Every failure before the POST is definitive: no message request was made.
   try {
@@ -303,6 +314,7 @@ export async function sendApprovedTemplateTest(
       (item) => item.name === input.templateName && item.language === input.languageCode,
     );
     if (!template) reject("The selected template is no longer available in this language.");
+    sendPath = template.category === "UTILITY" ? UTILITY_SEND_PATH : MARKETING_SEND_PATH;
     if (input.expectedTemplateId && template.id !== input.expectedTemplateId) {
       reject("The approved template changed since campaign review.");
     }
@@ -373,13 +385,13 @@ export async function sendApprovedTemplateTest(
   }
   let response: Record<string, unknown>;
   try {
-    response = await metaGraphPost(`${phoneNumberId}/${MARKETING_SEND_PATH}`, buildBody(uploaded));
+    response = await metaGraphPost(`${phoneNumberId}/${sendPath}`, buildBody(uploaded));
   } catch (error) {
     // Only a clear rejection of the media reference is retried (once, with the public link): no message was created.
     if (uploaded && headerUrl && error instanceof MetaApiError && error.definitiveRejection &&
         error.providerCode !== undefined && MEDIA_REFERENCE_ERROR_CODES.has(error.providerCode)) {
       await headerMedia.rejected(headerUrl, phoneNumberId, uploaded);
-      response = await metaGraphPost(`${phoneNumberId}/${MARKETING_SEND_PATH}`, buildBody(null));
+      response = await metaGraphPost(`${phoneNumberId}/${sendPath}`, buildBody(null));
     } else {
       throw error;
     }

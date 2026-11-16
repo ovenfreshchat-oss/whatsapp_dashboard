@@ -23,8 +23,9 @@ export async function getTemplateCategories(): Promise<Map<string, MessageCatego
 }
 
 /**
- * Campaigns can only be created from approved marketing templates, so a campaign whose template
- * is no longer listed by Meta (deleted or renamed) is still shown as Marketing.
+ * Campaigns can only be created from an approved Marketing or Utility template, so a campaign
+ * whose template is no longer listed by Meta (deleted or renamed) falls back to Marketing, the
+ * more restrictive of the two for reporting purposes.
  */
 export function categoryForCampaign(
   categories: Map<string, MessageCategory>,

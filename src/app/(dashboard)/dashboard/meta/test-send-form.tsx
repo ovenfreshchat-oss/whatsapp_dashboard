@@ -31,7 +31,7 @@ export function TestSendForm({ recipient, options }: { recipient: string; option
   return (
     <form action={action} className={styles.testForm}>
       <label className={styles.field}>
-        <span>Approved marketing template</span>
+        <span>Approved template (Marketing or Utility)</span>
         <select name="templateKey" required value={selected} onChange={(event) => setSelected(event.target.value)}>
           {options.map((item) => <option value={item.key} key={item.key}>{item.label}</option>)}
         </select>

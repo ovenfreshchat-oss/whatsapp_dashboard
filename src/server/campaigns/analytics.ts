@@ -4,7 +4,7 @@ import { assertCampaignId, CampaignStoreError, getCampaignStore } from "./store"
 
 export type CampaignAnalytics = {
   campaign: {
-    id: string; name: string; state: string; templateId: string; templateName: string;
+    id: string; name: string; state: string; templateId: string; templateName: string; templateLanguage: string;
     scheduledFor: string | null; createdAt: string;
   };
   audience: number; attempted: number; accepted: number; rejected: number; uncertain: number;
@@ -32,7 +32,7 @@ export async function getCampaignAnalytics(id: string): Promise<CampaignAnalytic
   const store = getCampaignStore();
   const [campaignResult, analyticsResult] = await Promise.all([
     store.from("whatsapp_campaigns")
-      .select("id,name,state,template_id,template_name,scheduled_for,created_at").eq("id", id).single(),
+      .select("id,name,state,template_id,template_name,template_language,scheduled_for,created_at").eq("id", id).single(),
     store.rpc("whatsapp_campaign_analytics", { p_campaign_id: id }),
   ]);
   const c = campaignResult.data as Row | null;
@@ -43,7 +43,8 @@ export async function getCampaignAnalytics(id: string): Promise<CampaignAnalytic
   return {
     campaign: {
       id: String(c.id), name: String(c.name), state: String(c.state), templateId: String(c.template_id),
-      templateName: String(c.template_name), scheduledFor: str(c.scheduled_for), createdAt: String(c.created_at),
+      templateName: String(c.template_name), templateLanguage: String(c.template_language),
+      scheduledFor: str(c.scheduled_for), createdAt: String(c.created_at),
     },
     audience: num(a.audience), attempted: num(a.attempted), accepted: num(a.accepted),
     rejected: num(a.rejected), uncertain: num(a.uncertain), suppressed: num(a.suppressed),

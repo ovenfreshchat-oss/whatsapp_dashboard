@@ -6,6 +6,7 @@ import {
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { getCampaignAnalytics } from "@/server/campaigns/analytics";
 import { estimateCost, getBilledCostSnapshot, getRateCard, listCampaignPhones } from "@/server/campaigns/pricing";
+import { categoryForCampaign, getTemplateCategories } from "@/server/campaigns/categories";
 import { getMetricAdjustments } from "@/server/dashboard/adjustments";
 import { getWorkspaceMetrics } from "@/server/dashboard/metrics";
 import { getMetaAccountHealthCached } from "@/server/meta/cached";
@@ -139,6 +140,7 @@ export async function LastCampaignSection() {
   const last = analyticsResult.status === "fulfilled" ? analyticsResult.value : null;
   if (analyticsResult.status === "rejected") console.error("Dashboard last-campaign analytics failed", analyticsResult.reason);
   const quality = healthResult.status === "fulfilled" ? healthResult.value?.phoneNumber?.qualityRating ?? null : null;
+  const lastCategory = last ? categoryForCampaign(await getTemplateCategories(), last.campaign) : "MARKETING";
 
   let price = "—";
   if (last) {
@@ -151,7 +153,7 @@ export async function LastCampaignSection() {
       } else if (last.firstAcceptedAt) {
         const fromIso = new Date(Date.parse(last.firstAcceptedAt) - 30 * 60_000).toISOString();
         const toIso = new Date(Math.max(Date.parse(last.lastStatusAt ?? last.firstAcceptedAt), Date.parse(last.lastAcceptedAt ?? last.firstAcceptedAt)) + 60 * 60_000).toISOString();
-        const billed = (await getBilledCostSnapshot(fromIso, toIso)).value;
+        const billed = (await getBilledCostSnapshot(fromIso, toIso, lastCategory === "UTILITY" ? ["UTILITY"] : ["MARKETING", "MARKETING_LITE"])).value;
         if (billed) price = billed.cost.toFixed(4);
       }
     } catch { /* price stays "—" */ }
@@ -173,7 +175,7 @@ export async function LastCampaignSection() {
       <div className={ui.panelHeading}>
         <div className={styles.lastTitle}>
           <h2 id="last-campaign-heading">Last campaign</h2>
-          {last && <p><strong>{last.campaign.name}</strong> <CampaignStateBadge state={last.campaign.state} /> <CategoryBadge category="MARKETING" /> <span>{formatDate(last.campaign.createdAt)}</span></p>}
+          {last && <p><strong>{last.campaign.name}</strong> <CampaignStateBadge state={last.campaign.state} /> <CategoryBadge category={lastCategory} /> <span>{formatDate(last.campaign.createdAt)}</span></p>}
         </div>
         {last && <div className={styles.lastActions}>
           {last.failed + last.rejected > 0 && <Link href={`/dashboard/campaigns/${last.campaign.id}?tab=failed`} className={`${ui.btn} ${ui.btnSecondary} ${ui.btnSm}`}>Manage failed messages</Link>}

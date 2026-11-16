@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 function templateOption(template: MetaTemplate): CampaignTemplateOption | null {
-  if (template.status !== "APPROVED" || template.category !== "MARKETING") return null;
+  if (template.status !== "APPROVED" || (template.category !== "MARKETING" && template.category !== "UTILITY")) return null;
   const body = template.components.find((part) => part.type === "BODY")?.text;
   if (!body) return null;
   try {
@@ -33,7 +33,7 @@ function templateOption(template: MetaTemplate): CampaignTemplateOption | null {
     const validation = assertApprovedMarketingTemplate(template, Array(spec.keys.length).fill("Preview value"));
     return {
       key: `${template.name}|${template.language}`,
-      label: `${template.name} · ${template.language}${validation.headerFormat === "IMAGE" ? " (Image header)" : validation.headerFormat === "VIDEO" ? " (Video header)" : ""}`,
+      label: `${template.name} · ${template.language}${validation.headerFormat === "IMAGE" ? " (Image header)" : validation.headerFormat === "VIDEO" ? " (Video header)" : ""}${template.category === "UTILITY" ? " · Utility" : ""}`,
       body,
       parameterKeys: spec.keys,
       headerFormat: validation.headerFormat,

@@ -82,10 +82,16 @@ export async function listCampaignPhones(
 export type BilledCost = { cost: number; volume: number; from: string; to: string };
 
 /**
- * What Meta billed for marketing messages in the campaign's time window (WABA-wide, so other
- * marketing sends in the same window are included). Returns null when Meta cannot provide it.
+ * What Meta billed in the campaign's time window for the given pricing categories (WABA-wide, so
+ * other sends of the same category in that window are included). Defaults to Marketing, the only
+ * category campaigns could use until Utility campaigns were added. Returns null when Meta cannot
+ * provide it.
  */
-export async function getMetaBilledCost(fromIso: string, toIso: string): Promise<BilledCost | null> {
+export async function getMetaBilledCost(
+  fromIso: string,
+  toIso: string,
+  categories: string[] = ["MARKETING", "MARKETING_LITE"],
+): Promise<BilledCost | null> {
   try {
     const from = Math.floor(Date.parse(fromIso) / 1000);
     const to = Math.ceil(Date.parse(toIso) / 1000);
@@ -94,7 +100,7 @@ export async function getMetaBilledCost(fromIso: string, toIso: string): Promise
     const payload = await metaGraphGet(`${wabaId}/pricing_analytics`, new URLSearchParams({
       start: String(from), end: String(to), granularity: "HALF_HOUR",
       metric_types: JSON.stringify(["COST", "VOLUME"]),
-      pricing_categories: JSON.stringify(["MARKETING", "MARKETING_LITE"]),
+      pricing_categories: JSON.stringify(categories),
       dimensions: JSON.stringify(["PRICING_CATEGORY"]),
     }));
     let cost = 0, volume = 0, found = false;
@@ -188,8 +194,8 @@ export const getCategoryVolumesSnapshot = unstable_cache(
 
 /** Billed cost of a finished campaign's send window, with the last good answer as a fallback. Cached for an hour. */
 export const getBilledCostSnapshot = unstable_cache(
-  (fromIso: string, toIso: string): Promise<Snapshotted<BilledCost>> =>
-    withSnapshot(`billed:${fromIso}:${toIso}`, () => getMetaBilledCost(fromIso, toIso)),
+  (fromIso: string, toIso: string, categories: string[] = ["MARKETING", "MARKETING_LITE"]): Promise<Snapshotted<BilledCost>> =>
+    withSnapshot(`billed:${fromIso}:${toIso}:${categories.join(",")}`, () => getMetaBilledCost(fromIso, toIso, categories)),
   ["meta-billed-cost-snapshot"],
   { revalidate: 3600 },
 );

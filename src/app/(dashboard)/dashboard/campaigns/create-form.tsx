@@ -183,7 +183,7 @@ export function CreateCampaignForm({ options, batches, source }: {
       <FieldError>{errors.name}</FieldError>
     </label>
     <label className={styles.field}>
-      <span>Approved marketing template</span>
+      <span>Approved template (Marketing or Utility)</span>
       <select name="templateKey" value={selected} onChange={(event) => setSelected(event.target.value)} aria-invalid={errors.template ? true : undefined}>
         {options.map((option) => <option key={option.key} value={option.key}>{option.label}</option>)}
       </select>

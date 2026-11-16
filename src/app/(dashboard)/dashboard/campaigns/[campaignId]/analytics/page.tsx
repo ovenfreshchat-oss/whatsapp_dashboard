@@ -3,6 +3,7 @@ import { BackLink } from "@/components/ui/back-link";
 import { getCampaignAnalytics, type CampaignAnalytics } from "@/server/campaigns/analytics";
 import { AutoRefresh } from "../../auto-refresh";
 import { estimateCost, getMetaBilledCost, getRateCard, listCampaignPhones } from "@/server/campaigns/pricing";
+import { categoryForCampaign, getTemplateCategories } from "@/server/campaigns/categories";
 import { RefreshButton } from "@/components/ui/refresh-button";
 import Link from "next/link";
 import { describeErrorCode } from "@/server/campaigns/retry-explain";
@@ -48,7 +49,8 @@ export default async function CampaignAnalyticsPage({ params }: { params: Promis
   const billed = a?.firstAcceptedAt
     ? await getMetaBilledCost(
         new Date(Date.parse(a.firstAcceptedAt) - 30 * 60_000).toISOString(),
-        new Date(Math.max(Date.parse(a.lastStatusAt ?? a.firstAcceptedAt), Date.parse(a.lastAcceptedAt ?? a.firstAcceptedAt)) + 60 * 60_000).toISOString())
+        new Date(Math.max(Date.parse(a.lastStatusAt ?? a.firstAcceptedAt), Date.parse(a.lastAcceptedAt ?? a.firstAcceptedAt)) + 60 * 60_000).toISOString(),
+        categoryForCampaign(await getTemplateCategories(), a.campaign) === "UTILITY" ? ["UTILITY"] : ["MARKETING", "MARKETING_LITE"])
     : null;
   const money = (value: number, currency: string) => `${currency} ${value.toFixed(value < 1 ? 4 : 2)}`;
   const zoneName = getClientTimeZone().replace("_", " ");
