@@ -69,6 +69,7 @@ const emptyMapping: Mapping = {
 
 const COUNTRIES: [string, string][] = [
   ["", "Numbers include the country code"],
+  ["CA", "Canada (+1)"],
   ["IN", "India (+91)"],
   ["US", "United States (+1)"],
   ["GB", "United Kingdom (+44)"],
