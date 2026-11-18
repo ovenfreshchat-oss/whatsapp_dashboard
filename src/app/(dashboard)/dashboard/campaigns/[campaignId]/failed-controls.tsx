@@ -1,11 +1,11 @@
 "use client";
 
-import { useActionState, useRef, useState, useTransition } from "react";
+import { useActionState, useRef, useState, useTransition, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Spinner } from "@/components/ui/spinner";
 import { useActionToast, useFeedback } from "@/components/ui/feedback";
 import {
-  reactivateContactAction, resolveSenderAlertAction, retryFailedMessagesAction, setAutoRetryAction,
+  reactivateContactAction, reactivateManyAction, resolveSenderAlertAction, retryFailedMessagesAction, setAutoRetryAction,
   type RetryActionState,
 } from "./failed-actions";
 import styles from "../../contacts/contacts.module.css";
@@ -83,6 +83,47 @@ export function ReactivateButton({ phone, campaignId }: { phone: string; campaig
   }
   return <button className={styles.secondaryButton} type="button" onClick={run} disabled={pending} aria-busy={pending || undefined} aria-label={`Reactivate ${phone}`}>
     {pending ? <><Spinner /> Working…</> : "Review"}
+  </button>;
+}
+
+/** Header checkbox for a selection form: ticks or clears every "phone" checkbox inside it. */
+export function SelectAllCheckbox({ formId, label }: { formId: string; label: string }) {
+  function toggle(event: ChangeEvent<HTMLInputElement>) {
+    const form = document.getElementById(formId) as HTMLFormElement | null;
+    form?.querySelectorAll<HTMLInputElement>('input[name="phone"]').forEach((box) => { box.checked = event.target.checked; });
+  }
+  return <input type="checkbox" aria-label={label} onChange={toggle} />;
+}
+
+/** Reactivates every checked contact (checkboxes named "phone" inside the form `formId`) in one go. */
+export function ReactivateSelectedButton({ formId, campaignId }: { formId: string; campaignId: string }) {
+  const { confirm, toast } = useFeedback();
+  const [pending, start] = useTransition();
+  async function run() {
+    const form = document.getElementById(formId) as HTMLFormElement | null;
+    const phones = form ? [...form.querySelectorAll<HTMLInputElement>('input[name="phone"]:checked')].map((box) => box.value) : [];
+    if (phones.length === 0) {
+      toast({ tone: "error", title: "Nothing selected", message: "Tick at least one contact to reactivate." });
+      return;
+    }
+    const ok = await confirm({
+      title: `Allow ${phones.length} ${phones.length === 1 ? "number" : "numbers"} in campaigns again?`,
+      description: <>These contacts will be included in future campaigns. Earlier failures stop counting, and each is blocked again if it fails again. A Global Opt Out is not changed.</>,
+      confirmLabel: `Reactivate ${phones.length}`,
+      cancelLabel: "Keep blocked",
+    });
+    if (!ok) return;
+    start(async () => {
+      const data = new FormData();
+      for (const phone of phones) data.append("phone", phone);
+      data.set("campaignId", campaignId);
+      let result: RetryActionState = { error: "The numbers could not be reactivated. Check your connection and try again.", success: "" };
+      try { result = await reactivateManyAction(initial, data); } catch { /* keep default */ }
+      toast(result.error ? { tone: "error", title: "Not reactivated", message: result.error } : { tone: "success", title: "Reactivated", message: result.success });
+    });
+  }
+  return <button className={styles.button} type="button" onClick={run} disabled={pending} aria-busy={pending || undefined}>
+    {pending ? <><Spinner /> Working…</> : "Reactivate Selected"}
   </button>;
 }
 

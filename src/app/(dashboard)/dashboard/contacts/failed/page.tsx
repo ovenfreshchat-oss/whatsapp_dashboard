@@ -4,7 +4,7 @@ import { ArrowLeft, Search } from "lucide-react";
 import { Pagination, pageFrom } from "@/components/ui/pagination";
 import { createStaffAdminClient } from "@/server/auth/staff-users/admin";
 import { formatDate, formatDateTime } from "@/lib/timezone";
-import { ReactivateButton } from "@/app/(dashboard)/dashboard/campaigns/[campaignId]/failed-controls";
+import { ReactivateButton, ReactivateSelectedButton, SelectAllCheckbox } from "@/app/(dashboard)/dashboard/campaigns/[campaignId]/failed-controls";
 import styles from "../contacts.module.css";
 
 export const metadata: Metadata = {
@@ -121,26 +121,35 @@ export default async function FailedContactsPage({ searchParams }: { searchParam
 
         {!ready ? <p className={styles.empty}>Could not load this list. Check that drizzle/0025 and 0026 are applied.</p>
           : rows.length === 0 ? <p className={styles.empty}>{search ? `No ${current.label} contact matches your search.` : `No contacts are ${current.label} right now.`}</p>
-          : <div className={styles.tableWrap}>
-              <table>
-                <thead><tr><th>Contact</th><th>Why</th><th>Last failure</th><th>{tab === "do_not_send" ? "Held until" : "Status"}</th><th><span className="sr-only">Action</span></th></tr></thead>
-                <tbody>
-                  {rows.map((row) => {
-                    const failure = latest.get(row.phone_e164);
-                    const due = row.review_due_at ?? row.hold_until;
-                    return <tr key={row.contact_id}>
-                      <td><strong>{names.get(row.contact_id) ?? row.phone_e164}</strong>{names.has(row.contact_id) && <><br /><small>{row.phone_e164}</small></>}</td>
-                      <td>{(row.reason && REASON[row.reason]) ?? row.reason ?? "—"}</td>
-                      <td>{failure
-                        ? <>{failure.error_code}{failure.error_title ? ` · ${failure.error_title}` : ""}<br /><small>{formatDateTime(failure.failed_at)}{campaigns.get(failure.campaign_id) ? ` · ${campaigns.get(failure.campaign_id)}` : ""}</small></>
-                        : "—"}</td>
-                      <td>{tab === "do_not_send" ? (due ? formatDate(due) : "Now") : "Still messaged"}</td>
-                      <td><ReactivateButton phone={row.phone_e164} campaignId="" /></td>
-                    </tr>;
-                  })}
-                </tbody>
-              </table>
-            </div>}
+          : <>
+              <form id={`failedSelection-${tab}`} className={styles.tableWrap}>
+                <table>
+                  <thead><tr>
+                    <th><SelectAllCheckbox formId={`failedSelection-${tab}`} label={`Select all ${current.label} contacts on this page`} /></th>
+                    <th>Contact</th><th>Why</th><th>Last failure</th><th>{tab === "do_not_send" ? "Held until" : "Status"}</th><th><span className="sr-only">Action</span></th>
+                  </tr></thead>
+                  <tbody>
+                    {rows.map((row) => {
+                      const failure = latest.get(row.phone_e164);
+                      const due = row.review_due_at ?? row.hold_until;
+                      return <tr key={row.contact_id}>
+                        <td><input type="checkbox" name="phone" value={row.phone_e164} aria-label={`Select ${names.get(row.contact_id) ?? row.phone_e164}`} /></td>
+                        <td><strong>{names.get(row.contact_id) ?? row.phone_e164}</strong>{names.has(row.contact_id) && <><br /><small>{row.phone_e164}</small></>}</td>
+                        <td>{(row.reason && REASON[row.reason]) ?? row.reason ?? "—"}</td>
+                        <td>{failure
+                          ? <>{failure.error_code}{failure.error_title ? ` · ${failure.error_title}` : ""}<br /><small>{formatDateTime(failure.failed_at)}{campaigns.get(failure.campaign_id) ? ` · ${campaigns.get(failure.campaign_id)}` : ""}</small></>
+                          : "—"}</td>
+                        <td>{tab === "do_not_send" ? (due ? formatDate(due) : "Now") : "Still messaged"}</td>
+                        <td><ReactivateButton phone={row.phone_e164} campaignId="" /></td>
+                      </tr>;
+                    })}
+                  </tbody>
+                </table>
+              </form>
+              <div className={styles.actions}>
+                <ReactivateSelectedButton formId={`failedSelection-${tab}`} campaignId="" />
+              </div>
+            </>}
         {ready && <Pagination page={page} total={total} pageSize={PAGE_SIZE} path="/dashboard/contacts/failed" query={{ tab: tab === "at_risk" ? undefined : tab, q: search || undefined }} param="p" label="Failed contact pages" />}
       </section>
     </div>

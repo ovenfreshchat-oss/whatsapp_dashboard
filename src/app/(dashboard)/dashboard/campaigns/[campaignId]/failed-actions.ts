@@ -105,6 +105,36 @@ export async function reactivateContactAction(_previous: RetryActionState, form:
   return { error: "", success: `${phone} can receive campaigns again.` };
 }
 
+/** Bulk version of reactivateContactAction for the selection checkboxes on the Failed Contacts list. */
+export async function reactivateManyAction(_previous: RetryActionState, form: FormData): Promise<RetryActionState> {
+  const phones = [...new Set(form.getAll("phone").map(String))].filter((phone) => PHONE.test(phone));
+  const campaignId = form.get("campaignId");
+  if (phones.length === 0) return { error: "Select at least one contact.", success: "" };
+  if (phones.length > MAX_SELECTION) return { error: `Select ${MAX_SELECTION} or fewer contacts at a time.`, success: "" };
+  const who = await actor();
+  if (!who) return DENIED;
+  let reactivated = 0;
+  let optOut = 0;
+  let failed = 0;
+  for (const phone of phones) {
+    const state = await who.admin.rpc("contact_delivery_state", { p_phone: phone });
+    const current = Array.isArray(state.data) ? state.data[0] as Record<string, unknown> | undefined : undefined;
+    if (state.error || !current) { failed++; continue; }
+    if (current.status === "opt_out") { optOut++; continue; }
+    const { data, error } = await who.admin.rpc("reactivate_contact_delivery", { p_phone: phone, p_actor_user_id: who.userId, p_note: null });
+    if (error || data !== true) { failed++; continue; }
+    reactivated++;
+  }
+  refresh(isUuid(campaignId) ? campaignId : null);
+  revalidatePath("/dashboard/contacts");
+  revalidatePath("/dashboard/contacts/failed");
+  if (reactivated === 0) return { error: "None of the selected contacts could be reactivated.", success: "" };
+  const parts = [`${reactivated} ${reactivated === 1 ? "contact can" : "contacts can"} receive campaigns again.`];
+  if (optOut > 0) parts.push(`${optOut} ${optOut === 1 ? "is" : "are"} on the Global Opt Out list and ${optOut === 1 ? "was" : "were"} skipped.`);
+  if (failed > 0) parts.push(`${failed} ${failed === 1 ? "failed" : "failed"} to update.`);
+  return { error: "", success: parts.join(" ") };
+}
+
 /** Marks a Meta number restriction (131048) as handled, so paused retries can resume. */
 export async function resolveSenderAlertAction(_previous: RetryActionState, form: FormData): Promise<RetryActionState> {
   const id = form.get("alertId");
