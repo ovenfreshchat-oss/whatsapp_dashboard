@@ -1,0 +1,79 @@
+.root { position: relative; display: inline-flex; }
+
+.bell {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px;
+  border: 0; border-radius: 10px; color: #cbd5e1; background: transparent; cursor: pointer;
+}
+.bell:hover { color: #fff; background: rgba(255, 255, 255, .08); }
+.bell:focus-visible { outline: 3px solid rgba(247, 73, 50, .6); outline-offset: 2px; }
+
+.badge {
+  position: absolute; top: 3px; right: 3px; display: grid; min-width: 16px; height: 16px; padding: 0 3px;
+  border-radius: 999px; color: #fff; background: var(--coral); font-size: 10px; font-weight: 800; line-height: 16px; text-align: center;
+}
+
+.panel {
+  position: fixed; z-index: 60; display: flex; flex-direction: column; width: min(360px, calc(100vw - 16px));
+  max-height: min(520px, calc(100vh - 80px)); overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius);
+  /* The sidebar/header that hosts the bell sets color:#fff; reset it so the white-on-white panel reads correctly. */
+  color: var(--text); background: var(--surface); box-shadow: var(--shadow-lg);
+}
+
+.panelHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.panelHead strong { font-size: 14px; }
+.panelHeadActions { display: flex; align-items: center; gap: 4px; }
+
+.textButton {
+  display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--accent-dark);
+  font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.textButton:hover { text-decoration: underline; }
+
+.iconButton {
+  display: inline-grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 8px;
+  color: var(--muted); background: transparent; cursor: pointer;
+}
+.iconButton:hover, .iconButton[aria-pressed="true"] { color: var(--ink); background: var(--sand-100); }
+
+.settings { display: grid; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--sand-50); }
+.settingRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--ink-800); font-size: 13px; }
+.settingRow input[type="range"] { width: 120px; }
+
+.enableSound {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 10px; border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm); color: var(--accent-dark); background: #fff; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.enableSound:hover { background: var(--accent-soft); }
+
+.list { flex: 1 1 auto; margin: 0; padding: 4px; list-style: none; overflow-y: auto; }
+.empty { padding: 28px 12px; color: var(--muted); font-size: 13px; text-align: center; }
+
+.item { position: relative; display: flex; align-items: stretch; border-radius: 10px; }
+.item:hover { background: var(--sand-50); }
+.itemUnread { background: var(--accent-soft); }
+.itemUnread:hover { background: var(--accent-soft); }
+
+.itemButton {
+  display: flex; flex: 1 1 auto; align-items: flex-start; gap: 10px; min-width: 0; padding: 10px 32px 10px 10px;
+  border: 0; background: transparent; text-align: left; cursor: pointer;
+}
+
+.itemIcon {
+  display: grid; flex: 0 0 auto; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  color: var(--cat-utility); background: var(--cat-utility-bg);
+}
+.itemIcon[data-kind="campaign_completed"] { color: var(--wa-700); background: var(--wa-50); }
+.itemIcon[data-kind="campaign_failed"] { color: var(--danger-700); background: var(--danger-50); }
+
+.itemText { display: grid; gap: 2px; min-width: 0; }
+.itemText strong { overflow: hidden; color: var(--ink); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.itemText span { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.itemText time { color: var(--faint); font-size: 11px; }
+
+.clearButton {
+  position: absolute; top: 8px; right: 6px; display: grid; place-items: center; width: 22px; height: 22px; padding: 0;
+  border: 0; border-radius: 6px; color: var(--faint); background: transparent; cursor: pointer;
+}
+.clearButton:hover { color: var(--danger-700); background: var(--danger-50); }
+
+.panelFoot { display: flex; justify-content: center; padding: 8px 14px; border-top: 1px solid var(--line); }

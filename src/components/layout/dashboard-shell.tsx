@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { signOut } from "@/server/auth/actions";
 import { FeedbackProvider } from "@/components/ui/feedback";
+import { NotificationCenter } from "@/components/notifications/notification-center";
 import { Brand } from "./brand";
 import { NavLinks } from "./nav-links";
 import { SignOutButton } from "./sign-out-button";
@@ -30,6 +31,7 @@ export function DashboardShell({ isAdmin = false, canWork = false, email, childr
             <NavLinks isAdmin={isAdmin} canWork={canWork} />
           </nav>
           <div className={styles.headerActions}>
+            {canWork && <NotificationCenter email={email} />}
             {email && <div className={styles.account} title={email}>
               <span className={styles.avatar} aria-hidden="true">{initial}</span>
               <span className={styles.accountText}><strong>{isAdmin ? "Admin" : "Staff"}</strong><small>{email}</small></span>
